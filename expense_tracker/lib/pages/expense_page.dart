@@ -1,14 +1,22 @@
+import 'dart:convert';
+
 import 'package:expense_tracker/constant.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+// =====================================
+// API METHODS
+// =====================================
+
 Future<List<dynamic>> fetchExpenses(String bookId) async {
-  final url = Uri.parse('${expenseUrl}book/$bookId'); // LAN IP for real device
+  final url = Uri.parse('${expenseUrl}book/$bookId');
+
   final res = await http.get(url);
+
   if (res.statusCode != 200) {
     throw Exception('Failed: ${res.statusCode}');
   }
+
   return jsonDecode(res.body) as List<dynamic>;
 }
 
@@ -16,47 +24,62 @@ Future<void> addExpense(
   String description,
   String amount,
   String bookId,
+  bool isCredit,
 ) async {
   final url = Uri.parse('${expenseUrl}create');
+
   final res = await http.post(
     url,
     headers: {'Content-Type': 'application/json'},
     body: jsonEncode({
       'description': description,
-      'amount': double.parse(amount),
+      'amount': double.tryParse(amount) ?? 0,
       'book': {'id': int.parse(bookId)},
+      'credit': isCredit,
     }),
   );
+
   if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to add expense: ${res.statusCode}');
+    throw Exception('Failed to add expense');
   }
 }
 
-Future<dynamic> deleteExpense(String id) async {
-  final url = Uri.parse('${expenseUrl}delete/$id');
-  final res = await http.delete(url);
-  if (res.statusCode != 200) {
-    throw Exception('Failed to delete expense: ${res.statusCode}');
-  }
-  return jsonDecode(res.body);
-}
-
-Future<dynamic> updateExpense(
+Future<void> updateExpense(
   String id,
   String description,
   String amount,
+  bool isCredit,
 ) async {
   final url = Uri.parse('${expenseUrl}edit/$id');
+
   final res = await http.put(
     url,
     headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'description': description, 'amount': double.parse(amount)}),
+    body: jsonEncode({
+      'description': description,
+      'amount': double.tryParse(amount) ?? 0,
+      'isCredit': isCredit,
+    }),
   );
-  if (res.statusCode != 200 && res.statusCode != 401) {
-    throw Exception('Failed to update expense: ${res.statusCode}');
+
+  if (res.statusCode != 200 && res.statusCode != 201) {
+    throw Exception('Failed to update expense');
   }
-  return jsonDecode(res.body);
 }
+
+Future<void> deleteExpense(String id) async {
+  final url = Uri.parse('${expenseUrl}delete/$id');
+
+  final res = await http.delete(url);
+
+  if (res.statusCode != 200) {
+    throw Exception('Failed to delete expense');
+  }
+}
+
+// =====================================
+// EXPENSE PAGE
+// =====================================
 
 class ExpensePage extends StatefulWidget {
   final String bookId;
@@ -69,214 +92,441 @@ class ExpensePage extends StatefulWidget {
 }
 
 class _ExpensePageState extends State<ExpensePage> {
-  TextEditingController descriptionController = TextEditingController();
-  TextEditingController amountController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
 
-  // Add a reload trigger
+  final TextEditingController amountController = TextEditingController();
+
   late Future<List<dynamic>> _expensesFuture;
+
+  bool isCredit = false;
 
   @override
   void initState() {
     super.initState();
-    _expensesFuture = fetchExpenses(
-      widget.bookId,
-    ); // Pass bookId to fetch expenses for the specific book
+
+    _expensesFuture = fetchExpenses(widget.bookId);
   }
+
+  @override
+  void dispose() {
+    descriptionController.dispose();
+    amountController.dispose();
+
+    super.dispose();
+  }
+
+  // =====================================
+  // RELOAD
+  // =====================================
 
   void _reloadExpenses() {
     setState(() {
-      _expensesFuture = fetchExpenses(
-        widget.bookId,
-      ); // Reload expenses for the specific book
+      _expensesFuture = fetchExpenses(widget.bookId);
     });
   }
+
+  // =====================================
+  // TOGGLE WIDGET
+  // =====================================
+
+  Widget buildToggleButtons(void Function(void Function()) dialogSetState) {
+    return ToggleButtons(
+      isSelected: [!isCredit, isCredit],
+
+      onPressed: (index) {
+        dialogSetState(() {
+          isCredit = index == 1;
+        });
+      },
+
+      borderRadius: BorderRadius.circular(8),
+
+      selectedColor: Colors.white,
+      color: Colors.grey.shade700,
+
+      fillColor: Colors.deepPurple,
+
+      borderColor: Colors.grey.shade400,
+      selectedBorderColor: Colors.deepPurple,
+
+      constraints: const BoxConstraints(minHeight: 50, minWidth: 110),
+
+      children: const [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text("DEBIT", style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Text("CREDIT", style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  // =====================================
+  // ADD EXPENSE
+  // =====================================
+
+  void _showAddExpenseDialog() {
+    descriptionController.clear();
+    amountController.clear();
+
+    bool dialogIsCredit = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return AlertDialog(
+              title: const Text("Add Expense"),
+
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: "Description"),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Amount"),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  ToggleButtons(
+                    isSelected: [!dialogIsCredit, dialogIsCredit],
+
+                    onPressed: (index) {
+                      dialogSetState(() {
+                        dialogIsCredit = index == 1;
+                      });
+                    },
+
+                    borderRadius: BorderRadius.circular(8),
+
+                    selectedColor: Colors.white,
+                    color: Colors.grey.shade700,
+
+                    fillColor: Colors.deepPurple,
+
+                    constraints: const BoxConstraints(
+                      minHeight: 50,
+                      minWidth: 110,
+                    ),
+
+                    children: const [
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          "DEBIT",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: Text(
+                          "CREDIT",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogContext);
+                  },
+                  child: const Text("Cancel"),
+                ),
+
+                TextButton(
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+
+                    await addExpense(
+                      descriptionController.text,
+                      amountController.text,
+                      widget.bookId,
+                      dialogIsCredit,
+                    );
+
+                    _reloadExpenses();
+                  },
+                  child: const Text("Add"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+  // =====================================
+  // EDIT EXPENSE
+  // =====================================
+
+  void _showEditDialog(Map<String, dynamic> item) {
+    descriptionController.text = item['description']?.toString() ?? '';
+
+    amountController.text = item['amount']?.toString() ?? '';
+
+    isCredit = item['credit'].toString().toLowerCase() == 'true';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Edit Expense"),
+
+          content: StatefulBuilder(
+            builder: (context, dialogSetState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(labelText: "Description"),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: "Amount"),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  buildToggleButtons(dialogSetState),
+                ],
+              );
+            },
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("Cancel"),
+            ),
+
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogContext);
+
+                await updateExpense(
+                  item['id'].toString(),
+                  descriptionController.text,
+                  amountController.text,
+                  isCredit,
+                );
+
+                if (!mounted) return;
+
+                _reloadExpenses();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Expense Updated")),
+                );
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // =====================================
+  // DELETE
+  // =====================================
+
+  Future<void> _deleteExpense(String id, BuildContext dialogContext) async {
+    Navigator.pop(dialogContext);
+
+    await deleteExpense(id);
+
+    if (!mounted) return;
+
+    _reloadExpenses();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Expense Deleted")));
+  }
+
+  // =====================================
+  // DETAILS DIALOG
+  // =====================================
+
+  void _showExpenseDetails(Map<String, dynamic> item) {
+    final description = item['description']?.toString() ?? '';
+
+    final amount = item['amount']?.toString() ?? '';
+
+    final isCreditExpense = item['credit'].toString().toLowerCase() == 'true';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Expense Details"),
+
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Description: $description"),
+
+              const SizedBox(height: 8),
+
+              Text("Amount: ₹$amount"),
+
+              const SizedBox(height: 8),
+
+              Text(isCreditExpense ? "Type: Credit" : "Type: Debit"),
+            ],
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+
+                _showEditDialog(item);
+              },
+              child: const Text("Edit"),
+            ),
+
+            TextButton(
+              onPressed: () async {
+                await _deleteExpense(item['id'].toString(), dialogContext);
+              },
+              child: const Text("Delete"),
+            ),
+
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text("Close"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // =====================================
+  // UI
+  // =====================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.bookName, style: TextStyle(color: Colors.white)),
-        centerTitle: true,
         backgroundColor: Colors.deepPurple,
+
+        centerTitle: true,
+
+        title: Text(
+          widget.bookName,
+          style: const TextStyle(color: Colors.white),
+        ),
       ),
+
       body: FutureBuilder<List<dynamic>>(
         future: _expensesFuture,
+
         builder: (context, snapshot) {
+          // LOADING
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
+
+          // ERROR
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \\${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final items = snapshot.data ?? [];
+
+          // EMPTY
+          if (items.isEmpty) {
+            return const Center(child: Text("No Expenses Found"));
+          }
+
           return ListView.builder(
             itemCount: items.length,
+
             itemBuilder: (context, index) {
               final item = items[index] as Map<String, dynamic>;
+
               final description = item['description']?.toString() ?? '';
+
               final amount = item['amount']?.toString() ?? '';
 
+              final isCreditExpense =
+                  item['credit'].toString().toLowerCase() == 'true';
+
               return Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.all(8),
+
                 child: ListTile(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: Text("Expense Details"),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Description: $description"),
-                            SizedBox(height: 8),
-                            Text("Amount: $amount"),
-                          ],
-                        ),
-                        actions: [
-                          Row(
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                  showDialog(
-                                    context: context,
-                                    builder: (dialogContext) => AlertDialog(
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          TextField(
-                                            controller: descriptionController
-                                              ..text = description,
-                                            decoration: InputDecoration(
-                                              labelText: 'Description',
-                                            ),
-                                          ),
-                                          TextField(
-                                            controller: amountController
-                                              ..text = amount,
-                                            decoration: InputDecoration(
-                                              labelText: 'Amount',
-                                            ),
-                                            keyboardType: TextInputType.number,
-                                          ),
-                                        ],
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(dialogContext);
-                                          },
-                                          child: Text("Cancel"),
-                                        ),
-                                        TextButton(
-                                          onPressed: () {
-                                            updateExpense(
-                                              item['id'].toString(),
-                                              descriptionController.text,
-                                              amountController.text,
-                                            ).then((_) {
-                                              _reloadExpenses();
-                                            });
-                                            Navigator.pop(dialogContext);
-                                          },
-                                          child: Text("Save"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                child: Text("Edit"),
-                              ),
-                              SizedBox(width: 8),
-                              TextButton(
-                                onPressed: () {
-                                  deleteExpense(item['id'].toString()).then((
-                                    _,
-                                  ) {
-                                    _reloadExpenses();
-                                  });
-                                  Navigator.pop(dialogContext);
-                                },
-                                child: Text("Delete"),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                },
-                                child: Text("Close"),
-                              ),
-                            ],
-                          ),
-                          // Optional: Add Edit or Delete buttons here
-                        ],
-                      ),
-                    );
-                    // Optional: Implement edit or delete functionality here
-                  },
-                  tileColor: Colors.grey[200],
+                  tileColor: Colors.grey.shade200,
+
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+
                   title: Text(
                     description,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+
                   trailing: Text(
-                    amount,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    isCreditExpense ? '+ ₹$amount' : '- ₹$amount',
+
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isCreditExpense ? Colors.green : Colors.red,
+                    ),
                   ),
+
+                  onTap: () {
+                    _showExpenseDetails(item);
+                  },
                 ),
               );
             },
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: Text("Add Expense"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: descriptionController,
-                    decoration: InputDecoration(labelText: 'Description'),
-                  ),
-                  TextField(
-                    controller: amountController,
-                    decoration: InputDecoration(labelText: 'Amount'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: Text("Cancel"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await addExpense(
-                      descriptionController.text,
-                      amountController.text,
-                      widget.bookId, // Pass bookId when adding an expense
-                    );
-                    Navigator.pop(dialogContext);
-                    _reloadExpenses();
-                    descriptionController.clear();
-                    amountController.clear();
-                  },
-                  child: Text("Add"),
-                ),
-              ],
-            ),
-          );
-        },
-        backgroundColor: Colors.blueAccent,
-        child: Icon(Icons.add, color: Colors.white),
+        backgroundColor: Colors.deepPurple,
+
+        onPressed: _showAddExpenseDialog,
+
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }

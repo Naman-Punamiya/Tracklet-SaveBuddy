@@ -2,25 +2,44 @@ import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/pages/expense_page.dart';
+import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final int userId;
+  final String email;
+  final String password;
+  const HomePage({
+    super.key,
+    required this.userId,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  TextEditingController bookNameController = TextEditingController();
+  final TextEditingController bookNameController = TextEditingController();
 
   late Future<List<dynamic>> _booksFuture;
+
+  String get basicAuth =>
+      'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
   @override
   void initState() {
     super.initState();
     _booksFuture = fetchBooks();
+  }
+
+  @override
+  void dispose() {
+    bookNameController.dispose();
+    super.dispose();
   }
 
   void _reloadBooks() {
@@ -29,38 +48,191 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  void _showAddBookDialog() {
+    bookNameController.clear();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Add Book"),
+        content: TextField(
+          controller: bookNameController,
+          decoration: const InputDecoration(labelText: 'Book Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+
+              await addBook(bookNameController.text);
+
+              if (!mounted) return;
+
+              _reloadBooks();
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Book Added Successfully")),
+              );
+            },
+            child: const Text("Add"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditBookDialog(String id, String currentBookName) {
+    bookNameController.text = currentBookName;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Edit Book"),
+        content: TextField(
+          controller: bookNameController,
+          decoration: const InputDecoration(labelText: 'Book Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+
+              await updateBook(id, bookNameController.text);
+
+              if (!mounted) return;
+
+              _reloadBooks();
+
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Book Updated")));
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteBook(String id, BuildContext dialogContext) async {
+    Navigator.pop(dialogContext);
+
+    await deleteBook(id);
+
+    if (!mounted) return;
+
+    _reloadBooks();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Book Deleted")));
+  }
+
+  void _showBookDetails(Map<String, dynamic> item) {
+    final String bookName = item['name']?.toString() ?? '';
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Book Details"),
+        content: Text("Book Name: $bookName"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+
+              _showEditBookDialog(item['id'].toString(), bookName);
+            },
+            child: const Text("Edit"),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _deleteBook(item['id'].toString(), dialogContext);
+            },
+            child: const Text("Delete"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+            },
+            child: const Text("Close"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Expense Pages", style: TextStyle(color: Colors.white)),
+        title: Text(
+          "Expense Books",
+          style: const TextStyle(color: Colors.white),
+        ),
         centerTitle: true,
         backgroundColor: Colors.deepPurple,
       ),
+
       body: FutureBuilder<List<dynamic>>(
         future: _booksFuture,
         builder: (context, snapshot) {
+          // Loading
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
+
+          // Error
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \\${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
+
           final items = snapshot.data ?? [];
+
+          // Empty State
+          if (items.isEmpty) {
+            return const Center(
+              child: Text("No Books Found", style: TextStyle(fontSize: 18)),
+            );
+          }
+
           return ListView.builder(
             itemCount: items.length,
             itemBuilder: (context, index) {
               final item = items[index] as Map<String, dynamic>;
+
               final bookName = item['name']?.toString() ?? '';
-              // final bookEntries = item['description']?.toString() ?? '';
+
               return Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: ListTile(
+                  tileColor: Colors.grey[200],
+
+                  title: Text(
+                    bookName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ExpensePage(
+                        builder: (_) => ExpensePage(
                           bookId: item['id'].toString(),
                           bookName: bookName,
                         ),
@@ -69,188 +241,83 @@ class _HomePageState extends State<HomePage> {
                   },
 
                   onLongPress: () {
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: Text("Book Details"),
-
-                        content: Text("Book Name: $bookName"),
-
-                        actions: [
-                          Row(
-                            children: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-
-                                  showDialog(
-                                    context: context,
-                                    builder: (dialogContext) => AlertDialog(
-                                      title: Text("Edit Book"),
-
-                                      content: TextField(
-                                        controller: bookNameController
-                                          ..text = bookName,
-                                        decoration: InputDecoration(
-                                          labelText: 'Book Name',
-                                        ),
-                                      ),
-
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(dialogContext);
-                                          },
-                                          child: Text("Cancel"),
-                                        ),
-
-                                        TextButton(
-                                          onPressed: () async {
-                                            await updateBook(
-                                              item['id'].toString(),
-                                              bookNameController.text,
-                                              "",
-                                            );
-
-                                            Navigator.pop(dialogContext);
-
-                                            _reloadBooks();
-
-                                            bookNameController.clear();
-                                          },
-                                          child: Text("Save"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                child: Text("Edit"),
-                              ),
-
-                              SizedBox(width: 8),
-
-                              TextButton(
-                                onPressed: () async {
-                                  await deleteBook(item['id'].toString());
-
-                                  Navigator.pop(dialogContext);
-
-                                  _reloadBooks();
-                                },
-                                child: Text("Delete"),
-                              ),
-
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                },
-                                child: Text("Close"),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
+                    _showBookDetails(item);
                   },
-
-                  tileColor: Colors.grey[200],
-
-                  title: Text(
-                    bookName,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  ),
-
-                  // trailing: Text(
-                  //   0.toString(),
-                  //   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-                  // ),
                 ),
               );
             },
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (dialogContext) => AlertDialog(
-              title: Text("Add Book"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: bookNameController,
-                    decoration: InputDecoration(labelText: 'Book Name'),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(dialogContext);
-                  },
-                  child: Text("Cancel"),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await addBook(bookNameController.text, 0.toString());
-                    Navigator.pop(dialogContext);
-                    _reloadBooks();
-                    bookNameController.clear();
-                  },
-                  child: Text("Add"),
-                ),
-              ],
-            ),
-          );
-        },
+        onPressed: _showAddBookDialog,
         backgroundColor: Colors.blueAccent,
-        child: Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
-}
 
-Future<List<dynamic>> fetchBooks() async {
-  final url = Uri.parse("${bookUrl}readAll");
-  final res = await http.get(url);
-  if (res.statusCode != 200) {
-    throw Exception('Failed to load books');
-  }
-  return jsonDecode(res.body);
-}
+  Future<List<dynamic>> fetchBooks() async {
+    final url = Uri.parse("${bookUrl}readAll");
 
-Future<void> addBook(String name, String description) async {
-  final url = Uri.parse("${bookUrl}create");
-  final res = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'name': name}),
-  );
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to add book');
-  }
-}
+    final res = await http.get(
+      url,
+      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
+    );
 
-Future<dynamic> deleteBook(String id) async {
-  final url = Uri.parse("${bookUrl}delete/$id");
-  final res = await http.delete(url);
-  if (res.statusCode != 200) {
-    throw Exception('Failed to delete book');
-  }
-  return jsonDecode(res.body);
-}
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load books');
+    }
 
-Future<dynamic> updateBook(String id, String name, String description) async {
-  final url = Uri.parse("${bookUrl}update/$id");
-  final res = await http.put(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'name': name}),
-  );
-  if (res.statusCode != 200) {
-    throw Exception('Failed to update book');
+    return jsonDecode(res.body);
   }
-  return jsonDecode(res.body);
+
+  Future<void> addBook(String name) async {
+    final url = Uri.parse("${bookUrl}create");
+
+    final res = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'name': name}),
+    );
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to add book');
+    }
+  }
+
+  Future<void> deleteBook(String id) async {
+    final url = Uri.parse("${bookUrl}delete/$id");
+
+    final res = await http.delete(url);
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to delete book');
+    }
+  }
+
+  Future<void> updateBook(String id, String name) async {
+    final url = Uri.parse("${bookUrl}edit/$id");
+
+    final res = await http.put(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'name': name}),
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to update book');
+    }
+  }
+
+  Future<void> logout() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    await prefs.clear();
+
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => LoginPage()));
+  }
 }
