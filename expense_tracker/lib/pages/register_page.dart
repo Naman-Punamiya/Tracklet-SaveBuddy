@@ -1,5 +1,10 @@
+import 'dart:convert';
+
+import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -9,6 +14,10 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  TextEditingController fullNameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
@@ -86,6 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         SizedBox(height: 25),
                         TextField(
+                          controller: fullNameController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               gapPadding: 10,
@@ -100,6 +110,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         SizedBox(height: 20),
                         TextField(
+                          controller: emailController,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
@@ -113,6 +124,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         SizedBox(height: 20),
                         TextField(
+                          controller: passwordController,
+                          obscureText: true,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(25),
@@ -126,6 +139,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                         SizedBox(height: 20),
                         TextField(
+                          controller: confirmPasswordController,
+                          obscureText: true,
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
                               gapPadding: 10,
@@ -143,7 +158,20 @@ class _RegisterPageState extends State<RegisterPage> {
                           width: 200,
                           height: 60,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              if (passwordController.text.trim() !=
+                                  confirmPasswordController.text.trim()) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text("Passwords do not match!"),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              } else {
+                                userAuthenticated();
+                              }
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xffff9f6e),
                               foregroundColor: Colors.white,
@@ -196,5 +224,52 @@ class _RegisterPageState extends State<RegisterPage> {
         ),
       ),
     );
+  }
+
+  Future<void> userAuthenticated() async {
+    final response = await http.post(
+      Uri.parse("http://10.0.2.2:8080/api/users/register"),
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: jsonEncode({
+        "name": fullNameController.text.trim(),
+        "email": emailController.text.trim(),
+        "password": passwordController.text.trim(),
+      }),
+    );
+    print(response.statusCode);
+    print(response.body);
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration failed! Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    } else {
+      final data = jsonDecode(response.body);
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool("isLoggedIn", true);
+      await prefs.setString("email", emailController.text.trim());
+      await prefs.setString("password", passwordController.text.trim());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration successful!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => HomePage(
+            userId: data['id'],
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          ),
+        ),
+      );
+    }
   }
 }

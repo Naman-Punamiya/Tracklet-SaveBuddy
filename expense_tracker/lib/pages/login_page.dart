@@ -1,3 +1,4 @@
+import 'package:expense_tracker/pages/book_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/register_page.dart';
 import 'package:flutter/material.dart';
@@ -196,16 +197,18 @@ class _LoginPageState extends State<LoginPage> {
         "password": passwordController.text.trim(),
       }),
     );
-
-    print(response.statusCode);
-    print(response.body);
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool("isLoggedIn", true);
       await prefs.setString("email", emailController.text.trim());
       await prefs.setString("password", passwordController.text.trim());
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Login successful"),
+          backgroundColor: Colors.green,
+        ),
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => HomePage(
@@ -216,7 +219,12 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
     } else {
-      print("Invalid Credentials");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Invalid Credentials"),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }

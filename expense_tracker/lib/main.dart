@@ -1,3 +1,4 @@
+import 'package:expense_tracker/pages/book_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ class MyApp extends StatelessWidget {
   final bool isLoggedIn;
   final String email;
   final String password;
-  MyApp({
+  const MyApp({
     super.key,
     required this.isLoggedIn,
     required this.email,
