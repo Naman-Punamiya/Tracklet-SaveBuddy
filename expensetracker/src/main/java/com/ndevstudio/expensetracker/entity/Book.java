@@ -19,4 +19,8 @@ public class Book {
     private Long id;
 
     private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

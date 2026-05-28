@@ -18,14 +18,14 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  late bool isLoggedIn;
-  late String email;
-  late String password;
+  final bool isLoggedIn;
+  final String email;
+  final String password;
   MyApp({
     super.key,
-    required bool isLoggedIn,
-    required String email,
-    required String password,
+    required this.isLoggedIn,
+    required this.email,
+    required this.password,
   });
   @override
   Widget build(BuildContext context) {

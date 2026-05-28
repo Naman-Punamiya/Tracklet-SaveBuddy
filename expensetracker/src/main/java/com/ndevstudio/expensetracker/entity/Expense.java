@@ -15,8 +15,13 @@ public class Expense {
     private long id;
     private double amount;
     private String description;
+    private boolean isCredit;
 
     @ManyToOne
     @JoinColumn(name = "book_id")
     private Book book;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

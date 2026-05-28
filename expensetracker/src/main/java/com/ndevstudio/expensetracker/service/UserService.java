@@ -20,9 +20,9 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    User createUser(User user){
-        if(userRepository.existsByEmail(user))
-            return userRepository.save(user);
-        return null;
-    }
+//    User createUser(User user){
+//        if(userRepository.existsByEmail(user))
+//            return userRepository.save(user);
+//        return null;
+//    }
 }
