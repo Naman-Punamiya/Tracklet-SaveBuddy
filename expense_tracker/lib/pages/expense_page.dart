@@ -7,85 +7,19 @@ import 'package:http/http.dart' as http;
 // =====================================
 // API METHODS
 // =====================================
-
-Future<List<dynamic>> fetchExpenses(String bookId) async {
-  final url = Uri.parse('${expenseUrl}book/$bookId');
-
-  final res = await http.get(url);
-
-  if (res.statusCode != 200) {
-    throw Exception('Failed: ${res.statusCode}');
-  }
-
-  return jsonDecode(res.body) as List<dynamic>;
-}
-
-Future<void> addExpense(
-  String description,
-  String amount,
-  String bookId,
-  bool isCredit,
-) async {
-  final url = Uri.parse('${expenseUrl}create');
-
-  final res = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'description': description,
-      'amount': double.tryParse(amount) ?? 0,
-      'book': {'id': int.parse(bookId)},
-      'credit': isCredit,
-    }),
-  );
-
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to add expense');
-  }
-}
-
-Future<void> updateExpense(
-  String id,
-  String description,
-  String amount,
-  bool isCredit,
-) async {
-  final url = Uri.parse('${expenseUrl}edit/$id');
-
-  final res = await http.put(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({
-      'description': description,
-      'amount': double.tryParse(amount) ?? 0,
-      'isCredit': isCredit,
-    }),
-  );
-
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to update expense');
-  }
-}
-
-Future<void> deleteExpense(String id) async {
-  final url = Uri.parse('${expenseUrl}delete/$id');
-
-  final res = await http.delete(url);
-
-  if (res.statusCode != 200) {
-    throw Exception('Failed to delete expense');
-  }
-}
-
-// =====================================
-// EXPENSE PAGE
-// =====================================
-
 class ExpensePage extends StatefulWidget {
   final String bookId;
   final String bookName;
+  final String email;
+  final String password;
 
-  const ExpensePage({super.key, required this.bookId, required this.bookName});
+  const ExpensePage({
+    super.key,
+    required this.bookId,
+    required this.bookName,
+    required this.email,
+    required this.password,
+  });
 
   @override
   State<ExpensePage> createState() => _ExpensePageState();
@@ -99,6 +33,9 @@ class _ExpensePageState extends State<ExpensePage> {
   late Future<List<dynamic>> _expensesFuture;
 
   bool isCredit = false;
+
+  String get basicAuth =>
+      'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
   @override
   void initState() {
@@ -128,6 +65,184 @@ class _ExpensePageState extends State<ExpensePage> {
   // =====================================
   // TOGGLE WIDGET
   // =====================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        centerTitle: true,
+        title: Text(
+          widget.bookName,
+          style: const TextStyle(color: Colors.black),
+        ),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.search, color: Colors.black, size: 28),
+          ),
+          SizedBox(width: 8),
+          IconButton(
+            onPressed: _reloadExpenses,
+            icon: const Icon(Icons.refresh, color: Colors.black, size: 28),
+          ),
+        ],
+      ),
+
+      body: FutureBuilder<List<dynamic>>(
+        future: _expensesFuture,
+        builder: (context, snapshot) {
+          // LOADING
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // ERROR
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+
+          final items = snapshot.data ?? [];
+          final income = calculateTotal(items, true);
+          final expense = calculateTotal(items, false);
+          final balance = income - expense;
+          // EMPTY
+          if (items.isEmpty) {
+            return const Center(child: Text("No Expenses Found"));
+          }
+
+          return Column(
+            children: [
+              Container(
+                height: 85,
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                color: Color(0xffFFBD5A),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        children: [
+                          const Text("Expenses", style: TextStyle(fontSize: 18)),
+                          Text(
+                            expense.toString(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 30,
+                        child: VerticalDivider(
+                          color: Colors.black,
+                          thickness: 2,
+                          width: 20,
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          const Text("Income", style: TextStyle(fontSize: 18)),
+                          Text(
+                            income.toString(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(
+                        height: 30,
+                        child: VerticalDivider(
+                          color: Colors.black,
+                          thickness: 2,
+                          width: 20,
+                        ),
+                      ),
+                      Column(
+                        children: [
+                          const Text("Balance", style: TextStyle(fontSize: 18)),
+                          Text(
+                            balance.toString(),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: items.length,
+
+                  itemBuilder: (context, index) {
+                    final item = items[index] as Map<String, dynamic>;
+
+                    final description = item['description']?.toString() ?? '';
+
+                    final amount = item['amount']?.toString() ?? '';
+
+                    final isCreditExpense =
+                        item['credit'].toString().toLowerCase() == 'true';
+
+                    return Padding(
+                      padding: const EdgeInsets.all(8),
+
+                      child: ListTile(
+                        tileColor: Colors.grey.shade200,
+
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+
+                        title: Text(
+                          description,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        trailing: Text(
+                          isCreditExpense ? '+ ₹$amount' : '- ₹$amount',
+
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isCreditExpense ? Colors.green : Colors.red,
+                          ),
+                        ),
+
+                        onTap: () {
+                          _showExpenseDetails(item);
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.deepPurple,
+
+        onPressed: _showAddExpenseDialog,
+
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
 
   Widget buildToggleButtons(void Function(void Function()) dialogSetState) {
     return ToggleButtons(
@@ -165,9 +280,17 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  // =====================================
-  // ADD EXPENSE
-  // =====================================
+  int calculateTotal(List<dynamic> expenses, bool credit) {
+    return expenses.fold(0, (total, item) {
+      final isCreditExpense = item['credit'].toString().toLowerCase() == 'true';
+
+      if (isCreditExpense == credit) {
+        return total + (item['amount'] as num).toInt();
+      }
+
+      return total;
+    });
+  }
 
   void _showAddExpenseDialog() {
     descriptionController.clear();
@@ -273,9 +396,6 @@ class _ExpensePageState extends State<ExpensePage> {
       },
     );
   }
-  // =====================================
-  // EDIT EXPENSE
-  // =====================================
 
   void _showEditDialog(Map<String, dynamic> item) {
     descriptionController.text = item['description']?.toString() ?? '';
@@ -351,10 +471,6 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  // =====================================
-  // DELETE
-  // =====================================
-
   Future<void> _deleteExpense(String id, BuildContext dialogContext) async {
     Navigator.pop(dialogContext);
 
@@ -368,10 +484,6 @@ class _ExpensePageState extends State<ExpensePage> {
       context,
     ).showSnackBar(const SnackBar(content: Text("Expense Deleted")));
   }
-
-  // =====================================
-  // DETAILS DIALOG
-  // =====================================
 
   void _showExpenseDetails(Map<String, dynamic> item) {
     final description = item['description']?.toString() ?? '';
@@ -431,103 +543,72 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  // =====================================
-  // UI
-  // =====================================
+  Future<List<dynamic>> fetchExpenses(String bookId) async {
+    final url = Uri.parse('${expenseUrl}book/$bookId');
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.deepPurple,
+    final res = await http.get(url, headers: {'Authorization': basicAuth});
 
-        centerTitle: true,
+    if (res.statusCode != 200) {
+      throw Exception('Failed: ${res.statusCode}');
+    }
 
-        title: Text(
-          widget.bookName,
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
+    return jsonDecode(res.body) as List<dynamic>;
+  }
 
-      body: FutureBuilder<List<dynamic>>(
-        future: _expensesFuture,
+  Future<void> addExpense(
+    String description,
+    String amount,
+    String bookId,
+    bool isCredit,
+  ) async {
+    final url = Uri.parse('${expenseUrl}create');
 
-        builder: (context, snapshot) {
-          // LOADING
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // ERROR
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final items = snapshot.data ?? [];
-
-          // EMPTY
-          if (items.isEmpty) {
-            return const Center(child: Text("No Expenses Found"));
-          }
-
-          return ListView.builder(
-            itemCount: items.length,
-
-            itemBuilder: (context, index) {
-              final item = items[index] as Map<String, dynamic>;
-
-              final description = item['description']?.toString() ?? '';
-
-              final amount = item['amount']?.toString() ?? '';
-
-              final isCreditExpense =
-                  item['credit'].toString().toLowerCase() == 'true';
-
-              return Padding(
-                padding: const EdgeInsets.all(8),
-
-                child: ListTile(
-                  tileColor: Colors.grey.shade200,
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-
-                  title: Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  trailing: Text(
-                    isCreditExpense ? '+ ₹$amount' : '- ₹$amount',
-
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: isCreditExpense ? Colors.green : Colors.red,
-                    ),
-                  ),
-
-                  onTap: () {
-                    _showExpenseDetails(item);
-                  },
-                ),
-              );
-            },
-          );
-        },
-      ),
-
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.deepPurple,
-
-        onPressed: _showAddExpenseDialog,
-
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+    final res = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
+      body: jsonEncode({
+        'description': description,
+        'amount': double.tryParse(amount) ?? 0,
+        'book': {'id': int.parse(bookId)},
+        'credit': isCredit,
+      }),
     );
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to add expense');
+    }
+  }
+
+  Future<void> updateExpense(
+    String id,
+    String description,
+    String amount,
+    bool isCredit,
+  ) async {
+    final url = Uri.parse('${expenseUrl}edit/$id');
+
+    final res = await http.put(
+      url,
+      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
+      body: jsonEncode({
+        'description': description,
+        'amount': double.tryParse(amount) ?? 0,
+        'isCredit': isCredit,
+      }),
+    );
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to update expense');
+    }
+  }
+
+  Future<void> deleteExpense(String id) async {
+    final url = Uri.parse('${expenseUrl}delete/$id');
+
+    final res = await http.delete(url, headers: {'Authorization': basicAuth});
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to delete expense');
+    }
   }
 }

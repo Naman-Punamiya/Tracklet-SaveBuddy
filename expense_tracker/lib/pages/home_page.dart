@@ -1,11 +1,8 @@
 import 'dart:convert';
 
-import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/pages/book_page.dart';
-import 'package:expense_tracker/pages/expense_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {

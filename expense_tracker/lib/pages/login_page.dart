@@ -1,4 +1,3 @@
-import 'package:expense_tracker/pages/book_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/register_page.dart';
 import 'package:flutter/material.dart';
@@ -28,7 +27,6 @@ class _LoginPageState extends State<LoginPage> {
               height: deviceHeight / 2,
               decoration: const BoxDecoration(
                 color: Color(0xffff9f6e),
-
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(40),
                   bottomRight: Radius.circular(40),

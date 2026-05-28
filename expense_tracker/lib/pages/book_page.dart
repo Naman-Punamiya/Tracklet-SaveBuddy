@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/pages/book_inside_page.dart';
 import 'package:expense_tracker/pages/expense_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
@@ -232,9 +233,11 @@ class _BookPageState extends State<BookPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => ExpensePage(
+                        builder: (_) => BookInsideHomePage(
                           bookId: item['id'].toString(),
                           bookName: bookName,
+                          email: widget.email,
+                          password: widget.password,
                         ),
                       ),
                     );
