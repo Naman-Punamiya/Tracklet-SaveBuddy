@@ -1,3 +1,3 @@
-String expenseUrl = "http://10.0.2.2:8080/expenses/";
-String bookUrl = "http://10.0.2.2:8080/books/";
-String categoryUrl = "http://10.0.2.2:8080/categories/";
+String expenseUrl = "https://tracklet-savebuddy-1.onrender.com/expenses/";
+String bookUrl = "https://tracklet-savebuddy-1.onrender.com/books/";
+String categoryUrl = "https://tracklet-savebuddy-1.onrender.com/categories/";
