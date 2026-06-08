@@ -1,8 +1,7 @@
 services:
-
-* type: web
-  name: tracklet-savebuddy-api
-  runtime: java
-  rootDir: expensetracker
-  buildCommand: chmod +x mvnw && ./mvnw clean package -DskipTests
-  startCommand: java -jar target/expensetracker-0.0.1-SNAPSHOT.jar
+  - type: web
+    name: tracklet-savebuddy-api
+    runtime: java
+    rootDir: expensetracker
+    buildCommand: chmod +x mvnw && ./mvnw clean package -DskipTests
+    startCommand: java -jar target/expensetracker-0.0.1-SNAPSHOT.jar
