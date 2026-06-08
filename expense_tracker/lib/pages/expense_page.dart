@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/pages/category_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 // =====================================
 // API METHODS
@@ -37,11 +39,15 @@ class _ExpensePageState extends State<ExpensePage> {
   String get basicAuth =>
       'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
+  List<dynamic> categories = [];
+  String? selectedCategoryId;
+
   @override
   void initState() {
     super.initState();
 
     _expensesFuture = fetchExpenses(widget.bookId);
+    fetchCategories();
   }
 
   @override
@@ -71,12 +77,34 @@ class _ExpensePageState extends State<ExpensePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
-        centerTitle: true,
         title: Text(
           widget.bookName,
-          style: const TextStyle(color: Colors.black),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CategoryPage(
+                    email: widget.email,
+                    password: widget.password,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.sell_outlined,
+              color: Colors.black,
+              size: 28,
+            ),
+          ),
+          SizedBox(width: 8),
           IconButton(
             onPressed: () {},
             icon: const Icon(Icons.search, color: Colors.black, size: 28),
@@ -113,69 +141,106 @@ class _ExpensePageState extends State<ExpensePage> {
 
           return Column(
             children: [
-              Container(
-                height: 85,
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                color: Color(0xffFFBD5A),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        children: [
-                          const Text("Expenses", style: TextStyle(fontSize: 18)),
-                          Text(
-                            expense.toString(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 30,
-                        child: VerticalDivider(
-                          color: Colors.black,
-                          thickness: 2,
-                          width: 20,
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          const Text("Income", style: TextStyle(fontSize: 18)),
-                          Text(
-                            income.toString(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(
-                        height: 30,
-                        child: VerticalDivider(
-                          color: Colors.black,
-                          thickness: 2,
-                          width: 20,
-                        ),
-                      ),
-                      Column(
-                        children: [
-                          const Text("Balance", style: TextStyle(fontSize: 18)),
-                          Text(
-                            balance.toString(),
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 2,
+                        offset: const Offset(0, 0),
                       ),
                     ],
+                  ),
+                  height: 75,
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Income",
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.green,
+                              ),
+                            ),
+                            Text(
+                              '₹$income',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 45,
+                          child: VerticalDivider(
+                            color: Colors.black,
+                            thickness: 2,
+                            width: 20,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Expense",
+                              style: TextStyle(fontSize: 18, color: Colors.red),
+                            ),
+                            Text(
+                              '₹$expense',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(
+                          height: 45,
+                          child: VerticalDivider(
+                            color: Colors.black,
+                            thickness: 2,
+                            width: 20,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              "Balance",
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: balance >= 0 ? Colors.green : Colors.red,
+                              ),
+                            ),
+                            Text(
+                              '₹$balance',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: balance >= 0 ? Colors.green : Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -190,6 +255,10 @@ class _ExpensePageState extends State<ExpensePage> {
 
                     final amount = item['amount']?.toString() ?? '';
 
+                    final dateTime = DateTime.parse(item['date'].toString());
+
+                    final date = DateFormat('MMMM d, yyyy').format(dateTime);
+
                     final isCreditExpense =
                         item['credit'].toString().toLowerCase() == 'true';
 
@@ -197,12 +266,16 @@ class _ExpensePageState extends State<ExpensePage> {
                       padding: const EdgeInsets.all(8),
 
                       child: ListTile(
-                        tileColor: Colors.grey.shade200,
-
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        shape: const Border(
+                          bottom: BorderSide(color: Colors.grey, width: 1.0),
                         ),
-
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.deepPurple.shade50,
+                          child: Icon(
+                            getIconFromName(item['category']?['icon']),
+                            color: Colors.deepPurple,
+                          ),
+                        ),
                         title: Text(
                           description,
                           style: const TextStyle(
@@ -210,17 +283,32 @@ class _ExpensePageState extends State<ExpensePage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-
-                        trailing: Text(
-                          isCreditExpense ? '+ ₹$amount' : '- ₹$amount',
-
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: isCreditExpense ? Colors.green : Colors.red,
-                          ),
+                        subtitle: Text(date,style: TextStyle(fontSize: 14),),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isCreditExpense ? '₹$amount' : '₹$amount',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isCreditExpense
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(
+                              isCreditExpense
+                                  ? Icons.arrow_upward
+                                  : Icons.arrow_downward,
+                              color: isCreditExpense
+                                  ? Colors.green
+                                  : Colors.red,
+                              size: 20,
+                            ),
+                          ],
                         ),
-
                         onTap: () {
                           _showExpenseDetails(item);
                         },
@@ -297,6 +385,7 @@ class _ExpensePageState extends State<ExpensePage> {
     amountController.clear();
 
     bool dialogIsCredit = false;
+    selectedCategoryId = null;
 
     showDialog(
       context: context,
@@ -306,64 +395,82 @@ class _ExpensePageState extends State<ExpensePage> {
             return AlertDialog(
               title: const Text("Add Expense"),
 
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(labelText: "Description"),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: "Amount"),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  ToggleButtons(
-                    isSelected: [!dialogIsCredit, dialogIsCredit],
-
-                    onPressed: (index) {
-                      dialogSetState(() {
-                        dialogIsCredit = index == 1;
-                      });
-                    },
-
-                    borderRadius: BorderRadius.circular(8),
-
-                    selectedColor: Colors.white,
-                    color: Colors.grey.shade700,
-
-                    fillColor: Colors.deepPurple,
-
-                    constraints: const BoxConstraints(
-                      minHeight: 50,
-                      minWidth: 110,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: "Description",
+                      ),
                     ),
 
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          "DEBIT",
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                    const SizedBox(height: 12),
+
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Amount"),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    ToggleButtons(
+                      isSelected: [!dialogIsCredit, dialogIsCredit],
+
+                      onPressed: (index) {
+                        dialogSetState(() {
+                          dialogIsCredit = index == 1;
+                        });
+                      },
+
+                      borderRadius: BorderRadius.circular(8),
+
+                      selectedColor: Colors.white,
+                      color: Colors.grey.shade700,
+
+                      fillColor: Colors.deepPurple,
+
+                      constraints: const BoxConstraints(
+                        minHeight: 50,
+                        minWidth: 110,
                       ),
 
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          "CREDIT",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text("DEBIT"),
                         ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: Text("CREDIT"),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    DropdownButtonFormField<String>(
+                      value: selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: "Category",
+                        border: OutlineInputBorder(),
                       ),
-                    ],
-                  ),
-                ],
+                      items: categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['id'].toString(),
+                          child: Text(category['name'].toString()),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          selectedCategoryId = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
 
               actions: [
@@ -376,6 +483,15 @@ class _ExpensePageState extends State<ExpensePage> {
 
                 TextButton(
                   onPressed: () async {
+                    if (selectedCategoryId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Please select a category"),
+                        ),
+                      );
+                      return;
+                    }
+
                     Navigator.pop(dialogContext);
 
                     await addExpense(
@@ -383,6 +499,7 @@ class _ExpensePageState extends State<ExpensePage> {
                       amountController.text,
                       widget.bookId,
                       dialogIsCredit,
+                      selectedCategoryId,
                     );
 
                     _reloadExpenses();
@@ -397,7 +514,23 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
+  Future<void> fetchCategories() async {
+    final url = Uri.parse('${categoryUrl}readAll');
+
+    final res = await http.get(url, headers: {'Authorization': basicAuth});
+
+    if (res.statusCode == 200) {
+      categories = jsonDecode(res.body);
+    } else {
+      throw Exception("Failed to load categories");
+    }
+  }
+
   void _showEditDialog(Map<String, dynamic> item) {
+    selectedCategoryId = item['category']?['id']?.toString();
+
+    isCredit = item['credit'].toString().toLowerCase() == 'true';
+
     descriptionController.text = item['description']?.toString() ?? '';
 
     amountController.text = item['amount']?.toString() ?? '';
@@ -412,30 +545,63 @@ class _ExpensePageState extends State<ExpensePage> {
 
           content: StatefulBuilder(
             builder: (context, dialogSetState) {
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: descriptionController,
-                    decoration: const InputDecoration(labelText: "Description"),
-                  ),
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: descriptionController,
+                      decoration: const InputDecoration(
+                        labelText: "Description",
+                      ),
+                    ),
 
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  TextField(
-                    controller: amountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: "Amount"),
-                  ),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Amount"),
+                    ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  buildToggleButtons(dialogSetState),
-                ],
+                    buildToggleButtons(dialogSetState),
+
+                    const SizedBox(height: 20),
+
+                    DropdownButtonFormField<String>(
+                      value: selectedCategoryId,
+                      decoration: const InputDecoration(
+                        labelText: "Category",
+                        border: OutlineInputBorder(),
+                      ),
+                      items: categories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category['id'].toString(),
+                          child: Row(
+                            children: [
+                              Icon(
+                                getIconFromName(category['icon']),
+                                color: Colors.deepPurple,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(category['name']),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          selectedCategoryId = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               );
             },
           ),
-
           actions: [
             TextButton(
               onPressed: () {
@@ -453,6 +619,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   descriptionController.text,
                   amountController.text,
                   isCredit,
+                  selectedCategoryId,
                 );
 
                 if (!mounted) return;
@@ -511,6 +678,10 @@ class _ExpensePageState extends State<ExpensePage> {
               const SizedBox(height: 8),
 
               Text(isCreditExpense ? "Type: Credit" : "Type: Debit"),
+
+              const SizedBox(height: 8),
+
+              Text("Category: ${item['category']?['name'] ?? 'N/A'}"),
             ],
           ),
 
@@ -560,6 +731,7 @@ class _ExpensePageState extends State<ExpensePage> {
     String amount,
     String bookId,
     bool isCredit,
+    String? categoryId,
   ) async {
     final url = Uri.parse('${expenseUrl}create');
 
@@ -569,12 +741,17 @@ class _ExpensePageState extends State<ExpensePage> {
       body: jsonEncode({
         'description': description,
         'amount': double.tryParse(amount) ?? 0,
-        'book': {'id': int.parse(bookId)},
         'credit': isCredit,
+        'date': DateTime.now().toIso8601String(),
+
+        'book': {'id': int.parse(bookId)},
+
+        'category': {'id': int.parse(categoryId!)},
       }),
     );
 
     if (res.statusCode != 200 && res.statusCode != 201) {
+      print(res.body);
       throw Exception('Failed to add expense');
     }
   }
@@ -584,6 +761,7 @@ class _ExpensePageState extends State<ExpensePage> {
     String description,
     String amount,
     bool isCredit,
+    String? categoryId,
   ) async {
     final url = Uri.parse('${expenseUrl}edit/$id');
 
@@ -593,10 +771,11 @@ class _ExpensePageState extends State<ExpensePage> {
       body: jsonEncode({
         'description': description,
         'amount': double.tryParse(amount) ?? 0,
-        'isCredit': isCredit,
+        'credit': isCredit,
+        'date': DateTime.now().toIso8601String(),
+        'category': {'id': int.parse(categoryId!)},
       }),
     );
-
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('Failed to update expense');
     }
@@ -609,6 +788,58 @@ class _ExpensePageState extends State<ExpensePage> {
 
     if (res.statusCode != 200) {
       throw Exception('Failed to delete expense');
+    }
+  }
+
+  IconData getIconFromName(String? iconName) {
+    switch (iconName) {
+      case "Food":
+        return Icons.fastfood;
+
+      case "Transportation":
+        return Icons.directions_car;
+
+      case "Shopping":
+        return Icons.shopping_bag;
+
+      case "Home":
+        return Icons.home;
+
+      case "Receipt":
+        return Icons.receipt_long;
+
+      case "Investment":
+        return Icons.trending_up;
+
+      case "Savings":
+        return Icons.account_balance_wallet;
+
+      case "Utilities":
+        return Icons.lightbulb_outline;
+
+      case "Healthcare":
+        return Icons.medical_services;
+
+      case "Gifts":
+        return Icons.card_giftcard;
+
+      case "Travel":
+        return Icons.flight;
+
+      case "Education":
+        return Icons.school;
+
+      case "Pets":
+        return Icons.pets;
+
+      case "Person":
+        return Icons.person;
+
+      case "More":
+        return Icons.more_horiz;
+
+      default:
+        return Icons.category_outlined;
     }
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
@@ -26,199 +27,159 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            Container(
-              height: deviceHeight / 2,
-              decoration: const BoxDecoration(
-                color: Color(0xff535B68),
-
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
+            Positioned(
+              left: -deviceWidth / 1.15,
+              top: -deviceHeight / 10,
+              child: Transform.rotate(
+                angle: 3.14 / 3.5,
+                child: Container(
+                  height: deviceHeight / 2,
+                  width: deviceWidth,
+                  decoration: const BoxDecoration(
+                    color: Color(0xffe8f6f3),
+                    borderRadius: BorderRadius.all(Radius.circular(40)),
+                  ),
                 ),
               ),
             ),
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 60),
-                  // LOGO
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.attach_money,
-                      color: Colors.orange,
-                      size: 40,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Container(
-                  height: deviceHeight / 1.65,
-                  width: deviceWidth,
+            // LOGO
+            Column(
+              children: [
+                SizedBox(height: deviceHeight/9),
+                Container(
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.all(Radius.circular(40)),
-                    boxShadow: [
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black38,
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 8),
+                        color: Colors.black26,
+                        blurRadius: 5,
+                        offset: Offset(0, 0),
                       ),
                     ],
                   ),
+                  child: const Icon(
+                    Icons.attach_money,
+                    color: Colors.green,
+                    size: 40,
+                  ),
+                ),
+                Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(height: 10),
-                        Text(
-                          "Register",
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          "If you don't have an account",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        SizedBox(height: 25),
-                        TextField(
-                          controller: fullNameController,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              gapPadding: 10,
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(height: 10),
+                          Text(
+                            "Create Account",
+                            style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          SizedBox(height: 5),
+                          Text(
+                            "Let's get you started",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          SizedBox(height: 25),
+                          CustomTextfield(
+                            textEditingController: fullNameController,
                             hintText: "Full Name",
+                            icon: Icons.person_outline,
+                            isPassword: false,
                           ),
-                        ),
-                        SizedBox(height: 20),
-                        TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
-                            hintText: "Email Address",
+                          SizedBox(height: 20),
+                          CustomTextfield(
+                            textEditingController: emailController,
+                            hintText: "Email",
+                            icon: Icons.email_outlined,
+                            isPassword: false,
                           ),
-                        ),
-                        SizedBox(height: 20),
-                        TextField(
-                          controller: passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
+                          SizedBox(height: 20),
+                          CustomTextfield(
+                            textEditingController: passwordController,
                             hintText: "Password",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
                           ),
-                        ),
-                        SizedBox(height: 20),
-                        TextField(
-                          controller: confirmPasswordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              gapPadding: 10,
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
+                          SizedBox(height: 20),
+                          CustomTextfield(
+                            textEditingController: confirmPasswordController,
                             hintText: "Confirm Password",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
                           ),
-                        ),
-                        SizedBox(height: 30),
-                        SizedBox(
-                          width: 200,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (passwordController.text.trim() !=
-                                  confirmPasswordController.text.trim()) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Passwords do not match!"),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              } else {
-                                userAuthenticated();
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xffff9f6e),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: const Text(
-                              "REGISTER",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text("Already have an Account? "),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => LoginPage(),
-                                  ),
-                                );
+                          SizedBox(height: 30),
+                          SizedBox(
+                            width: deviceWidth,
+                            height: 60,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                if (passwordController.text.trim() !=
+                                    confirmPasswordController.text.trim()) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Passwords do not match!"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                } else {
+                                  userAuthenticated();
+                                }
                               },
-                              child: Text(
-                                "Sign in",
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xff3ead91),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "Register",
                                 style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text("Already have an Account? "),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) => LoginPage(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  "Sign in",
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
@@ -239,8 +200,6 @@ class _RegisterPageState extends State<RegisterPage> {
         "password": passwordController.text.trim(),
       }),
     );
-    print(response.statusCode);
-    print(response.body);
     if (response.statusCode != 200 && response.statusCode != 201) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

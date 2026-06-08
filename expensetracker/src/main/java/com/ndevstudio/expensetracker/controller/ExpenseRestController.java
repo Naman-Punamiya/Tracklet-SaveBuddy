@@ -37,8 +37,8 @@ public class ExpenseRestController {
     }
 
     @PostMapping("/create")
-    ResponseEntity<Expense> createNewExpense(@RequestBody Expense e,Authentication authentication) {
-        return expenseService.createExpense(e,authentication);
+    ResponseEntity<Expense> createNewExpense(@RequestBody Expense e, Authentication authentication) {
+        return expenseService.createExpense(e, authentication);
     }
 
     @PutMapping("/edit/{id}")

@@ -1,8 +1,6 @@
 import 'dart:convert';
-
 import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/pages/book_inside_page.dart';
-import 'package:expense_tracker/pages/expense_page.dart';
 import 'package:expense_tracker/pages/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -180,11 +178,9 @@ class _BookPageState extends State<BookPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Expense Books",
-          style: const TextStyle(color: Colors.white),
+          "My Books",
+          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.deepPurple,
       ),
 
       body: FutureBuilder<List<dynamic>>(
@@ -217,35 +213,48 @@ class _BookPageState extends State<BookPage> {
               final bookName = item['name']?.toString() ?? '';
 
               return Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: ListTile(
-                  tileColor: Colors.grey[200],
-
-                  title: Text(
-                    bookName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                child: Card(
+                  elevation: 2,
+                  color: Colors.black,
+                  child: ListTile(
+                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.black),
+                    minTileHeight: 80,
+                    tileColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Colors.grey, width: 1),
                     ),
-                  ),
-
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => BookInsideHomePage(
-                          bookId: item['id'].toString(),
-                          bookName: bookName,
-                          email: widget.email,
-                          password: widget.password,
+                  
+                    title: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(
+                        bookName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 24,
                         ),
                       ),
-                    );
-                  },
-
-                  onLongPress: () {
-                    _showBookDetails(item);
-                  },
+                    ),
+                  
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BookInsideHomePage(
+                            bookId: item['id'].toString(),
+                            bookName: bookName,
+                            email: widget.email,
+                            password: widget.password,
+                          ),
+                        ),
+                      );
+                    },
+                  
+                    onLongPress: () {
+                      _showBookDetails(item);
+                    },
+                  ),
                 ),
               );
             },
@@ -255,7 +264,7 @@ class _BookPageState extends State<BookPage> {
 
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddBookDialog,
-        backgroundColor: Colors.blueAccent,
+        backgroundColor: Color(0xff54af96),
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

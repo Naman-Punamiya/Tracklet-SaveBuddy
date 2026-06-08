@@ -3,6 +3,8 @@ package com.ndevstudio.expensetracker.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name="Expenses")
 @Getter
@@ -16,6 +18,11 @@ public class Expense {
     private double amount;
     private String description;
     private boolean isCredit;
+    private LocalDateTime date;
+
+    @ManyToOne
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @ManyToOne
     @JoinColumn(name = "book_id")

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/register_page.dart';
 import 'package:flutter/material.dart';
@@ -23,157 +24,130 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Stack(
           children: [
-            Container(
-              height: deviceHeight / 2,
-              decoration: const BoxDecoration(
-                color: Color(0xffff9f6e),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
+            Positioned(
+              left: -deviceWidth / 1.15,
+              top: -deviceHeight / 10,
+              child: Transform.rotate(
+                angle: 3.14 / 3.5,
+                child: Container(
+                  height: deviceHeight / 2,
+                  width: deviceWidth,
+                  decoration: const BoxDecoration(
+                    color: Color(0xffe8f6f3),
+                    borderRadius: BorderRadius.all(Radius.circular(40)),
+                  ),
                 ),
               ),
             ),
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 60),
-                  // LOGO
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.attach_money,
-                      color: Colors.orange,
-                      size: 40,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Container(
-                  height: deviceHeight / 2.15,
-                  width: deviceWidth,
+            Column(
+              // mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: deviceHeight / 5),
+                Container(
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.all(Radius.circular(40)),
-                    boxShadow: [
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black38,
-                        blurRadius: 20,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 8),
+                        color: Colors.black26,
+                        blurRadius: 5,
+                        offset: Offset(0, 0),
                       ),
                     ],
                   ),
+                  child: const Icon(
+                    Icons.attach_money,
+                    color: Colors.green,
+                    size: 40,
+                  ),
+                ),
+                Center(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(height: 10),
-                        Text(
-                          "Sign in",
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 5),
-                        Text(
-                          "If you already registered",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        SizedBox(height: 25),
-                        TextField(
-                          controller: emailController,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              gapPadding: 10,
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
+                    padding: const EdgeInsets.all(20.0),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Column(
+                        children: [
+                          Text(
+                            "Welcome Back",
+                            style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
                             ),
-                            hintText: "Email",
                           ),
-                        ),
-                        SizedBox(height: 20),
-                        TextField(
-                          controller: passwordController,
-                          obscureText: true,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(25),
-                              borderSide: BorderSide(
-                                color: Colors.black,
-                                width: 2,
-                              ),
-                            ),
+                          SizedBox(height: 5),
+                          Text(
+                            "Login to continue",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                          SizedBox(height: 25),
+                          CustomTextfield(
+                            textEditingController: emailController,
+                            hintText: 'Email',
+                            icon: Icons.email_outlined,
+                            isPassword: false,
+                          ),
+                          SizedBox(height: 20),
+                          CustomTextfield(
+                            textEditingController: passwordController,
                             hintText: "Password",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
                           ),
-                        ),
-                        SizedBox(height: 30),
-                        SizedBox(
-                          width: 200,
-                          height: 60,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await userAuthenticated();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xffff9f6e),
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: const Text(
-                              "SIGN IN",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text("Don't have an Account "),
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => RegisterPage(),
-                                  ),
-                                );
+                          SizedBox(height: 30),
+                          SizedBox(
+                            width: deviceWidth,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: () async {
+                                await userAuthenticated();
                               },
-                              child: Text(
-                                "Register now",
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xff3ead91),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text(
+                                "Login",
                                 style: TextStyle(
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text("Don't have an Account? "),
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute(
+                                      builder: (context) => RegisterPage(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  "Register now",
+                                  style: TextStyle(color: Color(0xff3ead91)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

@@ -39,7 +39,7 @@ public class ExpenseService {
     //Create
     public ResponseEntity<Expense> createExpense(Expense newExpense, Authentication authentication) {
         String email = authentication.getName();
-        User user = userRepository.findByEmail(email).get();
+        User user = userRepository.findByEmail(email).orElseThrow();
         newExpense.setUser(user);
         Expense e = expenseRepository.save(newExpense);
         return new ResponseEntity<>(e, HttpStatus.CREATED);
@@ -51,6 +51,9 @@ public class ExpenseService {
         if (oldExpense != null) {
             oldExpense.setAmount(newExpense.getAmount());
             oldExpense.setDescription(newExpense.getDescription());
+            oldExpense.setCredit(newExpense.isCredit());
+            oldExpense.setDate(newExpense.getDate());
+            oldExpense.setCategory(newExpense.getCategory());
             expenseRepository.save(oldExpense);
             return new ResponseEntity<>(oldExpense, HttpStatus.OK);
         }
