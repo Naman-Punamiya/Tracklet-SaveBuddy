@@ -88,6 +88,12 @@ class _InvestmentPageState extends State<InvestmentPage> {
           }
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          // Navigate to the add investment page
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 

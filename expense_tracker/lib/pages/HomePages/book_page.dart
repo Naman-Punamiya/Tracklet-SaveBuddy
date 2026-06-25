@@ -96,16 +96,26 @@ class _BookPageState extends State<BookPage> {
     );
   }
 
-  void _showEditBookDialog(String id, String currentBookName) {
+  void _showEditBookDialog(String id, String currentBookName, String currentBookSubtitle) {
     bookNameController.text = currentBookName;
+    bookSubtitleController.text = currentBookSubtitle;
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Edit Book"),
-        content: TextField(
-          controller: bookNameController,
-          decoration: const InputDecoration(labelText: 'Book Name'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: bookNameController,
+              decoration: const InputDecoration(labelText: 'Book Name'),
+            ),
+            TextField(
+              controller: bookSubtitleController,
+              decoration: const InputDecoration(labelText: 'Book Subtitle'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -139,34 +149,28 @@ class _BookPageState extends State<BookPage> {
     );
   }
 
-  Future<void> _deleteBook(String id, BuildContext dialogContext) async {
-    Navigator.pop(dialogContext);
-
-    await deleteBook(id);
-
-    if (!mounted) return;
-
-    _reloadBooks();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Book Deleted")));
-  }
-
   void _showBookDetails(Map<String, dynamic> item) {
     final String bookName = item['name']?.toString() ?? '';
+    final String bookSubtitle = item['subtitle']?.toString() ?? '';
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Book Details"),
-        content: Text("Book Name: $bookName"),
+        content: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Book Name: $bookName"),
+            Text("Book Subtitle: $bookSubtitle"),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
 
-              _showEditBookDialog(item['id'].toString(), bookName);
+              _showEditBookDialog(item['id'].toString(), bookName, bookSubtitle);
             },
             child: const Text("Edit"),
           ),
@@ -255,7 +259,7 @@ class _BookPageState extends State<BookPage> {
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0,
+                        horizontal: 10.0,
                         vertical: 4.0,
                       ),
                       child: Card(
@@ -273,10 +277,9 @@ class _BookPageState extends State<BookPage> {
                               width: 1,
                             ),
                           ),
-
                           title: Padding(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8.0,
+                              horizontal: 4.0,
                             ),
                             child: Text(
                               bookName,
@@ -286,22 +289,18 @@ class _BookPageState extends State<BookPage> {
                               ),
                             ),
                           ),
-                          subtitle: bookSubtitle.isNotEmpty
-                              ? Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8.0,
-                                    vertical: 4.0,
-                                  ),
-                                  child: Text(
-                                    bookSubtitle,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                )
-                              : null,
-
+                          subtitle: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4.0,
+                            ),
+                            child: Text(
+                              bookSubtitle,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -330,10 +329,32 @@ class _BookPageState extends State<BookPage> {
         },
       ),
 
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: TextButton(
+        style: TextButton.styleFrom(
+          minimumSize: Size(70,60),
+          maximumSize: Size(160,60),
+          backgroundColor: Colors.deepPurple,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(100),
+          ),
+        ),
         onPressed: _showAddBookDialog,
-        backgroundColor: Color(0xff54af96),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Row(
+            children: [
+              const Icon(Icons.add, color: Colors.white,size: 30),
+              SizedBox(width: 5),
+              Text(
+                "Add Book",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -350,6 +371,7 @@ class _BookPageState extends State<BookPage> {
       throw Exception('Failed to load books');
     }
 
+    print("Books fetched: ${res.body}");
     return jsonDecode(res.body);
   }
 
@@ -365,6 +387,20 @@ class _BookPageState extends State<BookPage> {
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('Failed to add book');
     }
+  }
+
+  Future<void> _deleteBook(String id, BuildContext dialogContext) async {
+    Navigator.pop(dialogContext);
+
+    await deleteBook(id);
+
+    if (!mounted) return;
+
+    _reloadBooks();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Book Deleted")));
   }
 
   Future<void> deleteBook(String id) async {
