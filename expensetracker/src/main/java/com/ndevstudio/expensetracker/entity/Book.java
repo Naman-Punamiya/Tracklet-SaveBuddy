@@ -20,6 +20,8 @@ public class Book {
 
     private String name;
 
+    private String subtitle;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;

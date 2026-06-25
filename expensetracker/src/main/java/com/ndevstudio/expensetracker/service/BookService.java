@@ -55,6 +55,7 @@ public class BookService {
             );
         }
         oldBook.setName(newBook.getName());
+        oldBook.setSubtitle(newBook.getSubtitle());
         bookRepository.save(oldBook);
         return new ResponseEntity<>(oldBook, HttpStatus.OK);
     }

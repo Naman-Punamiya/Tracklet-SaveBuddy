@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:expense_tracker/keep_alive_service.dart';
 import 'package:expense_tracker/pages/HomePages/book_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
+import 'package:expense_tracker/pages/HomePages/investment_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -42,16 +43,13 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     final List<Widget> pages = [
       BookPage(
-        userId: widget.userId,
         email: widget.email,
         password: widget.password,
       ),
 
-      Center(
-        child: Text(
-          "Email: ${widget.email}",
-          style: const TextStyle(fontSize: 20),
-        ),
+      InvestmentPage(
+        email: widget.email,
+        password: widget.password,
       ),
 
       Center(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/HomePages/Expenses/inside_book_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:flutter/material.dart';
@@ -7,15 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BookPage extends StatefulWidget {
-  final int userId;
   final String email;
   final String password;
-  const BookPage({
-    super.key,
-    required this.userId,
-    required this.email,
-    required this.password,
-  });
+  const BookPage({super.key, required this.email, required this.password});
 
   @override
   State<BookPage> createState() => _BookPageState();
@@ -23,6 +18,8 @@ class BookPage extends StatefulWidget {
 
 class _BookPageState extends State<BookPage> {
   final TextEditingController bookNameController = TextEditingController();
+  final TextEditingController bookSubtitleController = TextEditingController();
+  final TextEditingController searchController = TextEditingController();
 
   late Future<List<dynamic>> _booksFuture;
 
@@ -38,6 +35,7 @@ class _BookPageState extends State<BookPage> {
   @override
   void dispose() {
     bookNameController.dispose();
+    searchController.dispose();
     super.dispose();
   }
 
@@ -49,14 +47,23 @@ class _BookPageState extends State<BookPage> {
 
   void _showAddBookDialog() {
     bookNameController.clear();
-
+    bookSubtitleController.clear();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text("Add Book"),
-        content: TextField(
-          controller: bookNameController,
-          decoration: const InputDecoration(labelText: 'Book Name'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: bookNameController,
+              decoration: const InputDecoration(labelText: 'Book Name'),
+            ),
+            TextField(
+              controller: bookSubtitleController,
+              decoration: const InputDecoration(labelText: 'Book Subtitle'),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -69,7 +76,10 @@ class _BookPageState extends State<BookPage> {
             onPressed: () async {
               Navigator.pop(dialogContext);
 
-              await addBook(bookNameController.text);
+              await addBook(
+                bookNameController.text,
+                bookSubtitleController.text,
+              );
 
               if (!mounted) return;
 
@@ -108,7 +118,11 @@ class _BookPageState extends State<BookPage> {
             onPressed: () async {
               Navigator.pop(dialogContext);
 
-              await updateBook(id, bookNameController.text);
+              await updateBook(
+                id,
+                bookNameController.text,
+                bookSubtitleController.text,
+              );
 
               if (!mounted) return;
 
@@ -177,9 +191,23 @@ class _BookPageState extends State<BookPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          "My Books",
-          style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        toolbarHeight: 100,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "My Books",
+              style: const TextStyle(
+                fontSize: 30,
+                color: Colors.black,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              "Manage and Track all your expenses in one place",
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+            ),
+          ],
         ),
       ),
 
@@ -205,59 +233,99 @@ class _BookPageState extends State<BookPage> {
             );
           }
 
-          return ListView.builder(
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index] as Map<String, dynamic>;
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: CustomTextfield(
+                  textEditingController: searchController,
+                  hintText: 'Search books...',
+                  icon: Icons.search,
+                  isPassword: false,
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index] as Map<String, dynamic>;
 
-              final bookName = item['name']?.toString() ?? '';
+                    final bookName = item['name']?.toString() ?? '';
+                    final bookSubtitle = item['subtitle']?.toString() ?? '';
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                child: Card(
-                  elevation: 2,
-                  color: Colors.black,
-                  child: ListTile(
-                    trailing: const Icon(Icons.arrow_forward_ios, color: Colors.black),
-                    minTileHeight: 80,
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.grey, width: 1),
-                    ),
-                  
-                    title: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(
-                        bookName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 4.0,
+                      ),
+                      child: Card(
+                        child: ListTile(
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.black,
+                          ),
+                          minTileHeight: 100,
+                          tileColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            side: const BorderSide(
+                              color: Colors.grey,
+                              width: 1,
+                            ),
+                          ),
+
+                          title: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
+                            child: Text(
+                              bookName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ),
+                          subtitle: bookSubtitle.isNotEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8.0,
+                                    vertical: 4.0,
+                                  ),
+                                  child: Text(
+                                    bookSubtitle,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                )
+                              : null,
+
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => BookInsideHomePage(
+                                  bookId: item['id'].toString(),
+                                  bookName: bookName,
+                                  email: widget.email,
+                                  password: widget.password,
+                                ),
+                              ),
+                            );
+                          },
+
+                          onLongPress: () {
+                            _showBookDetails(item);
+                          },
                         ),
                       ),
-                    ),
-                  
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => BookInsideHomePage(
-                            bookId: item['id'].toString(),
-                            bookName: bookName,
-                            email: widget.email,
-                            password: widget.password,
-                          ),
-                        ),
-                      );
-                    },
-                  
-                    onLongPress: () {
-                      _showBookDetails(item);
-                    },
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           );
         },
       ),
@@ -285,13 +353,13 @@ class _BookPageState extends State<BookPage> {
     return jsonDecode(res.body);
   }
 
-  Future<void> addBook(String name) async {
+  Future<void> addBook(String name, String subtitle) async {
     final url = Uri.parse("${bookUrl}create");
 
     final res = await http.post(
       url,
       headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({'name': name, 'subtitle': subtitle}),
     );
 
     if (res.statusCode != 200 && res.statusCode != 201) {
@@ -309,13 +377,13 @@ class _BookPageState extends State<BookPage> {
     }
   }
 
-  Future<void> updateBook(String id, String name) async {
+  Future<void> updateBook(String id, String name, String subtitle) async {
     final url = Uri.parse("${bookUrl}edit/$id");
 
     final res = await http.put(
       url,
       headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name}),
+      body: jsonEncode({'name': name, 'subtitle': subtitle}),
     );
     if (res.statusCode != 200) {
       throw Exception('Failed to update book');
