@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expense_tracker/keep_alive_service.dart';
 import 'package:expense_tracker/pages/HomePages/book_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,18 @@ class _HomePageState extends State<HomePage> {
   int currentIndex = 0;
   String get basicAuth =>
       'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
+
+  @override
+  void initState() {
+    super.initState();
+    KeepAliveService.start();
+  }
+
+  @override
+  void dispose() {
+    KeepAliveService.stop();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,6 +86,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> logout() async {
+    KeepAliveService.stop();
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.clear();
     Navigator.of(
