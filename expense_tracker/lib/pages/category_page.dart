@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:expense_tracker/CategoryIcon.dart';
+import 'package:expense_tracker/custom_widgets/CategoryIcon.dart';
 import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
@@ -491,6 +491,7 @@ class _CategoryPageState extends State<CategoryPage> {
   Future<List<dynamic>> fetchCategories() async {
     final url = Uri.parse('${categoryUrl}readAll');
     final res = await http.get(url, headers: {'Authorization': basicAuth});
+    print(jsonDecode(res.body));
     if (res.statusCode != 200) {
       throw Exception('Failed: ${res.statusCode}');
     }

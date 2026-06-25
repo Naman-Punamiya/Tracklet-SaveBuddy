@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:expense_tracker/constant.dart';
-import 'package:expense_tracker/pages/book_inside_page.dart';
-import 'package:expense_tracker/pages/login_page.dart';
+import 'package:expense_tracker/pages/HomePages/Expenses/inside_book_page.dart';
+import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';

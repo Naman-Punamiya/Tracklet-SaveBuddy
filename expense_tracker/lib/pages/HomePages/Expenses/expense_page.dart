@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
-import 'package:expense_tracker/pages/category_page.dart';
+import 'package:expense_tracker/pages/HomePages/Expenses/category_page.dart';
+import 'package:expense_tracker/services/expense_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -41,12 +42,13 @@ class _ExpensePageState extends State<ExpensePage> {
 
   List<dynamic> categories = [];
   String? selectedCategoryId;
+  String? selectedCategoryName;
 
   @override
   void initState() {
     super.initState();
-
-    _expensesFuture = fetchExpenses(widget.bookId);
+    syncExpenses(basicAuth);
+    _expensesFuture = fetchExpenses(widget.bookId, basicAuth);
     fetchCategories();
   }
 
@@ -64,7 +66,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
   void _reloadExpenses() {
     setState(() {
-      _expensesFuture = fetchExpenses(widget.bookId);
+      _expensesFuture = fetchExpenses(widget.bookId, basicAuth);
     });
   }
 
@@ -283,7 +285,7 @@ class _ExpensePageState extends State<ExpensePage> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        subtitle: Text(date,style: TextStyle(fontSize: 14),),
+                        subtitle: Text(date, style: TextStyle(fontSize: 14)),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -325,8 +327,9 @@ class _ExpensePageState extends State<ExpensePage> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.deepPurple,
 
-        onPressed: _showAddExpenseDialog,
-
+        onPressed: () async {
+          _showAddExpenseDialog();
+        },
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
@@ -386,6 +389,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
     bool dialogIsCredit = false;
     selectedCategoryId = null;
+    selectedCategoryName = null;
 
     showDialog(
       context: context,
@@ -450,14 +454,14 @@ class _ExpensePageState extends State<ExpensePage> {
                     ),
 
                     const SizedBox(height: 20),
-
                     DropdownButtonFormField<String>(
-                      value: selectedCategoryId,
+                      initialValue: selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: "Category",
                         border: OutlineInputBorder(),
                       ),
                       items: categories.map((category) {
+                        print("Categories count: ${categories.length}");
                         return DropdownMenuItem<String>(
                           value: category['id'].toString(),
                           child: Text(category['name'].toString()),
@@ -466,6 +470,12 @@ class _ExpensePageState extends State<ExpensePage> {
                       onChanged: (value) {
                         dialogSetState(() {
                           selectedCategoryId = value;
+                          selectedCategoryName = categories
+                              .firstWhere(
+                                (category) =>
+                                    category['id'].toString() == value,
+                              )['name']
+                              .toString();
                         });
                       },
                     ),
@@ -500,6 +510,8 @@ class _ExpensePageState extends State<ExpensePage> {
                       widget.bookId,
                       dialogIsCredit,
                       selectedCategoryId,
+                      selectedCategoryName,
+                      basicAuth,
                     );
 
                     _reloadExpenses();
@@ -518,9 +530,12 @@ class _ExpensePageState extends State<ExpensePage> {
     final url = Uri.parse('${categoryUrl}readAll');
 
     final res = await http.get(url, headers: {'Authorization': basicAuth});
-
+    print(jsonDecode(res.body));
     if (res.statusCode == 200) {
-      categories = jsonDecode(res.body);
+      setState(() {
+        categories = jsonDecode(res.body);
+      });
+      print(categories);
     } else {
       throw Exception("Failed to load categories");
     }
@@ -528,6 +543,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
   void _showEditDialog(Map<String, dynamic> item) {
     selectedCategoryId = item['category']?['id']?.toString();
+    selectedCategoryName = item['category']?['name']?.toString();
 
     isCredit = item['credit'].toString().toLowerCase() == 'true';
 
@@ -571,7 +587,7 @@ class _ExpensePageState extends State<ExpensePage> {
                     const SizedBox(height: 20),
 
                     DropdownButtonFormField<String>(
-                      value: selectedCategoryId,
+                      initialValue: selectedCategoryId,
                       decoration: const InputDecoration(
                         labelText: "Category",
                         border: OutlineInputBorder(),
@@ -620,6 +636,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   amountController.text,
                   isCredit,
                   selectedCategoryId,
+                  basicAuth,
                 );
 
                 if (!mounted) return;
@@ -641,7 +658,7 @@ class _ExpensePageState extends State<ExpensePage> {
   Future<void> _deleteExpense(String id, BuildContext dialogContext) async {
     Navigator.pop(dialogContext);
 
-    await deleteExpense(id);
+    await deleteExpense(id, basicAuth);
 
     if (!mounted) return;
 
@@ -712,83 +729,6 @@ class _ExpensePageState extends State<ExpensePage> {
         );
       },
     );
-  }
-
-  Future<List<dynamic>> fetchExpenses(String bookId) async {
-    final url = Uri.parse('${expenseUrl}book/$bookId');
-
-    final res = await http.get(url, headers: {'Authorization': basicAuth});
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed: ${res.statusCode}');
-    }
-
-    return jsonDecode(res.body) as List<dynamic>;
-  }
-
-  Future<void> addExpense(
-    String description,
-    String amount,
-    String bookId,
-    bool isCredit,
-    String? categoryId,
-  ) async {
-    final url = Uri.parse('${expenseUrl}create');
-
-    final res = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-      body: jsonEncode({
-        'description': description,
-        'amount': double.tryParse(amount) ?? 0,
-        'credit': isCredit,
-        'date': DateTime.now().toIso8601String(),
-
-        'book': {'id': int.parse(bookId)},
-
-        'category': {'id': int.parse(categoryId!)},
-      }),
-    );
-
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      print(res.body);
-      throw Exception('Failed to add expense');
-    }
-  }
-
-  Future<void> updateExpense(
-    String id,
-    String description,
-    String amount,
-    bool isCredit,
-    String? categoryId,
-  ) async {
-    final url = Uri.parse('${expenseUrl}edit/$id');
-
-    final res = await http.put(
-      url,
-      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-      body: jsonEncode({
-        'description': description,
-        'amount': double.tryParse(amount) ?? 0,
-        'credit': isCredit,
-        'date': DateTime.now().toIso8601String(),
-        'category': {'id': int.parse(categoryId!)},
-      }),
-    );
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to update expense');
-    }
-  }
-
-  Future<void> deleteExpense(String id) async {
-    final url = Uri.parse('${expenseUrl}delete/$id');
-
-    final res = await http.delete(url, headers: {'Authorization': basicAuth});
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete expense');
-    }
   }
 
   IconData getIconFromName(String? iconName) {

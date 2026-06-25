@@ -2,7 +2,6 @@ package com.ndevstudio.expensetracker.repository;
 
 import com.ndevstudio.expensetracker.entity.Book;
 import com.ndevstudio.expensetracker.entity.Category;
-import com.ndevstudio.expensetracker.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

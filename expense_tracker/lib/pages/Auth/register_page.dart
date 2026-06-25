@@ -1,21 +1,24 @@
+import 'dart:convert';
+
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/home_page.dart';
-import 'package:expense_tracker/pages/register_page.dart';
+import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _RegisterPageState extends State<RegisterPage> {
+  TextEditingController fullNameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
   @override
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
@@ -39,10 +42,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ),
+            // LOGO
             Column(
-              // mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: deviceHeight / 5),
+                SizedBox(height: deviceHeight/9),
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
@@ -66,11 +69,13 @@ class _LoginPageState extends State<LoginPage> {
                   child: Padding(
                     padding: const EdgeInsets.all(20.0),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          SizedBox(height: 10),
                           Text(
-                            "Welcome Back",
+                            "Create Account",
                             style: TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.bold,
@@ -78,13 +83,20 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            "Login to continue",
+                            "Let's get you started",
                             style: TextStyle(fontSize: 16),
                           ),
                           SizedBox(height: 25),
                           CustomTextfield(
+                            textEditingController: fullNameController,
+                            hintText: "Full Name",
+                            icon: Icons.person_outline,
+                            isPassword: false,
+                          ),
+                          SizedBox(height: 20),
+                          CustomTextfield(
                             textEditingController: emailController,
-                            hintText: 'Email',
+                            hintText: "Email",
                             icon: Icons.email_outlined,
                             isPassword: false,
                           ),
@@ -95,13 +107,31 @@ class _LoginPageState extends State<LoginPage> {
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
+                          SizedBox(height: 20),
+                          CustomTextfield(
+                            textEditingController: confirmPasswordController,
+                            hintText: "Confirm Password",
+                            icon: Icons.lock_outline,
+                            isPassword: true,
+                          ),
                           SizedBox(height: 30),
                           SizedBox(
                             width: deviceWidth,
-                            height: 55,
+                            height: 60,
                             child: ElevatedButton(
-                              onPressed: () async {
-                                await userAuthenticated();
+                              onPressed: () {
+                                if (passwordController.text.trim() !=
+                                    confirmPasswordController.text.trim()) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text("Passwords do not match!"),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                } else {
+                                  userAuthenticated();
+                                }
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xff3ead91),
@@ -112,7 +142,7 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               child: const Text(
-                                "Login",
+                                "Register",
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -126,18 +156,20 @@ class _LoginPageState extends State<LoginPage> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Text("Don't have an Account? "),
+                              Text("Already have an Account? "),
                               GestureDetector(
                                 onTap: () {
                                   Navigator.of(context).pushReplacement(
                                     MaterialPageRoute(
-                                      builder: (context) => RegisterPage(),
+                                      builder: (context) => LoginPage(),
                                     ),
                                   );
                                 },
                                 child: Text(
-                                  "Register now",
-                                  style: TextStyle(color: Color(0xff3ead91)),
+                                  "Sign in",
+                                  style: TextStyle(
+                                    color: Colors.green,
+                                  ),
                                 ),
                               ),
                             ],
@@ -157,19 +189,26 @@ class _LoginPageState extends State<LoginPage> {
 
   Future<void> userAuthenticated() async {
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:8080/api/users/login'),
-
+      Uri.parse("http://10.0.2.2:8080/api/users/register"),
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        "Content-Type": "application/json",
+        "Accept": "application/json",
       },
-
       body: jsonEncode({
+        "name": fullNameController.text.trim(),
         "email": emailController.text.trim(),
         "password": passwordController.text.trim(),
       }),
     );
-    if (response.statusCode == 200) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Registration failed! Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    } else {
       final data = jsonDecode(response.body);
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool("isLoggedIn", true);
@@ -177,7 +216,7 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setString("password", passwordController.text.trim());
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Login successful"),
+          content: Text("Registration successful!"),
           backgroundColor: Colors.green,
         ),
       );
@@ -188,13 +227,6 @@ class _LoginPageState extends State<LoginPage> {
             email: emailController.text.trim(),
             password: passwordController.text.trim(),
           ),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Invalid Credentials"),
-          backgroundColor: Colors.red,
         ),
       );
     }

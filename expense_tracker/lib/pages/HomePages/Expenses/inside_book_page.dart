@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:expense_tracker/pages/expense_page.dart';
+import 'package:expense_tracker/pages/HomePages/Expenses/expense_page.dart';
 import 'package:flutter/material.dart';
 
 class BookInsideHomePage extends StatefulWidget {
