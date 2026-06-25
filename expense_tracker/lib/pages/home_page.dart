@@ -29,12 +29,12 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    KeepAliveService.start();
+    // KeepAliveService.start();
   }
 
   @override
   void dispose() {
-    KeepAliveService.stop();
+    // KeepAliveService.stop();
     super.dispose();
   }
 
