@@ -439,7 +439,6 @@ class _BookPageState extends State<BookPage> {
     // }
   }
 
-
   Future<void> restoreBook(String id) async {
     final url = Uri.parse("${bookUrl}restore/$id");
     final res = await http.patch(url, headers: {'Authorization': basicAuth});

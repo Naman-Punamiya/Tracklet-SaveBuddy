@@ -55,7 +55,7 @@ public class BookRestController {
     public ResponseEntity<String> restoreBook(@PathVariable long id,Authentication authentication){
         return bookService.restoreBook(id, authentication);
     }
-    
+
     // DELETE BOOK
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteBook(@PathVariable long id, Authentication authentication) {
