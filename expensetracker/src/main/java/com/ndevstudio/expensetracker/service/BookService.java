@@ -27,8 +27,15 @@ public class BookService {
     public ResponseEntity<List<Book>> readAllBooks(Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElseThrow();
-        List<Book> books = bookRepository.findByUser(user);
+        List<Book> books = bookRepository.findByUserAndArchived(user, false);
         return new ResponseEntity<>(books, HttpStatus.OK);
+    }
+
+    public ResponseEntity<List<Book>> readArchivedBooks(Authentication authentication){
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+        List<Book> books = bookRepository.findByUserAndArchived(user,true);
+        return new ResponseEntity<>(books,HttpStatus.OK);
     }
 
     //Create
@@ -66,13 +73,41 @@ public class BookService {
         User user = userRepository.findByEmail(email).orElseThrow();
         Book b = bookRepository.findById(id).orElse(null);
         if (b == null) {
-            return new ResponseEntity<>("Book not found",HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Book not found", HttpStatus.NOT_FOUND);
         }
 
-        if (!(b.getUser().getId() == user.getId())){
-            return new ResponseEntity<>("Unauthorized",HttpStatus.UNAUTHORIZED);
+        if (!(b.getUser().getId() == user.getId())) {
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
         bookRepository.delete(b);
         return new ResponseEntity<>("Book deleted", HttpStatus.OK);
+    }
+
+    public ResponseEntity<String> archiveBook(long id, Authentication authentication) {
+
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+        Book book = bookRepository.findById(id).orElse(null);
+        if (book == null)
+            return new ResponseEntity<>("Book not found", HttpStatus.NOT_FOUND);
+
+        if (book.getUser().getId() != user.getId())
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
+        book.setArchived(true);
+        bookRepository.save(book);
+        return new ResponseEntity<>("Book archived", HttpStatus.OK);
+    }
+
+    public ResponseEntity<String> restoreBook(long id, Authentication authentication) {
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+        Book book = bookRepository.findById(id).orElse(null);
+        if (book == null)
+            return new ResponseEntity<>("Book not found", HttpStatus.NOT_FOUND);
+        if (book.getUser().getId() != user.getId())
+            return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
+        book.setArchived(false);
+        bookRepository.save(book);
+        return new ResponseEntity<>("Book restored", HttpStatus.OK);
     }
 }

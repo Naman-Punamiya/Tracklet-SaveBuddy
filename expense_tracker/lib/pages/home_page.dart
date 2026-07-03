@@ -1,11 +1,10 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/keep_alive_service.dart';
-import 'package:expense_tracker/pages/HomePages/book_page.dart';
-import 'package:expense_tracker/pages/Auth/login_page.dart';
-import 'package:expense_tracker/pages/HomePages/investment_page.dart';
+import 'package:expense_tracker/pages/HomePage/book_page.dart';
+import 'package:expense_tracker/pages/HomePage/investment_page.dart';
+import 'package:expense_tracker/pages/HomePage/setting_page.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   final int userId;
@@ -52,8 +51,9 @@ class _HomePageState extends State<HomePage> {
         password: widget.password,
       ),
 
-      Center(
-        child: ElevatedButton(onPressed: logout, child: const Text("Logout")),
+      SettingPage(
+        email: widget.email,
+        password: widget.password,
       ),
     ];
     return Scaffold(
@@ -81,14 +81,5 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
-  }
-
-  Future<void> logout() async {
-    KeepAliveService.stop();
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => LoginPage()));
   }
 }

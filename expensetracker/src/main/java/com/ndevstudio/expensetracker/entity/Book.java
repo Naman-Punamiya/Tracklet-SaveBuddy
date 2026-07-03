@@ -22,6 +22,8 @@ public class Book {
 
     private String subtitle;
 
+    private boolean archived = false;
+
     @ManyToOne
     @JoinColumn(name = "user_id")
     private User user;

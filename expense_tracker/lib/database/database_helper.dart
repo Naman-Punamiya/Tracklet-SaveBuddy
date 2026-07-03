@@ -24,7 +24,6 @@ class DatabaseHelper {
           date TEXT,
           book_id INTEGER,
           category_id INTEGER,
-          category_name TEXT,
           synced INTEGER DEFAULT 0
           )
         ''');
@@ -48,7 +47,6 @@ class DatabaseHelper {
       'credit': credit ? 1 : 0,
       'date': date,
       'category_id': categoryId,
-      'category_name': categoryName,
       'book_id': bookId,
       'synced': 0,
     });

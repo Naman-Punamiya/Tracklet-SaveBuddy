@@ -491,7 +491,6 @@ class _CategoryPageState extends State<CategoryPage> {
   Future<List<dynamic>> fetchCategories() async {
     final url = Uri.parse('${categoryUrl}readAll');
     final res = await http.get(url, headers: {'Authorization': basicAuth});
-    print(jsonDecode(res.body));
     if (res.statusCode != 200) {
       throw Exception('Failed: ${res.statusCode}');
     }

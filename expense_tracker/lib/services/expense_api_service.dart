@@ -60,7 +60,6 @@ Future<void> addExpense(
       print("Stored locally, cloud failed");
     }
   } catch (e) {
-    print("Offline mode: saved locally");
     print(e);
   }
 }

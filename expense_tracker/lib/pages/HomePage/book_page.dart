@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
-import 'package:expense_tracker/pages/HomePages/Expenses/inside_book_page.dart';
+import 'package:expense_tracker/pages/HomePage/Expenses/inside_book_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -96,7 +96,11 @@ class _BookPageState extends State<BookPage> {
     );
   }
 
-  void _showEditBookDialog(String id, String currentBookName, String currentBookSubtitle) {
+  void _showEditBookDialog(
+    String id,
+    String currentBookName,
+    String currentBookSubtitle,
+  ) {
     bookNameController.text = currentBookName;
     bookSubtitleController.text = currentBookSubtitle;
 
@@ -170,7 +174,11 @@ class _BookPageState extends State<BookPage> {
             onPressed: () {
               Navigator.pop(dialogContext);
 
-              _showEditBookDialog(item['id'].toString(), bookName, bookSubtitle);
+              _showEditBookDialog(
+                item['id'].toString(),
+                bookName,
+                bookSubtitle,
+              );
             },
             child: const Text("Edit"),
           ),
@@ -331,8 +339,8 @@ class _BookPageState extends State<BookPage> {
 
       floatingActionButton: TextButton(
         style: TextButton.styleFrom(
-          minimumSize: Size(70,60),
-          maximumSize: Size(160,60),
+          minimumSize: Size(70, 60),
+          maximumSize: Size(160, 60),
           backgroundColor: Colors.deepPurple,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(100),
@@ -343,14 +351,11 @@ class _BookPageState extends State<BookPage> {
           padding: const EdgeInsets.all(4.0),
           child: Row(
             children: [
-              const Icon(Icons.add, color: Colors.white,size: 30),
+              const Icon(Icons.add, color: Colors.white, size: 30),
               SizedBox(width: 5),
               Text(
                 "Add Book",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 20),
               ),
             ],
           ),
@@ -424,6 +429,23 @@ class _BookPageState extends State<BookPage> {
     if (res.statusCode != 200) {
       throw Exception('Failed to update book');
     }
+  }
+
+  Future<void> archiveBook(String id) async {
+    final url = Uri.parse("${bookUrl}archive/$id");
+    final res = await http.patch(url, headers: {'Authorization': basicAuth});
+    // if (res.statusCode != 200) {
+    //   throw Exception('Failed to archive book');
+    // }
+  }
+
+
+  Future<void> restoreBook(String id) async {
+    final url = Uri.parse("${bookUrl}restore/$id");
+    final res = await http.patch(url, headers: {'Authorization': basicAuth});
+    // if (res.statusCode != 200) {
+    //   throw Exception('Failed to restore book');
+    // }
   }
 
   Future<void> logout() async {

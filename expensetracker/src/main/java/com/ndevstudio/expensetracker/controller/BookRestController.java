@@ -30,6 +30,10 @@ public class BookRestController {
         return bookService.readAllBooks(authentication);
     }
 
+    @GetMapping("/readAllArchived")
+    public ResponseEntity<List<Book>> getArchivedBooks(Authentication authentication){
+        return bookService.readArchivedBooks(authentication);
+    }
     // CREATE BOOK
     @PostMapping("/create")
     public ResponseEntity<Book> createNewBook(@RequestBody Book b, Authentication authentication) {
@@ -42,6 +46,16 @@ public class BookRestController {
         return bookService.updateBook(b,id,authentication);
     }
 
+    @PatchMapping("archive/{id}")
+    public ResponseEntity<String> archiveBook(@PathVariable long id,Authentication authentication){
+        return bookService.archiveBook(id, authentication);
+    }
+
+    @PatchMapping("restore/{id}")
+    public ResponseEntity<String> restoreBook(@PathVariable long id,Authentication authentication){
+        return bookService.restoreBook(id, authentication);
+    }
+    
     // DELETE BOOK
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteBook(@PathVariable long id, Authentication authentication) {

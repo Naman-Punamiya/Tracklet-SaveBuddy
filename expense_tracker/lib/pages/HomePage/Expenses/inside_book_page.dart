@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:expense_tracker/pages/HomePages/Expenses/expense_page.dart';
+import 'package:expense_tracker/pages/HomePage/Expenses/expense_page.dart';
+import 'package:expense_tracker/pages/HomePage/Expenses/expense_report.dart';
 import 'package:flutter/material.dart';
 
 class BookInsideHomePage extends StatefulWidget {
@@ -33,11 +34,10 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
         bookName: widget.bookName,
       ),
 
-      Center(
-        child: Text(
-          "Your Expense Report for ${widget.bookName}",
-          style: const TextStyle(fontSize: 20),
-        ),
+      ExpenseReport(
+        bookId: widget.bookId,
+        email: widget.email,
+        password: widget.password,
       ),
     ];
     return Scaffold(

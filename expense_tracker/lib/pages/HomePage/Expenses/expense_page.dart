@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
-import 'package:expense_tracker/pages/HomePages/Expenses/category_page.dart';
+import 'package:expense_tracker/pages/HomePage/Expenses/category_page.dart';
 import 'package:expense_tracker/services/expense_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -532,6 +532,7 @@ class _ExpensePageState extends State<ExpensePage> {
     final res = await http.get(url, headers: {'Authorization': basicAuth});
     print(jsonDecode(res.body));
     if (res.statusCode == 200) {
+      if (!mounted) return;
       setState(() {
         categories = jsonDecode(res.body);
       });
