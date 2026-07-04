@@ -46,12 +46,12 @@ public class BookRestController {
         return bookService.updateBook(b,id,authentication);
     }
 
-    @PatchMapping("archive/{id}")
+    @PatchMapping("/archive/{id}")
     public ResponseEntity<String> archiveBook(@PathVariable long id,Authentication authentication){
         return bookService.archiveBook(id, authentication);
     }
 
-    @PatchMapping("restore/{id}")
+    @PatchMapping("/restore/{id}")
     public ResponseEntity<String> restoreBook(@PathVariable long id,Authentication authentication){
         return bookService.restoreBook(id, authentication);
     }

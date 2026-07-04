@@ -413,9 +413,9 @@ class _BookPageState extends State<BookPage> {
 
     final res = await http.delete(url, headers: {'Authorization': basicAuth});
 
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete book');
-    }
+    // if (res.statusCode != 200) {
+    //   throw Exception('Failed to delete book');
+    // }
   }
 
   Future<void> updateBook(String id, String name, String subtitle) async {
