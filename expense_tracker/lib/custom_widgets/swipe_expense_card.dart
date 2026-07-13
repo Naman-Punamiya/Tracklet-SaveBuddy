@@ -1,0 +1,224 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class SwipeExpenseCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const SwipeExpenseCard({
+    super.key,
+    required this.child,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  State<SwipeExpenseCard> createState() => _SwipeExpenseCardState();
+}
+
+class _SwipeExpenseCardState extends State<SwipeExpenseCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  late Animation<double> _animation;
+
+  bool isOpen = false;
+
+  double maxSlide = 120;
+
+  double openThreshold = 70;
+
+  double offset = 0;
+
+  bool isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+
+    _animation =
+        Tween<double>(begin: 0, end: 0).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+        )..addListener(() {
+          setState(() {
+            offset = _animation.value;
+          });
+        });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double progress = (offset.abs() / maxSlide).clamp(0.0, 1.0);
+    return Stack(
+      children: [
+        // LEFT (Delete)
+        Positioned.fill(
+          child: Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 20),
+            color: Colors.red.withValues(alpha: progress * 0.15),
+            child: Container(
+              width: 90,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Transform.scale(
+                scale: 0.6 + progress * 0.4,
+                child: Opacity(
+                  opacity: progress,
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.delete_outline, color: Colors.white),
+                      SizedBox(height: 4),
+                      Text(
+                        "Delete",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // RIGHT (Edit)
+        Positioned.fill(
+          child: Container(
+            alignment: Alignment.centerRight,
+            padding: const EdgeInsets.only(right: 20),
+            color: Colors.blue.withValues(alpha: progress * 0.15),
+            child: Container(
+              width: 90,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.blue,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Transform.scale(
+                scale: 0.6 + progress * 0.4,
+                child: Opacity(
+                  opacity: progress,
+                  child: const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.edit_outlined, color: Colors.white),
+                      SizedBox(height: 4),
+                      Text(
+                        "Edit",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        GestureDetector(
+          onHorizontalDragStart: (_) {
+            isDragging = true;
+          },
+
+          onHorizontalDragUpdate: (details) {
+            setState(() {
+              double delta = details.delta.dx;
+
+              if (offset.abs() > 80) {
+                delta *= 0.35;
+              }
+
+              if (offset.abs() > 140) {
+                delta *= 0.25;
+              }
+
+              offset += delta;
+
+              if (offset > maxSlide) offset = maxSlide;
+              if (offset < -maxSlide) offset = -maxSlide;
+            });
+          },
+
+          onHorizontalDragEnd: (_) {
+            if (offset >= openThreshold) {
+              HapticFeedback.mediumImpact();
+
+              widget.onEdit();
+
+              animateTo(0);
+
+              return;
+            }
+
+            if (offset <= -openThreshold) {
+              HapticFeedback.mediumImpact();
+
+              widget.onDelete();
+
+              animateTo(0);
+
+              return;
+            }
+
+            animateTo(0);
+          },
+
+          child: Transform.translate(
+            offset: Offset(offset, 0),
+            child: Transform.scale(
+              scale: offset == 0 ? 1 : 0.985,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: offset == 0 ? 0.05 : 0.18),
+                      blurRadius: offset == 0 ? 3 : 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: widget.child,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void animateTo(double value) {
+    _animation =
+        Tween<double>(begin: offset, end: value).animate(
+          CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+        )..addListener(() {
+          setState(() {
+            offset = _animation.value;
+          });
+        });
+
+    _controller.forward(from: 0);
+  }
+}
