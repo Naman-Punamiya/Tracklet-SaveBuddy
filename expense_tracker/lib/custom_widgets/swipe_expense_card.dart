@@ -23,15 +23,11 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
 
   late Animation<double> _animation;
 
-  bool isOpen = false;
-
   double maxSlide = 120;
 
-  double openThreshold = 70;
+  double openThreshold = 85;
 
   double offset = 0;
-
-  bool isDragging = false;
 
   @override
   void initState() {
@@ -44,7 +40,7 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
 
     _animation =
         Tween<double>(begin: 0, end: 0).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+          CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
         )..addListener(() {
           setState(() {
             offset = _animation.value;
@@ -138,19 +134,19 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
         ),
 
         GestureDetector(
-          onHorizontalDragStart: (_) {
-            isDragging = true;
-          },
-
           onHorizontalDragUpdate: (details) {
             setState(() {
               double delta = details.delta.dx;
 
-              if (offset.abs() > 80) {
-                delta *= 0.35;
+              if (offset.abs() > 60) {
+                delta *= 0.55;
               }
 
-              if (offset.abs() > 140) {
+              if (offset.abs() > 90) {
+                delta *= 0.40;
+              }
+
+              if (offset.abs() > 110) {
                 delta *= 0.25;
               }
 
@@ -165,7 +161,7 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
             if (offset >= openThreshold) {
               HapticFeedback.mediumImpact();
 
-              widget.onEdit();
+              widget.onDelete();
 
               animateTo(0);
 
@@ -175,7 +171,7 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
             if (offset <= -openThreshold) {
               HapticFeedback.mediumImpact();
 
-              widget.onDelete();
+              widget.onEdit();
 
               animateTo(0);
 
@@ -194,7 +190,9 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
                 decoration: BoxDecoration(
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: offset == 0 ? 0.05 : 0.18),
+                      color: Colors.black.withValues(
+                        alpha: offset == 0 ? 0.05 : 0.18,
+                      ),
                       blurRadius: offset == 0 ? 3 : 12,
                       offset: const Offset(0, 4),
                     ),
@@ -209,16 +207,16 @@ class _SwipeExpenseCardState extends State<SwipeExpenseCard>
     );
   }
 
-  void animateTo(double value) {
+  Future<void> animateTo(double value) async {
     _animation =
         Tween<double>(begin: offset, end: value).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+          CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
         )..addListener(() {
           setState(() {
             offset = _animation.value;
           });
         });
 
-    _controller.forward(from: 0);
+    await _controller.forward(from: 0);
   }
 }

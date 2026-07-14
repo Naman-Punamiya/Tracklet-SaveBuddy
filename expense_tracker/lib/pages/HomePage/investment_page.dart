@@ -63,7 +63,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
           } else {
             return Column(
               children: [
-                Container(
+                SizedBox(
                   height: MediaQuery.of(context).size.height/3,
                   child: PieChart(
                     PieChartData(

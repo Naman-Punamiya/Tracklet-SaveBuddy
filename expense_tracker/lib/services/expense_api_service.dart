@@ -13,7 +13,6 @@ Future<List<dynamic>> fetchExpenses(String bookId, dynamic basicAuth) async {
     }
     return jsonDecode(res.body) as List<dynamic>;
   } catch (e) {
-    print("Loading from Local Database");
     final localExpenses = await dbHelper.getAllExpenses();
     return localExpenses;
   }
@@ -29,39 +28,33 @@ Future<void> addExpense(
   dynamic basicAuth,
 ) async {
   final dbHelper = DatabaseHelper();
+  final url = Uri.parse('${expenseUrl}create');
+  final res = await http.post(
+    url,
+    headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
+    body: jsonEncode({
+      'description': description,
+      'amount': double.tryParse(amount) ?? 0,
+      'credit': isCredit,
+      'date': DateTime.now().toIso8601String(),
+      'book': {'id': int.parse(bookId)},
+      'category': {'id': int.parse(categoryId!)},
+    }),
+  );
+
+  if (res.statusCode != 200 && res.statusCode != 201) {
+    throw Exception('Failed to add expense');
+  }
+
   await dbHelper.insertExpense(
     description: description,
     amount: double.tryParse(amount) ?? 0,
     credit: isCredit,
     date: DateTime.now().toIso8601String(),
-    categoryId: int.parse(categoryId!),
+    categoryId: int.parse(categoryId),
     categoryName: categoryName ?? "Uncategorized",
     bookId: int.parse(bookId),
   );
-  final expenses = await dbHelper.getAllExpenses();
-  print(expenses);
-  try {
-    final url = Uri.parse('${expenseUrl}create');
-    final res = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-      body: jsonEncode({
-        'description': description,
-        'amount': double.tryParse(amount) ?? 0,
-        'credit': isCredit,
-        'date': DateTime.now().toIso8601String(),
-        'book': {'id': int.parse(bookId)},
-        'category': {'id': int.parse(categoryId)},
-      }),
-    );
-    if (res.statusCode == 200 || res.statusCode == 201) {
-      print("Cloud sync successful");
-    } else {
-      print("Stored locally, cloud failed");
-    }
-  } catch (e) {
-    print(e);
-  }
 }
 
 Future<void> updateExpense(

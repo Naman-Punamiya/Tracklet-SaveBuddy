@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:expense_tracker/pages/HomePage/Expenses/expense_page.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/expense_report.dart';
 import 'package:flutter/material.dart';
@@ -22,24 +21,29 @@ class BookInsideHomePage extends StatefulWidget {
 
 class _BookInsideHomePageState extends State<BookInsideHomePage> {
   int currentIndex = 0;
-  String get basicAuth =>
-      'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
+  late final List<Widget> pages;
+
   @override
-  Widget build(BuildContext context) {
-    final List<Widget> pages = [
+  void initState() {
+    super.initState();
+
+    pages = [
       ExpensePage(
         email: widget.email,
         password: widget.password,
         bookId: widget.bookId,
         bookName: widget.bookName,
       ),
-
       ExpenseReport(
         bookId: widget.bookId,
         email: widget.email,
         password: widget.password,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       body: pages[currentIndex],
       bottomNavigationBar: BottomNavigationBar(
@@ -51,7 +55,7 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.book, color: Colors.black),
+            icon: Icon(Icons.receipt_long, color: Colors.black),
             label: "Expenses Details",
           ),
           BottomNavigationBarItem(

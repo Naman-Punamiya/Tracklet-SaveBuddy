@@ -1,9 +1,9 @@
 import 'dart:convert';
 
 import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/custom_widgets/swipe_expense_card.dart';
 import 'package:expense_tracker/services/expense_api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -50,6 +50,7 @@ class _ExpensePageState extends State<ExpensePage> {
   String selectedFilterType = "All";
   String selectedDateFilter = "All";
   String selectedSort = "Newest";
+  bool isSaving = false;
 
   @override
   void initState() {
@@ -63,6 +64,7 @@ class _ExpensePageState extends State<ExpensePage> {
   void dispose() {
     descriptionController.dispose();
     amountController.dispose();
+    searchController.dispose();
 
     super.dispose();
   }
@@ -71,17 +73,21 @@ class _ExpensePageState extends State<ExpensePage> {
   // RELOAD
   // =====================================
 
-  void _reloadExpenses() {
+  void _reloadExpenses({bool resetFilters = true}) {
+    if (!mounted) return;
     setState(() {
       allExpenses.clear();
 
       filteredExpenses.clear();
 
-      selectedFilterCategory = "All";
-      selectedFilterType = "All";
-      selectedDateFilter = "All";
-      selectedSort = "Newest";
-
+      if (resetFilters) {
+        selectedFilterCategory = "All";
+        selectedFilterType = "All";
+        selectedDateFilter = "All";
+        selectedSort = "Newest";
+        searchController.clear();
+        isSearching = false;
+      }
       _expensesFuture = fetchExpenses(widget.bookId, basicAuth);
     });
   }
@@ -104,6 +110,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
         title: isSearching
             ? TextField(
+                controller: searchController,
                 autofocus: true,
                 decoration: const InputDecoration(
                   hintText: "Search expenses...",
@@ -164,6 +171,8 @@ class _ExpensePageState extends State<ExpensePage> {
                     selectedFilterType = "All";
                     selectedDateFilter = "All";
                     filteredExpenses = allExpenses;
+                    searchController.clear();
+                    selectedSort = "Newest";
                   }
                 });
               },
@@ -213,8 +222,8 @@ class _ExpensePageState extends State<ExpensePage> {
           }
 
           if (allExpenses.isEmpty && snapshot.hasData) {
-            allExpenses = snapshot.data!;
-            filteredExpenses = snapshot.data!;
+            allExpenses = List<dynamic>.from(snapshot.data!);
+            filteredExpenses = _buildFilteredExpenses(allExpenses);
           }
 
           final items = filteredExpenses;
@@ -223,6 +232,37 @@ class _ExpensePageState extends State<ExpensePage> {
           final balance = income - expense;
           // EMPTY
           if (items.isEmpty) {
+            if (allExpenses.isNotEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.search_off_rounded,
+                      size: 90,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "No matching expenses found",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 10), 
+                    Text(
+                      "Try another keyword or clear filters.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -461,7 +501,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
                     final amount = item['amount'] ?? 0;
 
-                    final dateTime = DateTime.parse(item['date']);
+                    final dateTime = _safeParseDate(item['date']);
 
                     final isCredit =
                         item['credit'].toString().toLowerCase() == "true";
@@ -480,7 +520,7 @@ class _ExpensePageState extends State<ExpensePage> {
                     if (index == 0) {
                       showHeader = true;
                     } else {
-                      final previous = DateTime.parse(items[index - 1]['date']);
+                      final previous = _safeParseDate(items[index - 1]['date']);
 
                       if (previous.day != dateTime.day ||
                           previous.month != dateTime.month ||
@@ -507,165 +547,40 @@ class _ExpensePageState extends State<ExpensePage> {
                             ),
                           ),
 
-                        Slidable(
-                          key: ValueKey(item['id']),
+                        SwipeExpenseCard(
+                          onEdit: () {
+                            _showEditDialog(item);
+                          },
 
-                          // Swipe Right
-                          startActionPane: ActionPane(
-                            motion: const StretchMotion(), // Rubber-band effect
-
-                            dismissible: DismissiblePane(
-                              onDismissed: () {
-                                _showEditDialog(item);
-                              },
-                            ),
-
-                            children: [
-                              CustomSlidableAction(
-                                onPressed: (_) => _showEditDialog(item),
-
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue,
-                                    borderRadius: BorderRadius.circular(22),
-                                  ),
-
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.edit_outlined,
-                                        color: Colors.white,
-                                        size: 32,
-                                      ),
-
-                                      SizedBox(height: 10),
-
-                                      Text(
-                                        "Edit",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                          onDelete: () async {
+                            final delete = await showDialog<bool>(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Delete Expense"),
+                                content: const Text(
+                                  "Delete this expense permanently?",
                                 ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
+                                    child: const Text("Cancel"),
+                                  ),
+
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
+                                    child: const Text("Delete"),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
+                            );
 
-                          // Swipe Left
-                          endActionPane: ActionPane(
-                            motion: const StretchMotion(),
+                            if (delete == true) {
+                              await _deleteExpense(item["id"].toString());
+                            }
+                          },
 
-                            dismissible: DismissiblePane(
-                              onDismissed: () async {
-                                final delete = await showDialog<bool>(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: const Text("Delete Expense"),
-                                    content: const Text(
-                                      "Are you sure you want to delete this expense?",
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, false),
-                                        child: const Text("Cancel"),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () =>
-                                            Navigator.pop(context, true),
-                                        child: const Text("Delete"),
-                                      ),
-                                    ],
-                                  ),
-                                );
-
-                                if (delete == true) {
-                                  await deleteExpense(
-                                    item['id'].toString(),
-                                    basicAuth,
-                                  );
-
-                                  _reloadExpenses();
-                                }
-                              },
-                            ),
-
-                            children: [
-                              CustomSlidableAction(
-                                onPressed: (_) async {
-                                  final delete = await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text("Delete Expense"),
-                                      content: const Text(
-                                        "Are you sure you want to delete this expense?",
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: const Text("Cancel"),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text("Delete"),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (delete == true) {
-                                    await deleteExpense(
-                                      item['id'].toString(),
-                                      basicAuth,
-                                    );
-                                    _reloadExpenses();
-                                  }
-                                },
-
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red,
-                                    borderRadius: BorderRadius.circular(22),
-                                  ),
-
-                                  child: const Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.delete_outline,
-                                        color: Colors.white,
-                                        size: 32,
-                                      ),
-
-                                      SizedBox(height: 10),
-
-                                      Text(
-                                        "Delete",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
                           child: InkWell(
                             borderRadius: BorderRadius.circular(22),
                             onTap: () {
@@ -885,6 +800,7 @@ class _ExpensePageState extends State<ExpensePage> {
   void _showAddExpenseDialog() {
     descriptionController.clear();
     amountController.clear();
+    isSaving = false;
 
     bool dialogIsCredit = false;
     selectedCategoryId = null;
@@ -1002,7 +918,6 @@ class _ExpensePageState extends State<ExpensePage> {
                           ),
                         ),
                         items: categories.map((category) {
-                          print("Categories count: ${categories.length}");
                           return DropdownMenuItem<String>(
                             value: category['id'].toString(),
                             child: Text(category['name'].toString()),
@@ -1034,31 +949,66 @@ class _ExpensePageState extends State<ExpensePage> {
                 ),
 
                 TextButton(
-                  onPressed: () async {
-                    if (selectedCategoryId == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Please select a category"),
-                        ),
-                      );
-                      return;
-                    }
+                  onPressed: isSaving
+                      ? null
+                      : () async {
+                          if (isSaving) return;
+                          FocusScope.of(context).unfocus();
 
-                    Navigator.pop(dialogContext);
+                          if (!validateExpense()) {
+                            return;
+                          }
 
-                    await addExpense(
-                      descriptionController.text,
-                      amountController.text,
-                      widget.bookId,
-                      dialogIsCredit,
-                      selectedCategoryId,
-                      selectedCategoryName,
-                      basicAuth,
-                    );
+                          dialogSetState(() {
+                            isSaving = true;
+                          });
 
-                    _reloadExpenses();
-                  },
-                  child: const Text("Add"),
+                          bool isSuccess = false;
+
+                          try {
+                            await addExpense(
+                              descriptionController.text.trim(),
+                              amountController.text.trim(),
+                              widget.bookId,
+                              dialogIsCredit,
+                              selectedCategoryId,
+                              selectedCategoryName,
+                              basicAuth,
+                            );
+
+                            isSuccess = true;
+
+                            if (!mounted) return;
+
+                            Navigator.pop(dialogContext);
+                            _reloadExpenses(resetFilters: false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Expense Added"),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            showError("Failed to add expense");
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                isSaving = false;
+                              });
+                              if (!isSuccess) {
+                                dialogSetState(() {});
+                              }
+                            }
+                          }
+                        },
+                  child: isSaving
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text("Add"),
                 ),
               ],
             );
@@ -1072,23 +1022,20 @@ class _ExpensePageState extends State<ExpensePage> {
     final url = Uri.parse('${categoryUrl}readAll');
 
     final res = await http.get(url, headers: {'Authorization': basicAuth});
-    print(jsonDecode(res.body));
     if (res.statusCode == 200) {
       if (!mounted) return;
       setState(() {
         categories = jsonDecode(res.body);
       });
-      print(categories);
     } else {
       throw Exception("Failed to load categories");
     }
   }
 
   void _showEditDialog(Map<String, dynamic> item) {
+    isSaving = false;
     selectedCategoryId = item['category']?['id']?.toString();
     selectedCategoryName = item['category']?['name']?.toString();
-
-    isCredit = item['credit'].toString().toLowerCase() == 'true';
 
     descriptionController.text = item['description']?.toString() ?? '';
 
@@ -1099,6 +1046,8 @@ class _ExpensePageState extends State<ExpensePage> {
     showDialog(
       context: context,
       builder: (dialogContext) {
+        void Function(void Function())? updateDialogState;
+
         return AlertDialog(
           backgroundColor: Colors.white,
 
@@ -1109,6 +1058,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
           content: StatefulBuilder(
             builder: (context, dialogSetState) {
+              updateDialogState = dialogSetState;
               return SingleChildScrollView(
                 child: Padding(
                   padding: const EdgeInsets.all(10),
@@ -1179,27 +1129,63 @@ class _ExpensePageState extends State<ExpensePage> {
             ),
 
             TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogContext);
+              onPressed: isSaving
+                  ? null
+                  : () async {
+                      if (isSaving) return;
+                      FocusScope.of(context).unfocus();
 
-                await updateExpense(
-                  item['id'].toString(),
-                  descriptionController.text,
-                  amountController.text,
-                  isCredit,
-                  selectedCategoryId,
-                  basicAuth,
-                );
+                      if (!validateExpense()) {
+                        return;
+                      }
 
-                if (!mounted) return;
+                      updateDialogState?.call(() {
+                        isSaving = true;
+                      });
 
-                _reloadExpenses();
+                      bool isSuccess = false;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Expense Updated")),
-                );
-              },
-              child: const Text("Save"),
+                      try {
+                        await updateExpense(
+                          item['id'].toString(),
+                          descriptionController.text.trim(),
+                          amountController.text.trim(),
+                          isCredit,
+                          selectedCategoryId,
+                          basicAuth,
+                        );
+
+                        isSuccess = true;
+
+                        if (!mounted) return;
+
+                        Navigator.pop(dialogContext);
+                        _reloadExpenses(resetFilters: false);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Expense Updated")),
+                        );
+                      } catch (e) {
+                        if (!mounted) return;
+                        showError("Failed to update expense");
+                      } finally {
+                        if (mounted) {
+                          setState(() {
+                            isSaving = false;
+                          });
+                          if (!isSuccess) {
+                            updateDialogState?.call(() {});
+                          }
+                        }
+                      }
+                    },
+              child: isSaving
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text("Save"),
             ),
           ],
         );
@@ -1207,18 +1193,26 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  Future<void> _deleteExpense(String id, BuildContext dialogContext) async {
-    Navigator.pop(dialogContext);
+  Future<void> _deleteExpense(String id, {BuildContext? dialogContext}) async {
+    if (dialogContext != null && Navigator.of(dialogContext).canPop()) {
+      Navigator.pop(dialogContext);
+    }
 
-    await deleteExpense(id, basicAuth);
+    try {
+      await deleteExpense(id, basicAuth);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    _reloadExpenses();
-
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Expense Deleted")));
+      _reloadExpenses(resetFilters: false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Expense Deleted")));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Failed to delete expense")));
+    }
   }
 
   void _showExpenseDetails(Map<String, dynamic> item) {
@@ -1275,7 +1269,10 @@ class _ExpensePageState extends State<ExpensePage> {
 
             TextButton(
               onPressed: () async {
-                await _deleteExpense(item['id'].toString(), dialogContext);
+                await _deleteExpense(
+                  item['id'].toString(),
+                  dialogContext: dialogContext,
+                );
               },
               child: const Text("Delete"),
             ),
@@ -1382,43 +1379,12 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   void searchExpense(String query) {
+    if (!mounted) return;
     setState(() {
-      if (query.isEmpty) {
-        selectedFilterCategory = "All";
-        selectedFilterType = "All";
-        selectedDateFilter = "All";
-        filteredExpenses = allExpenses;
-      } else {
-        List<dynamic> source = allExpenses.where((expense) {
-          bool categoryMatch =
-              selectedFilterCategory == "All" ||
-              (expense['category']?['name'] ?? expense['category_name']) ==
-                  selectedFilterCategory;
-
-          bool isCredit =
-              expense['credit'].toString().toLowerCase() == "true" ||
-              expense['credit'] == 1;
-
-          bool typeMatch =
-              selectedFilterType == "All" ||
-              (selectedFilterType == "Credit" && isCredit) ||
-              (selectedFilterType == "Debit" && !isCredit);
-
-          return categoryMatch && typeMatch;
-        }).toList();
-
-        filteredExpenses = source.where((expense) {
-          final description = expense['description'].toString().toLowerCase();
-
-          final category =
-              (expense['category']?['name'] ?? expense['category_name'] ?? "")
-                  .toString()
-                  .toLowerCase();
-
-          return description.contains(query.toLowerCase()) ||
-              category.contains(query.toLowerCase());
-        }).toList();
-      }
+      filteredExpenses = _buildFilteredExpenses(
+        allExpenses,
+        searchQuery: query,
+      );
     });
   }
 
@@ -1582,13 +1548,12 @@ class _ExpensePageState extends State<ExpensePage> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () {
-                            setState(() {
-                              selectedFilterCategory = "All";
-                              selectedFilterType = "All";
-                              selectedDateFilter = "All";
-                              filteredExpenses = allExpenses;
-                              selectedSort = "Newest";
-                            });
+                            selectedFilterCategory = "All";
+                            selectedFilterType = "All";
+                            selectedDateFilter = "All";
+                            selectedSort = "Newest";
+
+                            applyFilter();
 
                             Navigator.pop(context);
                           },
@@ -1619,107 +1584,162 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   void applyFilter() {
+    if (!mounted) return;
     setState(() {
-      // Step 1: Filter
-      filteredExpenses = allExpenses.where((expense) {
-        // Category Filter
-        bool categoryMatch =
-            selectedFilterCategory == "All" ||
-            (expense['category']?['name']?.toString() ??
-                    expense['category_name']?.toString() ??
-                    "") ==
-                selectedFilterCategory;
+      filteredExpenses = _buildFilteredExpenses(allExpenses);
+    });
+  }
 
-        // Type Filter
-        bool isCredit =
-            expense['credit'].toString().toLowerCase() == "true" ||
-            expense['credit'] == 1;
+  List<dynamic> _buildFilteredExpenses(
+    List<dynamic> source, {
+    String? searchQuery,
+  }) {
+    final now = DateTime.now();
 
-        bool typeMatch =
-            selectedFilterType == "All" ||
-            (selectedFilterType == "Credit" && isCredit) ||
-            (selectedFilterType == "Debit" && !isCredit);
+    final filtered = source.where((expense) {
+      final categoryName =
+          expense['category']?['name']?.toString() ??
+          expense['category_name']?.toString() ??
+          "";
+      final categoryMatch =
+          selectedFilterCategory == "All" ||
+          categoryName == selectedFilterCategory;
 
-        // Date Filter
-        DateTime expenseDate = DateTime.parse(expense["date"]);
-        DateTime now = DateTime.now();
+      final creditValue = expense['credit'];
+      final expenseIsCredit =
+          creditValue.toString().toLowerCase() == "true" || creditValue == 1;
+      final typeMatch =
+          selectedFilterType == "All" ||
+          (selectedFilterType == "Credit" && expenseIsCredit) ||
+          (selectedFilterType == "Debit" && !expenseIsCredit);
 
-        bool dateMatch = true;
+      final expenseDate = _safeParseDate(expense["date"]);
+      var dateMatch = true;
 
-        switch (selectedDateFilter) {
-          case "Today":
-            dateMatch =
-                expenseDate.year == now.year &&
-                expenseDate.month == now.month &&
-                expenseDate.day == now.day;
-            break;
-
-          case "This Week":
-            DateTime startOfWeek = now.subtract(
-              Duration(days: now.weekday - 1),
-            );
-
-            dateMatch = expenseDate.isAfter(
-              startOfWeek.subtract(const Duration(days: 1)),
-            );
-            break;
-
-          case "This Month":
-            dateMatch =
-                expenseDate.year == now.year && expenseDate.month == now.month;
-            break;
-
-          default:
-            dateMatch = true;
-        }
-
-        return categoryMatch && typeMatch && dateMatch;
-      }).toList();
-
-      // Step 2: Sort
-      switch (selectedSort) {
-        case "Newest":
-          filteredExpenses.sort(
-            (a, b) =>
-                DateTime.parse(b["date"]).compareTo(DateTime.parse(a["date"])),
-          );
+      switch (selectedDateFilter) {
+        case "Today":
+          dateMatch =
+              expenseDate.year == now.year &&
+              expenseDate.month == now.month &&
+              expenseDate.day == now.day;
           break;
-
-        case "Oldest":
-          filteredExpenses.sort(
-            (a, b) =>
-                DateTime.parse(a["date"]).compareTo(DateTime.parse(b["date"])),
-          );
+        case "This Week":
+          final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+          final endOfWeek = startOfWeek.add(const Duration(days: 7));
+          dateMatch =
+              expenseDate.isAfter(
+                startOfWeek.subtract(const Duration(seconds: 1)),
+              ) &&
+              expenseDate.isBefore(endOfWeek);
           break;
-
-        case "Highest":
-          filteredExpenses.sort(
-            (a, b) => (b["amount"] as num).compareTo(a["amount"] as num),
-          );
-          break;
-
-        case "Lowest":
-          filteredExpenses.sort(
-            (a, b) => (a["amount"] as num).compareTo(b["amount"] as num),
-          );
-          break;
-
-        case "A-Z":
-          filteredExpenses.sort(
-            (a, b) => a["description"].toString().compareTo(
-              b["description"].toString(),
-            ),
-          );
-          break;
-
-        case "Z-A":
-          filteredExpenses.sort(
-            (a, b) => b["description"].toString().compareTo(
-              a["description"].toString(),
-            ),
-          );
+        case "This Month":
+          dateMatch =
+              expenseDate.year == now.year && expenseDate.month == now.month;
           break;
       }
-    });
+
+      return categoryMatch && typeMatch && dateMatch;
+    }).toList();
+
+    switch (selectedSort) {
+      case "Newest":
+        filtered.sort(
+          (a, b) =>
+              _safeParseDate(b["date"]).compareTo(_safeParseDate(a["date"])),
+        );
+        break;
+      case "Oldest":
+        filtered.sort(
+          (a, b) =>
+              _safeParseDate(a["date"]).compareTo(_safeParseDate(b["date"])),
+        );
+        break;
+      case "Highest":
+        filtered.sort((a, b) => _amountOf(b).compareTo(_amountOf(a)));
+        break;
+      case "Lowest":
+        filtered.sort((a, b) => _amountOf(a).compareTo(_amountOf(b)));
+        break;
+      case "A-Z":
+        filtered.sort(
+          (a, b) => a["description"].toString().compareTo(
+            b["description"].toString(),
+          ),
+        );
+        break;
+      case "Z-A":
+        filtered.sort(
+          (a, b) => b["description"].toString().compareTo(
+            a["description"].toString(),
+          ),
+        );
+        break;
+    }
+
+    final query = (searchQuery ?? searchController.text).trim().toLowerCase();
+    if (query.isEmpty) {
+      return filtered;
+    }
+
+    return filtered.where((expense) {
+      final description = expense['description'].toString().toLowerCase();
+      final category =
+          (expense['category']?['name'] ?? expense['category_name'] ?? "")
+              .toString()
+              .toLowerCase();
+      return description.contains(query) || category.contains(query);
+    }).toList();
+  }
+
+  double _amountOf(dynamic expense) {
+    final value = expense["amount"];
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? "0") ?? 0;
+  }
+
+  DateTime _safeParseDate(dynamic value) {
+    return DateTime.tryParse(value?.toString() ?? "") ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  bool validateExpense() {
+    final description = descriptionController.text.trim();
+
+    if (description.isEmpty) {
+      showError("Please enter a description");
+      return false;
+    }
+
+    final amount = double.tryParse(amountController.text);
+
+    if (amount == null) {
+      showError("Please enter a valid amount");
+      return false;
+    }
+
+    if (amount <= 0) {
+      showError("Amount must be greater than 0");
+      return false;
+    }
+
+    if (selectedCategoryId == null) {
+      showError("Please select a category");
+      return false;
+    }
+
+    return true;
+  }
+
+  void showError(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 }
