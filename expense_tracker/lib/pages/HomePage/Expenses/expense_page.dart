@@ -1,10 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/swipe_expense_card.dart';
-import 'package:expense_tracker/services/expense_api_service.dart';
+import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 // =====================================
@@ -32,6 +32,7 @@ class _ExpensePageState extends State<ExpensePage> {
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
   final TextEditingController amountController = TextEditingController();
+  StreamSubscription<ConnectivityStatus>? _connectivitySubscription;
 
   late Future<List<dynamic>> _expensesFuture;
 
@@ -39,6 +40,9 @@ class _ExpensePageState extends State<ExpensePage> {
 
   String get basicAuth =>
       'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
+
+  final ExpenseRepository expenseRepo = ExpenseRepository();
+  final CategoryRepository categoryRepo = CategoryRepository();
 
   List<dynamic> categories = [];
   String? selectedCategoryId;
@@ -55,13 +59,127 @@ class _ExpensePageState extends State<ExpensePage> {
   @override
   void initState() {
     super.initState();
-    syncExpenses(basicAuth);
     _expensesFuture = fetchExpenses(widget.bookId, basicAuth);
     fetchCategories();
+    _triggerSync();
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  Future<void> _triggerSync() async {
+    await SyncEngine.syncAll(basicAuth);
+    if (mounted) {
+      _reloadExpenses(resetFilters: false);
+      fetchCategories();
+    }
+  }
+
+  Future<List<dynamic>> fetchExpenses(String bookId, String basicAuth) async {
+    return await expenseRepo.getExpenses(bookId);
+  }
+
+  Future<void> addExpense(
+    String description,
+    String amount,
+    String bookId,
+    bool isCredit,
+    String? categoryId,
+    String? categoryName,
+    String basicAuth,
+  ) async {
+    await expenseRepo.addExpense(description, amount, bookId, isCredit, categoryId, categoryName, basicAuth);
+  }
+
+  Future<void> updateExpense(
+    String id,
+    String description,
+    String amount,
+    bool isCredit,
+    String? categoryId,
+    String basicAuth,
+  ) async {
+    await expenseRepo.updateExpense(id, description, amount, isCredit, categoryId, basicAuth);
+  }
+
+  Future<void> deleteExpense(String id, String basicAuth) async {
+    await expenseRepo.deleteExpense(id, basicAuth);
+  }
+
+  Widget _buildSyncBadge(int status) {
+    Color bgColor;
+    Color textColor;
+    IconData icon;
+    String text;
+
+    switch (status) {
+      case 1:
+        bgColor = Colors.green.shade50;
+        textColor = Colors.green;
+        icon = Icons.cloud_done;
+        text = "Synced";
+        break;
+      case 2:
+        bgColor = Colors.red.shade50;
+        textColor = Colors.red;
+        icon = Icons.cloud_off;
+        text = "Sync Failed";
+        break;
+      case 0:
+      default:
+        bgColor = Colors.orange.shade50;
+        textColor = Colors.orange;
+        icon = Icons.cloud_upload_outlined;
+        text = "Pending Sync";
+        break;
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(animation),
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        key: ValueKey<int>(status),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: textColor,
+              size: 13,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     descriptionController.dispose();
     amountController.dispose();
     searchController.dispose();
@@ -511,9 +629,10 @@ class _ExpensePageState extends State<ExpensePage> {
                         item['category_name'] ??
                         "Other";
 
-                    final synced = item['synced'] == null
-                        ? true
-                        : item['synced'] == 1;
+                    final syncedVal = item['synced'];
+                    final int syncedStatus = syncedVal is int
+                        ? syncedVal
+                        : (syncedVal == true || syncedVal == null ? 1 : 0);
 
                     bool showHeader = false;
 
@@ -645,39 +764,9 @@ class _ExpensePageState extends State<ExpensePage> {
                                             fontSize: 13,
                                           ),
                                         ),
-
                                         const SizedBox(height: 10),
 
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-
-                                          decoration: BoxDecoration(
-                                            color: synced
-                                                ? Colors.green.shade50
-                                                : Colors.orange.shade50,
-
-                                            borderRadius: BorderRadius.circular(
-                                              30,
-                                            ),
-                                          ),
-
-                                          child: Text(
-                                            synced ? "☁ Synced" : "📱 Local",
-
-                                            style: TextStyle(
-                                              color: synced
-                                                  ? Colors.green
-                                                  : Colors.orange,
-
-                                              fontSize: 12,
-
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
+                                        _buildSyncBadge(syncedStatus),
                                       ],
                                     ),
                                   ),
@@ -1019,17 +1108,11 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Future<void> fetchCategories() async {
-    final url = Uri.parse('${categoryUrl}readAll');
-
-    final res = await http.get(url, headers: {'Authorization': basicAuth});
-    if (res.statusCode == 200) {
-      if (!mounted) return;
-      setState(() {
-        categories = jsonDecode(res.body);
-      });
-    } else {
-      throw Exception("Failed to load categories");
-    }
+    final data = await categoryRepo.getCategories();
+    if (!mounted) return;
+    setState(() {
+      categories = data;
+    });
   }
 
   void _showEditDialog(Map<String, dynamic> item) {

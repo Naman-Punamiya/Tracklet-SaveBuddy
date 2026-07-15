@@ -1,4 +1,7 @@
-String expenseUrl = "https://tracklet-savebuddy-1.onrender.com/expenses/";
-String bookUrl = "https://tracklet-savebuddy-1.onrender.com/books/";
-String categoryUrl = "https://tracklet-savebuddy-1.onrender.com/categories/";
-String investmentUrl = "https://tracklet-savebuddy-1.onrender.com/investments/";
+const String baseUrl = "https://tracklet-savebuddy-1.onrender.com";
+
+String expenseUrl = "$baseUrl/expenses/";
+String bookUrl = "$baseUrl/books/";
+String categoryUrl = "$baseUrl/categories/";
+String investmentUrl = "$baseUrl/investments/";
+String UserUrl = "$baseUrl/api/users/";

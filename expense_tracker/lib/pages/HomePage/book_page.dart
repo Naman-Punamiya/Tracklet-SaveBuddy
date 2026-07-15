@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/inside_book_page.dart';
 import 'package:expense_tracker/pages/archived_page.dart';
+import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class BookPage extends StatefulWidget {
   final String email;
@@ -18,7 +19,10 @@ class _BookPageState extends State<BookPage> {
   final TextEditingController bookNameController = TextEditingController();
   final TextEditingController bookSubtitleController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
+  StreamSubscription<ConnectivityStatus>? _connectivitySubscription;
 
+
+  final BookRepository bookRepo = BookRepository();
 
   List<dynamic> allBooks = [];
   List<dynamic> filteredBooks = [];
@@ -30,10 +34,24 @@ class _BookPageState extends State<BookPage> {
   void initState() {
     super.initState();
     _loadBooks();
+    _triggerSync();
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  Future<void> _triggerSync() async {
+    await SyncEngine.syncAll(basicAuth);
+    if (mounted) {
+      _loadBooks();
+    }
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     bookNameController.dispose();
     bookSubtitleController.dispose();
     searchController.dispose();
@@ -70,10 +88,11 @@ class _BookPageState extends State<BookPage> {
       allBooks = await fetchBooks();
       filteredBooks = List.from(allBooks);
     } finally {
-      if (!mounted) return;
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -480,63 +499,22 @@ class _BookPageState extends State<BookPage> {
   }
 
   Future<List<dynamic>> fetchBooks() async {
-    final url = Uri.parse("${bookUrl}readAll");
-
-    final res = await http.get(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load books');
-    }
-
-    print("Books fetched: ${res.body}");
-    return jsonDecode(res.body);
+    return await bookRepo.getBooks(archived: 0);
   }
 
   Future<void> addBook(String name, String subtitle) async {
-    final url = Uri.parse("${bookUrl}create");
-
-    final res = await http.post(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'subtitle': subtitle}),
-    );
-
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to add book');
-    }
+    await bookRepo.addBook(name, subtitle, basicAuth);
   }
 
   Future<void> deleteBook(String id) async {
-    final url = Uri.parse("${bookUrl}delete/$id");
-
-    final res = await http.delete(url, headers: {'Authorization': basicAuth});
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete book');
-    }
+    await bookRepo.deleteBook(id, basicAuth);
   }
 
   Future<void> updateBook(String id, String name, String subtitle) async {
-    final url = Uri.parse("${bookUrl}edit/$id");
-
-    final res = await http.put(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'subtitle': subtitle}),
-    );
-    if (res.statusCode != 200) {
-      throw Exception('Failed to update book');
-    }
+    await bookRepo.updateBook(id, name, subtitle, basicAuth);
   }
 
   Future<void> archiveBook(String id) async {
-    final url = Uri.parse("${bookUrl}archive/$id");
-    final res = await http.patch(url, headers: {'Authorization': basicAuth});
-    if (res.statusCode != 200) {
-      throw Exception('Failed to archive book');
-    }
+    await bookRepo.archiveBook(id, basicAuth);
   }
 }

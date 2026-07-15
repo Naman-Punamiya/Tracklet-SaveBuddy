@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/Auth/register_page.dart';
@@ -16,6 +19,14 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
@@ -156,44 +167,109 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> userAuthenticated() async {
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:8080/api/users/login'),
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
 
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-
-      body: jsonEncode({
-        "email": emailController.text.trim(),
-        "password": passwordController.text.trim(),
-      }),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool("isLoggedIn", true);
-      await prefs.setString("email", emailController.text.trim());
-      await prefs.setString("password", passwordController.text.trim());
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Login successful"),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text("Email cannot be empty"),
+          backgroundColor: Colors.red,
         ),
       );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => HomePage(
-            userId: data['id'],
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password cannot be empty"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('${UserUrl}login'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          "email": email,
+          "password": password,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool("isLoggedIn", true);
+        await prefs.setString("email", email);
+        await prefs.setString("password", password);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Login successful"),
+            backgroundColor: Colors.green,
           ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomePage(
+              userId: data['id'] ?? 0,
+              email: email,
+              password: password,
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Invalid Credentials"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } on SocketException catch (e) {
+      debugPrint("Login SocketException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Server is unreachable. Please check your internet connection."),
+          backgroundColor: Colors.red,
         ),
       );
-    } else {
+    } on TimeoutException catch (e) {
+      debugPrint("Login TimeoutException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Connection timed out. Please try again later."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } on http.ClientException catch (e) {
+      debugPrint("Login ClientException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Client error. Please verify network settings."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      debugPrint("Login unexpected exception: $e");
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Invalid Credentials"),
+          content: Text("Unexpected error: $e"),
           backgroundColor: Colors.red,
         ),
       );

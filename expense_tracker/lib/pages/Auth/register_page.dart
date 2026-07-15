@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
@@ -19,6 +22,16 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    fullNameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
@@ -188,45 +201,123 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> userAuthenticated() async {
-    final response = await http.post(
-      Uri.parse("http://10.0.2.2:8080/api/users/register"),
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: jsonEncode({
-        "name": fullNameController.text.trim(),
-        "email": emailController.text.trim(),
-        "password": passwordController.text.trim(),
-      }),
-    );
-    if (response.statusCode != 200 && response.statusCode != 201) {
+    final name = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Registration failed! Please try again."),
+        const SnackBar(
+          content: Text("Name cannot be empty"),
           backgroundColor: Colors.red,
         ),
       );
       return;
-    } else {
-      final data = jsonDecode(response.body);
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.setBool("isLoggedIn", true);
-      await prefs.setString("email", emailController.text.trim());
-      await prefs.setString("password", passwordController.text.trim());
+    }
+
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Registration successful!"),
-          backgroundColor: Colors.green,
+        const SnackBar(
+          content: Text("Email cannot be empty"),
+          backgroundColor: Colors.red,
         ),
       );
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => HomePage(
-            userId: data['id'],
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
+      return;
+    }
+
+    if (password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password cannot be empty"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse("${UserUrl}register"),
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: jsonEncode({
+          "name": name,
+          "email": email,
+          "password": password,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registration failed! Please try again."),
+            backgroundColor: Colors.red,
           ),
+        );
+        return;
+      } else {
+        final data = jsonDecode(response.body);
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool("isLoggedIn", true);
+        await prefs.setString("email", email);
+        await prefs.setString("password", password);
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registration successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomePage(
+              userId: data['id'] ?? 0,
+              email: email,
+              password: password,
+            ),
+          ),
+        );
+      }
+    } on SocketException catch (e) {
+      debugPrint("Register SocketException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Server is unreachable. Please check your internet connection."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } on TimeoutException catch (e) {
+      debugPrint("Register TimeoutException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Connection timed out. Please try again later."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } on http.ClientException catch (e) {
+      debugPrint("Register ClientException: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Client error. Please verify network settings."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      debugPrint("Register unexpected exception: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Unexpected error: $e"),
+          backgroundColor: Colors.red,
         ),
       );
     }

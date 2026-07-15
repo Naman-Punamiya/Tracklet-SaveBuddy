@@ -1,21 +1,9 @@
-import 'dart:convert';
-import 'package:expense_tracker/constant.dart';
-import 'package:expense_tracker/database/database_helper.dart';
-import 'package:http/http.dart' as http;
+import 'package:expense_tracker/repositories/repository.dart';
+
+final ExpenseRepository _expenseRepo = ExpenseRepository();
 
 Future<List<dynamic>> fetchExpenses(String bookId, dynamic basicAuth) async {
-  final dbHelper = DatabaseHelper();
-  try {
-    final url = Uri.parse('${expenseUrl}book/$bookId');
-    final res = await http.get(url, headers: {'Authorization': basicAuth});
-    if (res.statusCode != 200) {
-      throw Exception('Failed: ${res.statusCode}');
-    }
-    return jsonDecode(res.body) as List<dynamic>;
-  } catch (e) {
-    final localExpenses = await dbHelper.getAllExpenses();
-    return localExpenses;
-  }
+  return await _expenseRepo.getExpenses(bookId);
 }
 
 Future<void> addExpense(
@@ -27,33 +15,14 @@ Future<void> addExpense(
   String? categoryName,
   dynamic basicAuth,
 ) async {
-  final dbHelper = DatabaseHelper();
-  final url = Uri.parse('${expenseUrl}create');
-  final res = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-    body: jsonEncode({
-      'description': description,
-      'amount': double.tryParse(amount) ?? 0,
-      'credit': isCredit,
-      'date': DateTime.now().toIso8601String(),
-      'book': {'id': int.parse(bookId)},
-      'category': {'id': int.parse(categoryId!)},
-    }),
-  );
-
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to add expense');
-  }
-
-  await dbHelper.insertExpense(
-    description: description,
-    amount: double.tryParse(amount) ?? 0,
-    credit: isCredit,
-    date: DateTime.now().toIso8601String(),
-    categoryId: int.parse(categoryId),
-    categoryName: categoryName ?? "Uncategorized",
-    bookId: int.parse(bookId),
+  await _expenseRepo.addExpense(
+    description,
+    amount,
+    bookId,
+    isCredit,
+    categoryId,
+    categoryName,
+    basicAuth,
   );
 }
 
@@ -65,58 +34,20 @@ Future<void> updateExpense(
   String? categoryId,
   dynamic basicAuth,
 ) async {
-  final url = Uri.parse('${expenseUrl}edit/$id');
-
-  final res = await http.put(
-    url,
-    headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-    body: jsonEncode({
-      'description': description,
-      'amount': double.tryParse(amount) ?? 0,
-      'credit': isCredit,
-      'date': DateTime.now().toIso8601String(),
-      'category': {'id': int.parse(categoryId!)},
-    }),
+  await _expenseRepo.updateExpense(
+    id,
+    description,
+    amount,
+    isCredit,
+    categoryId,
+    basicAuth,
   );
-  if (res.statusCode != 200 && res.statusCode != 201) {
-    throw Exception('Failed to update expense');
-  }
 }
 
 Future<void> deleteExpense(String id, dynamic basicAuth) async {
-  final url = Uri.parse('${expenseUrl}delete/$id');
-
-  final res = await http.delete(url, headers: {'Authorization': basicAuth});
-
-  if (res.statusCode != 200) {
-    throw Exception('Failed to delete expense');
-  }
+  await _expenseRepo.deleteExpense(id, basicAuth);
 }
 
 Future<void> syncExpenses(String basicAuth) async {
-  final dbHelper = DatabaseHelper();
-  final expenses = await dbHelper.getUnsyncedExpenses();
-  for (final expense in expenses) {
-    try {
-      final url = Uri.parse('${expenseUrl}create');
-      final res = await http.post(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': basicAuth,
-        },
-        body: jsonEncode({
-          'description': expense['description'],
-          'amount': expense['amount'],
-          'credit': expense['credit'] == 1,
-          'date': expense['date'],
-          'book': {'id': expense['book_id']},
-          'category': {'id': expense['category_id']},
-        }),
-      );
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        await dbHelper.markExpenseAsSynced(expense['id']);
-      }
-    } catch (_) {}
-  }
+  await SyncEngine.syncAll(basicAuth);
 }

@@ -1,9 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 
-import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class InvestmentPage extends StatefulWidget {
   final String email;
@@ -19,10 +20,14 @@ class InvestmentPage extends StatefulWidget {
 }
 
 class _InvestmentPageState extends State<InvestmentPage> {
+  final InvestmentRepository investmentRepo = InvestmentRepository();
+
   late Future<List<dynamic>> _investmentsFuture;
   TextEditingController investmentDescriptionController =
       TextEditingController();
   TextEditingController investmentAmountController = TextEditingController();
+  StreamSubscription<ConnectivityStatus>? _connectivitySubscription;
+
   String get basicAuth =>
       'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
@@ -30,10 +35,24 @@ class _InvestmentPageState extends State<InvestmentPage> {
   void initState() {
     super.initState();
     _investmentsFuture = fetchInvestments();
+    _triggerSync();
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  Future<void> _triggerSync() async {
+    await SyncEngine.syncAll(basicAuth);
+    if (mounted) {
+      _reloadInvestments();
+    }
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     investmentDescriptionController.dispose();
     investmentAmountController.dispose();
     super.dispose();
@@ -140,30 +159,11 @@ class _InvestmentPageState extends State<InvestmentPage> {
   }
 
   Future<List<dynamic>> fetchInvestments() async {
-    final url = Uri.parse('${investmentUrl}readAll');
-
-    final res = await http.get(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load investments');
-    }
-    return jsonDecode(res.body);
+    return await investmentRepo.getInvestments();
   }
 
   Future<void> addInvestment(String description, double amount) async {
-    final url = Uri.parse('${investmentUrl}create');
-
-    final res = await http.post(
-      url,
-      body: jsonEncode({'description': description, 'amount': amount}),
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to add Investment');
-    }
+    await investmentRepo.addInvestment(description, amount, basicAuth);
   }
 
   Future<void> updateInvestment(
@@ -171,20 +171,11 @@ class _InvestmentPageState extends State<InvestmentPage> {
     String description,
     double amount,
   ) async {
-    final url = Uri.parse('${investmentUrl}edit/$id');
+    await investmentRepo.updateInvestment(id, description, amount, basicAuth);
+  }
 
-    final res = await http.put(
-      url,
-      body: jsonEncode({'description': description, 'amount': amount}),
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-
-    print("Status Code: ${res.statusCode}");
-    print("Response: ${res.body}");
-
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to update investment');
-    }
+  Future<void> deleteInvestment(String id) async {
+    await investmentRepo.deleteInvestment(id, basicAuth);
   }
 
   Future<void> _deleteInvestment(String id, BuildContext dialogContext) async {
@@ -199,19 +190,6 @@ class _InvestmentPageState extends State<InvestmentPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text("Investment Deleted")));
-  }
-
-  Future<void> deleteInvestment(String id) async {
-    final url = Uri.parse('${investmentUrl}delete/$id');
-
-    final res = await http.delete(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete investment');
-    }
   }
 
   void _showAddInvestmentDialog() {

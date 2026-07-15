@@ -59,7 +59,7 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
             label: "Expenses Details",
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings, color: Colors.black),
+            icon: Icon(Icons.bar_chart, color: Colors.black),
             label: "Expense Reports",
           ),
         ],

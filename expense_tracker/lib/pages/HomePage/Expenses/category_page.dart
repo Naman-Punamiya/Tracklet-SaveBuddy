@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:expense_tracker/custom_widgets/CategoryIcon.dart';
-import 'package:expense_tracker/constant.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
+import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class CategoryPage extends StatefulWidget {
   final String email;
@@ -17,6 +18,7 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   final TextEditingController nameController = TextEditingController();
+  StreamSubscription<ConnectivityStatus>? _connectivitySubscription;
 
   List<CategoryIcon> categoryIcons = [
     CategoryIcon("Food", Icons.fastfood_outlined),
@@ -47,6 +49,8 @@ class _CategoryPageState extends State<CategoryPage> {
   String get basicAuth =>
       'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
+  final CategoryRepository categoryRepo = CategoryRepository();
+
   List<dynamic> _allCategories = [];
   List<dynamic> _filteredCategories = [];
   bool _isSearching = false;
@@ -54,12 +58,25 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   void initState() {
     super.initState();
-
     _iconsFuture = fetchCategories();
+    _triggerSync();
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  Future<void> _triggerSync() async {
+    await SyncEngine.syncAll(basicAuth);
+    if (mounted) {
+      _reloadCategories();
+    }
   }
 
   @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     nameController.dispose();
 
     super.dispose();
@@ -489,58 +506,22 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Future<List<dynamic>> fetchCategories() async {
-    final url = Uri.parse('${categoryUrl}readAll');
-    final res = await http.get(url, headers: {'Authorization': basicAuth});
-    print(jsonDecode(res.body));
-    if (res.statusCode != 200) {
-      throw Exception('Failed: ${res.statusCode}');
-    }
-    final data = jsonDecode(res.body) as List<dynamic>;
+    final data = await categoryRepo.getCategories();
     _allCategories = data;
     _filteredCategories = data;
     return data;
   }
 
   Future<void> addCategory(String name, String icon) async {
-    final url = Uri.parse('${categoryUrl}create');
-    final res = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-      body: jsonEncode({
-        'name': name,
-        'icon': icon,
-        'color': '#000000', // Default color (black)
-      }),
-    );
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to add category');
-    }
+    await categoryRepo.addCategory(name, icon, basicAuth);
   }
 
   Future<void> updateCategory(String id, String name, String icon) async {
-    final url = Uri.parse('${categoryUrl}edit/$id');
-    final res = await http.put(
-      url,
-      headers: {'Content-Type': 'application/json', 'Authorization': basicAuth},
-      body: jsonEncode({
-        'name': name,
-        'icon': icon,
-        'color': '#000000', // Default color (black)
-      }),
-    );
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to update category');
-    }
+    await categoryRepo.updateCategory(id, name, icon, basicAuth);
   }
 
   Future<void> deleteCategory(String id) async {
-    final url = Uri.parse('${categoryUrl}delete/$id');
-
-    final res = await http.delete(url, headers: {'Authorization': basicAuth});
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete category');
-    }
+    await categoryRepo.deleteCategory(id, basicAuth);
   }
 
   void _searchCategories(String query) {

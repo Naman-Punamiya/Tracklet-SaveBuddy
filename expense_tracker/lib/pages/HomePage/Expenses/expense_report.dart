@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:expense_tracker/services/expense_api_service.dart';
+import 'package:expense_tracker/repositories/repository.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -21,6 +21,7 @@ class ExpenseReport extends StatefulWidget {
 }
 
 class _ExpenseReportState extends State<ExpenseReport> {
+  final ExpenseRepository expenseRepo = ExpenseRepository();
   late Future<void> reportFuture;
   List<dynamic> allExpenses = [];
   List<dynamic> filteredExpenses = [];
@@ -68,6 +69,10 @@ class _ExpenseReportState extends State<ExpenseReport> {
       allExpenses = List<dynamic>.from(items);
       _recalculateReports();
     });
+  }
+
+  Future<List<dynamic>> fetchExpenses(String bookId, String basicAuth) async {
+    return await expenseRepo.getExpenses(bookId);
   }
 
   void _onPeriodChanged(String period) {

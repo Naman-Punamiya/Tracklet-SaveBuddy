@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:expense_tracker/constant.dart';
 
 class KeepAliveService {
   static Timer? _timer;
@@ -10,11 +12,11 @@ class KeepAliveService {
     _timer = Timer.periodic(const Duration(seconds: 40), (_) async {
       try {
         final response = await http.get(
-          Uri.parse("https://tracklet-savebuddy-1.onrender.com/health"),
+          Uri.parse("$baseUrl/health"),
         );
-        print("Health Ping: ${response.statusCode}");
+        debugPrint("Health Ping: ${response.statusCode}");
       } catch (e) {
-        print("Ping Failed: $e");
+        debugPrint("Ping Failed: $e");
       }
     });
   }

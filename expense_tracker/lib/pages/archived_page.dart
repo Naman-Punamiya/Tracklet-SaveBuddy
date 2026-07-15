@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/repositories/repository.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 class ArchivedBooksPage extends StatefulWidget {
   final String email;
@@ -21,6 +20,8 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   final TextEditingController bookSubtitleController = TextEditingController();
   final TextEditingController searchController = TextEditingController();
 
+  final BookRepository bookRepo = BookRepository();
+
   List<dynamic> allBooks = [];
   List<dynamic> filteredBooks = [];
   bool hasChanges = false;
@@ -33,6 +34,14 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   void initState() {
     super.initState();
     _loadBooks();
+    _triggerSync();
+  }
+
+  Future<void> _triggerSync() async {
+    await SyncEngine.syncAll(basicAuth);
+    if (mounted) {
+      _loadBooks();
+    }
   }
 
   @override
@@ -55,11 +64,11 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
       allBooks = await fetchBooks();
       filteredBooks = List.from(allBooks);
     } finally {
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -271,36 +280,14 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   }
 
   Future<List<dynamic>> fetchBooks() async {
-    final url = Uri.parse("${bookUrl}readAllArchived");
-
-    final res = await http.get(
-      url,
-      headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-    );
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load books');
-    }
-
-    print("Books fetched: ${res.body}");
-    return jsonDecode(res.body);
+    return await bookRepo.getBooks(archived: 1);
   }
 
   Future<void> deleteBook(String id) async {
-    final url = Uri.parse("${bookUrl}delete/$id");
-
-    final res = await http.delete(url, headers: {'Authorization': basicAuth});
-
-    if (res.statusCode != 200) {
-      throw Exception('Failed to delete book');
-    }
+    await bookRepo.deleteBook(id, basicAuth);
   }
 
   Future<void> restoreBook(String id) async {
-    final url = Uri.parse("${bookUrl}restore/$id");
-    final res = await http.patch(url, headers: {'Authorization': basicAuth});
-    if (res.statusCode != 200) {
-      throw Exception('Failed to restore book');
-    }
+    await bookRepo.restoreBook(id, basicAuth);
   }
 }
