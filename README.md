@@ -1,22 +1,49 @@
 # 💰 Tracklet SaveBuddy
 
-> A modern offline-first Expense & Investment Tracker built with Flutter, Spring Boot, PostgreSQL, and SQLite.
+![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter)
+![Dart](https://img.shields.io/badge/Dart-3.x-blue?logo=dart)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-green?logo=springboot)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue?logo=postgresql)
+![SQLite](https://img.shields.io/badge/SQLite-Offline-blue?logo=sqlite)
+![License](https://img.shields.io/badge/License-MIT-yellow)
 
-Tracklet SaveBuddy helps users manage multiple expense books, track income and expenses, monitor investments, and visualize spending through interactive reports. The application is designed with an **offline-first architecture**, allowing users to continue working even without an internet connection.
+> **Tracklet SaveBuddy** is a modern offline-first Expense & Investment Tracker built using **Flutter**, **Spring Boot**, **PostgreSQL**, and **SQLite**.
+
+The application enables users to manage multiple expense books, record income and expenses, track investments, and analyze spending patterns through interactive reports. Designed with an **offline-first architecture**, it ensures uninterrupted usage even without an internet connection by storing data locally and synchronizing it automatically when connectivity is restored.
 
 ---
 
-## 📸 Screenshots
-
-> Add screenshots here after taking them.
+# 📸 Screenshots
 
 | Login | Dashboard | Expense |
 |--------|-----------|----------|
-| ![](screenshots/login.png) | ![](screenshots/dashboard.png) | ![](screenshots/expense.png) |
+| <img width="388" height="862" alt="Login" src="https://github.com/user-attachments/assets/835de12d-8317-4666-9038-6674d3fb283a" /> | <img width="388" height="840" alt="Dashboard" src="https://github.com/user-attachments/assets/c044378f-4829-4e8d-adae-629649d7912f" /> | <img width="390" height="842" alt="Expense" src="https://github.com/user-attachments/assets/75f58592-5f2d-4b8e-ad2d-3e4ae3269b85" /> |
 
-| Reports | Investments | Offline Sync |
-|----------|-------------|--------------|
-| ![](screenshots/reports.png) | ![](screenshots/investments.png) | ![](screenshots/offline.png) |
+| Reports | Investments |
+|----------|-------------|
+| <img width="386" height="838" alt="Reports" src="https://github.com/user-attachments/assets/85a5bfc1-c0c3-4d34-88cf-0822184813df" /> | <img width="388" height="840" alt="Investments" src="https://github.com/user-attachments/assets/791ae7d3-0b35-4b6b-9807-8a645aec5805" /> |
+
+---
+
+# 💡 Why Tracklet SaveBuddy?
+
+Managing personal finances should not depend on a constant internet connection. Many expense tracking applications become unusable when offline or offer limited functionality.
+
+Tracklet SaveBuddy was developed to provide a seamless **offline-first experience**, allowing users to continue managing their finances without interruption. Every change is stored locally using SQLite and automatically synchronized with the cloud once internet connectivity is restored.
+
+---
+
+# 🚀 Key Features
+
+- 📚 Multi-book expense management
+- 💰 Income & Expense tracking
+- 📈 Interactive reports and analytics
+- 💹 Investment management
+- 📡 Offline-first architecture
+- 🔄 Automatic cloud synchronization
+- 📊 SQLite + PostgreSQL data management
+- 🏗 Repository Pattern implementation
+- 🎨 Modern Material Design UI
 
 ---
 
@@ -50,7 +77,7 @@ Tracklet SaveBuddy helps users manage multiple expense books, track income and e
 - Add Expense
 - Edit Expense
 - Delete Expense
-- Swipe Actions (Edit/Delete)
+- Swipe to Edit & Delete
 - Category Management
 - Search by Description
 - Search by Category
@@ -77,14 +104,13 @@ Tracklet SaveBuddy helps users manage multiple expense books, track income and e
 - Expense Summary
 - Current Balance
 - Pie Chart
-- Bar Chart
+- Income vs Expense Bar Chart
 - Daily Spending Line Chart
-- Category-wise Spending
+- Category-wise Spending Analysis
 - Largest Expense
 - Recent Transactions
 - Average Expense
-- Highest Expense
-- Lowest Expense
+- Highest & Lowest Expense
 
 ---
 
@@ -99,15 +125,15 @@ Tracklet SaveBuddy helps users manage multiple expense books, track income and e
 
 ## 📡 Offline-First Support
 
-Tracklet SaveBuddy works even without an internet connection.
+Tracklet SaveBuddy continues to function even without an internet connection.
 
-Features include:
+### Offline Features
 
 - SQLite Local Database
 - Offline CRUD Operations
-- Automatic Synchronization
 - Repository Pattern
 - Connectivity Detection
+- Automatic Synchronization
 - Pending Sync Queue
 - Sync Status Indicator
 - Local Data Persistence
@@ -117,43 +143,43 @@ Features include:
 # 🏗 Architecture
 
 ```
-                Flutter UI
-                     │
-                     ▼
-             Repository Layer
-                     │
-      ┌──────────────┴──────────────┐
-      ▼                             ▼
-SQLite Local DB             Spring Boot REST API
-      │                             │
-      └──────────────┬──────────────┘
-                     ▼
-               PostgreSQL Database
+                    Flutter UI
+                         │
+                         ▼
+                 Repository Layer
+                         │
+          ┌──────────────┴──────────────┐
+          ▼                             ▼
+   SQLite Local Database        Spring Boot REST API
+          │                             │
+          └──────────────┬──────────────┘
+                         ▼
+                  PostgreSQL Database
 ```
 
 ---
 
 # 🛠 Tech Stack
 
-### Frontend
+## Frontend
 
 - Flutter
 - Dart
 - Material Design
 
-### Backend
+## Backend
 
 - Spring Boot
 - Spring Security
 - REST API
 - Basic Authentication
 
-### Database
+## Database
 
 - PostgreSQL
-- SQLite (Offline Storage)
+- SQLite
 
-### Packages
+## Packages
 
 - http
 - sqflite
@@ -161,8 +187,8 @@ SQLite Local DB             Spring Boot REST API
 - shared_preferences
 - fl_chart
 - intl
-- path_provider
 - path
+- path_provider
 
 ---
 
@@ -181,6 +207,7 @@ lib/
 │   ├── Expenses/
 │   ├── Investments/
 │   └── Reports/
+│
 ├── custom_widgets/
 ├── constants/
 └── main.dart
@@ -205,10 +232,10 @@ lib/
 Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/Tracklet-SaveBuddy.git
+git clone https://github.com/Naman-Punamiya/Tracklet-SaveBuddy.git
 ```
 
-Navigate to project
+Navigate into the project
 
 ```bash
 cd Tracklet-SaveBuddy
@@ -228,103 +255,109 @@ flutter run
 
 ---
 
-# ⚙ Backend Setup
+# ⚙ Backend Configuration
 
-Configure your backend API URL inside
+Configure your backend API URL in:
 
 ```
 lib/constants/constant.dart
 ```
 
-Example
+Example:
 
 ```dart
-const String baseUrl = "https://your-server-url.com";
+const String baseUrl = "https://your-backend-url.com";
 ```
 
-Run the Spring Boot backend before launching the application.
+Ensure the Spring Boot backend is running before launching the application.
 
 ---
 
-# 📶 Offline Workflow
+# 📶 Offline Synchronization Flow
+
+### Online Mode
 
 ```
-Internet Available
-
-↓
-
+User Action
+     │
+     ▼
 Save to SQLite
-
-↓
-
+     │
+     ▼
 Upload to Server
-
-↓
-
-Mark Synced
+     │
+     ▼
+Mark as Synced
 ```
 
-If internet is unavailable
+### Offline Mode
 
 ```
+User Action
+     │
+     ▼
 Save to SQLite
-
-↓
-
-Mark Pending
-
-↓
-
-Auto Sync When Internet Returns
+     │
+     ▼
+Mark as Pending
+     │
+     ▼
+Auto Sync when Internet Returns
 ```
 
 ---
 
-# 🎯 Highlights
+# 🧠 Challenges & Learnings
 
-- Offline-first architecture
-- Multi-book expense management
-- Interactive analytics
-- Repository Pattern
-- Local + Cloud Synchronization
-- Clean Material UI
-- Responsive Design
-- Modular Architecture
+Building Tracklet SaveBuddy helped me gain practical experience in:
+
+- Designing an Offline-First Architecture
+- Synchronizing SQLite with PostgreSQL
+- Implementing the Repository Pattern
+- Handling Network Connectivity Changes
+- Managing Local and Remote Data Consistency
+- Building Interactive Financial Reports
+- Structuring a Scalable Flutter Application
+- Integrating Flutter with Spring Boot REST APIs
+
+---
+
+# 📱 Platform Support
+
+- ✅ Android
+- ⏳ iOS (Planned)
+- ⏳ Web (Future)
 
 ---
 
 # 🔮 Future Improvements
 
 - JWT Authentication
-- Cloud Backup
-- Export Reports (PDF/Excel)
+- Export Reports (PDF & Excel)
 - Budget Planning
 - Recurring Transactions
 - Notifications & Reminders
-- Multi-currency Support
+- Multi-Currency Support
 - Dark Mode
 - Biometric Authentication
-- Cloud Data Sharing
+- Cloud Backup
+- Shared Expense Books
 
 ---
 
-# 📊 Current Status
+# 📦 Current Version
 
-✅ Authentication
+**Version:** `v1.0.0`
 
-✅ Expense Management
+### Completed Modules
 
-✅ Book Management
-
-✅ Investment Management
-
-✅ Reports & Analytics
-
-✅ Offline Support
-
-✅ Auto Synchronization
-
-🚀 Version: **1.0.0**
+- ✅ Authentication
+- ✅ Book Management
+- ✅ Expense Management
+- ✅ Investment Management
+- ✅ Reports & Analytics
+- ✅ Offline-First Support
+- ✅ Automatic Synchronization
 
 ---
 
@@ -336,16 +369,12 @@ B.Tech Computer Engineering
 
 Flutter Developer | Backend Developer
 
-GitHub: https://github.com/yourusername
+**GitHub:** https://github.com/Naman-Punamiya
 
-LinkedIn: https://linkedin.com/in/yourprofile
+**LinkedIn:** *(Add your LinkedIn profile URL here if you have one.)*
 
 ---
 
 # 📄 License
 
-This project is licensed under the MIT License.
-
----
-
-## ⭐ If you found this project useful, consider giving it a star!
+This project is licensed under the **MIT License**.
