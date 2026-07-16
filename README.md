@@ -17,9 +17,9 @@ The application enables users to manage multiple expense books, record income an
 
 | Login | Dashboard | Expense |
 |--------|-----------|----------|
-| <img width="388" height="862" alt="Login" src="https://github.com/user-attachments/assets/835de12d-8317-4666-9038-6674d3fb283a" /> | <img width="388" height="840" alt="Dashboard" src="https://github.com/user-attachments/assets/c044378f-4829-4e8d-adae-629649d7912f" /> | <img width="390" height="842" alt="Expense" src="https://github.com/user-attachments/assets/75f58592-5f2d-4b8e-ad2d-3e4ae3269b85" /> |
+| <img width="388" height="840" alt="Dashboard" src="https://github.com/user-attachments/assets/c044378f-4829-4e8d-adae-629649d7912f" /> | <img width="388" height="862" alt="Login" src="https://github.com/user-attachments/assets/835de12d-8317-4666-9038-6674d3fb283a" /> | <img width="388" height="840" alt="Dashboard" src="https://github.com/user-attachments/assets/c044378f-4829-4e8d-adae-629649d7912f" /> |
 
-| Reports | Investments |
+| Reports | Settings |
 |----------|-------------|
 | <img width="386" height="838" alt="Reports" src="https://github.com/user-attachments/assets/85a5bfc1-c0c3-4d34-88cf-0822184813df" /> | <img width="388" height="840" alt="Investments" src="https://github.com/user-attachments/assets/791ae7d3-0b35-4b6b-9807-8a645aec5805" /> |
 
