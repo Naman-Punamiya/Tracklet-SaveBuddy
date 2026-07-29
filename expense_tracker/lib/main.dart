@@ -1,5 +1,6 @@
-import 'package:expense_tracker/pages/home_page.dart';
+import 'package:expense_tracker/core/theme/app_theme.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
+import 'package:expense_tracker/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,9 +10,7 @@ void main() async {
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
   bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
-
   String email = prefs.getString("email") ?? "";
-
   String password = prefs.getString("password") ?? "";
 
   runApp(MyApp(isLoggedIn: isLoggedIn, email: email, password: password));
@@ -27,16 +26,18 @@ class MyApp extends StatelessWidget {
     required this.email,
     required this.password,
   });
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      title: 'Tracklet SaveBuddy',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
       home: isLoggedIn
           ? HomePage(userId: 0, email: email, password: password)
-          : LoginPage(),
+          : const LoginPage(),
     );
   }
 }

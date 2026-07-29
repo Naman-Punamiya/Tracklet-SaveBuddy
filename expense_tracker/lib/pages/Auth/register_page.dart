@@ -3,9 +3,16 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/core/theme/app_colors.dart';
+import 'package:expense_tracker/core/theme/app_dimensions.dart';
+import 'package:expense_tracker/core/theme/app_radius.dart';
+import 'package:expense_tracker/core/theme/app_shadows.dart';
+import 'package:expense_tracker/core/theme/app_spacing.dart';
+import 'package:expense_tracker/core/theme/app_text_theme.dart';
+import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
-import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
+import 'package:expense_tracker/pages/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,10 +25,11 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  TextEditingController fullNameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -36,7 +44,9 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
+      backgroundColor: AppColors.lightSurface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -49,150 +59,162 @@ class _RegisterPageState extends State<RegisterPage> {
                   height: deviceHeight / 2,
                   width: deviceWidth,
                   decoration: const BoxDecoration(
-                    color: Color(0xffe8f6f3),
+                    color: AppColors.primaryTint,
                     borderRadius: BorderRadius.all(Radius.circular(40)),
                   ),
                 ),
               ),
             ),
-            // LOGO
-            Column(
-              children: [
-                SizedBox(height: deviceHeight/9),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 5,
-                        offset: Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.attach_money,
-                    color: Colors.green,
-                    size: 40,
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 25.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(height: 10),
-                          Text(
-                            "Create Account",
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "Let's get you started",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          SizedBox(height: 25),
-                          CustomTextfield(
-                            textEditingController: fullNameController,
-                            hintText: "Full Name",
-                            icon: Icons.person_outline,
-                            isPassword: false,
-                          ),
-                          SizedBox(height: 20),
-                          CustomTextfield(
-                            textEditingController: emailController,
-                            hintText: "Email",
-                            icon: Icons.email_outlined,
-                            isPassword: false,
-                          ),
-                          SizedBox(height: 20),
-                          CustomTextfield(
-                            textEditingController: passwordController,
-                            hintText: "Password",
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                          ),
-                          SizedBox(height: 20),
-                          CustomTextfield(
-                            textEditingController: confirmPasswordController,
-                            hintText: "Confirm Password",
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                          ),
-                          SizedBox(height: 30),
-                          SizedBox(
-                            width: deviceWidth,
-                            height: 60,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                if (passwordController.text.trim() !=
-                                    confirmPasswordController.text.trim()) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text("Passwords do not match!"),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                  return;
-                                } else {
-                                  userAuthenticated();
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff3ead91),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: AppSpacing.p24,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightSurface,
+                                borderRadius: AppRadius.dialog,
+                                boxShadow: AppShadows.cardShadowList,
                               ),
-                              child: const Text(
-                                "Register",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
+                              child: const Icon(
+                                Icons.attach_money,
+                                color: AppColors.primary,
+                                size: 90,
                               ),
                             ),
-                          ),
-                          SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text("Already have an Account? "),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => LoginPage(),
-                                    ),
-                                  );
-                                },
-                                child: Text(
-                                  "Sign in",
-                                  style: TextStyle(
-                                    color: Colors.green,
+                            const SizedBox(height: AppSpacing.large),
+                            Text(
+                              "Create Account",
+                              style: AppTextTheme.displayLarge,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "Let's get you started",
+                              style: AppTextTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 28),
+                            CustomTextfield(
+                              textEditingController: fullNameController,
+                              hintText: "Full Name",
+                              icon: Icons.person_outline,
+                              isPassword: false,
+                            ),
+                            const SizedBox(height: AppSpacing.medium),
+                            CustomTextfield(
+                              textEditingController: emailController,
+                              hintText: "Email",
+                              icon: Icons.email_outlined,
+                              isPassword: false,
+                            ),
+                            const SizedBox(height: AppSpacing.medium),
+                            CustomTextfield(
+                              textEditingController: passwordController,
+                              hintText: "Password",
+                              icon: Icons.lock_outline,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: AppSpacing.medium),
+                            CustomTextfield(
+                              textEditingController: confirmPasswordController,
+                              hintText: "Confirm Password",
+                              icon: Icons.lock_outline,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: 28),
+                            SizedBox(
+                              width: double.infinity,
+                              height: AppDimensions.buttonHeight52,
+                              child: ElevatedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () {
+                                        if (passwordController.text.trim() !=
+                                            confirmPasswordController.text.trim()) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text("Passwords do not match!"),
+                                              backgroundColor: AppColors.expense,
+                                            ),
+                                          );
+                                          return;
+                                        } else {
+                                          userAuthenticated();
+                                        }
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+                                  foregroundColor: AppColors.textWhite,
+                                  elevation: 2,
+                                  shadowColor: AppColors.shadowPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: AppRadius.medium,
                                   ),
                                 ),
+                                child: _isLoading
+                                    ? const AppButtonLoading()
+                                    : const Text(
+                                        "Register",
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            const SizedBox(height: AppSpacing.xLarge),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Already have an account? ",
+                                  style: AppTextTheme.bodyMedium,
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                        builder: (context) => const LoginPage(),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 2,
+                                    ),
+                                    child: Text(
+                                      "Sign in",
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ],
         ),
@@ -209,7 +231,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Name cannot be empty"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
       return;
@@ -219,7 +241,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Email cannot be empty"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
       return;
@@ -229,25 +251,31 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Password cannot be empty"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final response = await http.post(
-        Uri.parse("${UserUrl}register"),
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: jsonEncode({
-          "name": name,
-          "email": email,
-          "password": password,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse("${userUrl}register"),
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: jsonEncode({
+              "name": name,
+              "email": email,
+              "password": password,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
 
@@ -255,7 +283,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Registration failed! Please try again."),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.expense,
           ),
         );
         return;
@@ -271,7 +299,7 @@ class _RegisterPageState extends State<RegisterPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Registration successful!"),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.income,
           ),
         );
         Navigator.of(context).pushReplacement(
@@ -289,8 +317,10 @@ class _RegisterPageState extends State<RegisterPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Server is unreachable. Please check your internet connection."),
-          backgroundColor: Colors.red,
+          content: Text(
+            "Server is unreachable. Please check your internet connection.",
+          ),
+          backgroundColor: AppColors.expense,
         ),
       );
     } on TimeoutException catch (e) {
@@ -299,7 +329,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Connection timed out. Please try again later."),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
     } on http.ClientException catch (e) {
@@ -308,7 +338,7 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Client error. Please verify network settings."),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
     } catch (e) {
@@ -317,9 +347,15 @@ class _RegisterPageState extends State<RegisterPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Unexpected error: $e"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

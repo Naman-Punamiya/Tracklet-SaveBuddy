@@ -245,10 +245,11 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> searchLocalBooks(String query, int archived) async {
     final db = await database;
+    final trimmed = query.trim();
     return await db.query(
       'books',
       where: 'archived = ? AND (name LIKE ? OR subtitle LIKE ?)',
-      whereArgs: [archived, '%$query%', '%$query%'],
+      whereArgs: [archived, '%$trimmed%', '%$trimmed%'],
       orderBy: 'created_at DESC'
     );
   }
@@ -280,12 +281,47 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getLocalCategories() async {
     final db = await database;
-    return await db.query('categories', orderBy: 'name ASC');
+    final list = await db.query('categories', orderBy: 'name ASC');
+    if (list.isEmpty) {
+      await seedDefaultCategories(db);
+      return await db.query('categories', orderBy: 'name ASC');
+    }
+    return list;
+  }
+
+  Future<void> seedDefaultCategories(Database db) async {
+    final nowStr = DateTime.now().toIso8601String();
+    final defaultCategories = [
+      {'name': 'Food', 'icon': 'Food', 'color': '#000000'},
+      {'name': 'Transportation', 'icon': 'Transportation', 'color': '#000000'},
+      {'name': 'Shopping', 'icon': 'Shopping', 'color': '#000000'},
+      {'name': 'Home', 'icon': 'Home', 'color': '#000000'},
+      {'name': 'Utilities', 'icon': 'Utilities', 'color': '#000000'},
+      {'name': 'Healthcare', 'icon': 'Healthcare', 'color': '#000000'},
+      {'name': 'Travel', 'icon': 'Travel', 'color': '#000000'},
+      {'name': 'Education', 'icon': 'Education', 'color': '#000000'},
+      {'name': 'Savings', 'icon': 'Savings', 'color': '#000000'},
+      {'name': 'Investment', 'icon': 'Investment', 'color': '#000000'},
+      {'name': 'Receipt', 'icon': 'Receipt', 'color': '#000000'},
+      {'name': 'Other', 'icon': 'More', 'color': '#000000'},
+    ];
+
+    for (final cat in defaultCategories) {
+      await db.insert('categories', {
+        'name': cat['name'],
+        'icon': cat['icon'],
+        'color': cat['color'],
+        'created_at': nowStr,
+        'updated_at': nowStr,
+        'synced': 0,
+      });
+    }
   }
 
   Future<List<Map<String, dynamic>>> searchLocalCategories(String query) async {
     final db = await database;
-    return await db.query('categories', where: 'name LIKE ?', whereArgs: ['%$query%'], orderBy: 'name ASC');
+    final trimmed = query.trim();
+    return await db.query('categories', where: 'name LIKE ?', whereArgs: ['%$trimmed%'], orderBy: 'name ASC');
   }
 
   // ==========================================
@@ -332,13 +368,14 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> searchLocalExpenses(int localBookId, String query) async {
     final db = await database;
+    final trimmed = query.trim();
     final list = await db.rawQuery('''
       SELECT e.*, c.name as category_name, c.icon as category_icon, c.color as category_color
       FROM expenses e
       LEFT JOIN categories c ON e.category_id = c.id
       WHERE e.book_id = ? AND (e.description LIKE ? OR c.name LIKE ?)
       ORDER BY e.date DESC
-    ''', [localBookId, '%$query%', '%$query%']);
+    ''', [localBookId, '%$trimmed%', '%$trimmed%']);
     return list.map((row) => _formatExpenseRow(row)).toList();
   }
 
@@ -374,10 +411,11 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> searchLocalInvestments(String query) async {
     final db = await database;
+    final trimmed = query.trim();
     return await db.query(
       'investments',
       where: 'description LIKE ?',
-      whereArgs: ['%$query%'],
+      whereArgs: ['%$trimmed%'],
       orderBy: 'created_at DESC'
     );
   }

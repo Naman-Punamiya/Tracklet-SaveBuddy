@@ -56,29 +56,78 @@ class _HomePageState extends State<HomePage> {
         password: widget.password,
       ),
     ];
+
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
       body: pages[currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          setState(() {
-            currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.book, color: Colors.black),
-            label: "Books",
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0D000000), // ~5% opacity soft floating shadow
+              blurRadius: 12,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          elevation: 0,
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF3EAD91),
+          unselectedItemColor: Colors.grey.shade500,
+          selectedFontSize: 13,
+          unselectedFontSize: 12,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.auto_graph, color: Colors.black),
-            label: "Investment",
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w400,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings, color: Colors.black),
-            label: "Settings",
-          ),
-        ],
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) {
+            setState(() {
+              currentIndex = index;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.menu_book_rounded, size: 24),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.menu_book_rounded, size: 24, color: Color(0xFF3EAD91)),
+              ),
+              label: "Books",
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.auto_graph_rounded, size: 24),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.auto_graph_rounded, size: 24, color: Color(0xFF3EAD91)),
+              ),
+              label: "Investment",
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.tune_rounded, size: 24),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.tune_rounded, size: 24, color: Color(0xFF3EAD91)),
+              ),
+              label: "Settings",
+            ),
+          ],
+        ),
       ),
     );
   }

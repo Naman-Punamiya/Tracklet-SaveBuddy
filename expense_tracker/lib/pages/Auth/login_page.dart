@@ -1,11 +1,19 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:expense_tracker/constant.dart';
-import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
-import 'package:expense_tracker/pages/home_page.dart';
-import 'package:expense_tracker/pages/Auth/register_page.dart';
-import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:expense_tracker/constant.dart';
+import 'package:expense_tracker/core/theme/app_colors.dart';
+import 'package:expense_tracker/core/theme/app_dimensions.dart';
+import 'package:expense_tracker/core/theme/app_radius.dart';
+import 'package:expense_tracker/core/theme/app_shadows.dart';
+import 'package:expense_tracker/core/theme/app_spacing.dart';
+import 'package:expense_tracker/core/theme/app_text_theme.dart';
+import 'package:expense_tracker/core/widgets/app_loading.dart';
+import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
+import 'package:expense_tracker/pages/Auth/register_page.dart';
+import 'package:expense_tracker/pages/home_page.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -17,8 +25,9 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -31,7 +40,9 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
+      backgroundColor: AppColors.lightSurface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -44,121 +55,166 @@ class _LoginPageState extends State<LoginPage> {
                   height: deviceHeight / 2,
                   width: deviceWidth,
                   decoration: const BoxDecoration(
-                    color: Color(0xffe8f6f3),
+                    color: AppColors.primaryTint,
                     borderRadius: BorderRadius.all(Radius.circular(40)),
                   ),
                 ),
               ),
             ),
-            Column(
-              // mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(height: deviceHeight / 5),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 5,
-                        offset: Offset(0, 0),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.attach_money,
-                    color: Colors.green,
-                    size: 40,
-                  ),
-                ),
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Column(
-                        children: [
-                          Text(
-                            "Welcome Back",
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            "Login to continue",
-                            style: TextStyle(fontSize: 16),
-                          ),
-                          SizedBox(height: 25),
-                          CustomTextfield(
-                            textEditingController: emailController,
-                            hintText: 'Email',
-                            icon: Icons.email_outlined,
-                            isPassword: false,
-                          ),
-                          SizedBox(height: 20),
-                          CustomTextfield(
-                            textEditingController: passwordController,
-                            hintText: "Password",
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                          ),
-                          SizedBox(height: 30),
-                          SizedBox(
-                            width: deviceWidth,
-                            height: 55,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                await userAuthenticated();
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xff3ead91),
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Padding(
+                        padding: AppSpacing.p24,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(18),
+                              decoration: BoxDecoration(
+                                color: AppColors.lightSurface,
+                                borderRadius: AppRadius.dialog,
+                                boxShadow: AppShadows.cardShadowList,
                               ),
-                              child: const Text(
-                                "Login",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                ),
+                              child: const Icon(
+                                Icons.attach_money,
+                                color: AppColors.primary,
+                                size: 90,
                               ),
                             ),
-                          ),
-                          SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text("Don't have an Account? "),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute(
-                                      builder: (context) => RegisterPage(),
+                            const SizedBox(height: AppSpacing.xLarge),
+                            Text(
+                              "Welcome Back",
+                              style: AppTextTheme.displayLarge,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              "Login to continue",
+                              style: AppTextTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: AppSpacing.xxLarge),
+                            CustomTextfield(
+                              textEditingController: emailController,
+                              hintText: 'Email',
+                              icon: Icons.email_outlined,
+                              isPassword: false,
+                            ),
+                            const SizedBox(height: AppSpacing.medium),
+                            CustomTextfield(
+                              textEditingController: passwordController,
+                              hintText: "Password",
+                              icon: Icons.lock_outline,
+                              isPassword: true,
+                            ),
+                            const SizedBox(height: AppSpacing.xSmall),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        "Forgot password functionality coming soon!",
+                                      ),
+                                      duration: Duration(seconds: 2),
                                     ),
                                   );
                                 },
-                                child: Text(
-                                  "Register now",
-                                  style: TextStyle(color: Color(0xff3ead91)),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: const Size(50, 30),
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: const Text(
+                                  "Forgot Password?",
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            const SizedBox(height: AppSpacing.xLarge),
+                            SizedBox(
+                              width: double.infinity,
+                              height: AppDimensions.buttonHeight52,
+                              child: ElevatedButton(
+                                onPressed: _isLoading
+                                    ? null
+                                    : () async {
+                                        await userAuthenticated();
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+                                  foregroundColor: AppColors.textWhite,
+                                  elevation: 2,
+                                  shadowColor: AppColors.shadowPrimary,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: AppRadius.medium,
+                                  ),
+                                ),
+                                child: _isLoading
+                                    ? const AppButtonLoading()
+                                    : const Text(
+                                        "Login",
+                                        style: TextStyle(
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  "Don't have an account? ",
+                                  style: AppTextTheme.bodyMedium,
+                                ),
+                                InkWell(
+                                  onTap: () {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(
+                                        builder: (context) => const RegisterPage(),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: 4,
+                                      horizontal: 2,
+                                    ),
+                                    child: Text(
+                                      "Create one",
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ],
         ),
@@ -174,7 +230,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Email cannot be empty"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
       return;
@@ -184,24 +240,27 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Password cannot be empty"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
       return;
     }
 
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final response = await http.post(
-        Uri.parse('${UserUrl}login'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          "email": email,
-          "password": password,
-        }),
-      ).timeout(const Duration(seconds: 15));
+      final response = await http
+          .post(
+            Uri.parse('${userUrl}login'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({"email": email, "password": password}),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
 
@@ -217,7 +276,7 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Login successful"),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.income,
           ),
         );
         Navigator.of(context).pushReplacement(
@@ -233,7 +292,7 @@ class _LoginPageState extends State<LoginPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Invalid Credentials"),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.expense,
           ),
         );
       }
@@ -242,8 +301,10 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Server is unreachable. Please check your internet connection."),
-          backgroundColor: Colors.red,
+          content: Text(
+            "Server is unreachable. Please check your internet connection.",
+          ),
+          backgroundColor: AppColors.expense,
         ),
       );
     } on TimeoutException catch (e) {
@@ -252,7 +313,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Connection timed out. Please try again later."),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
     } on http.ClientException catch (e) {
@@ -261,7 +322,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Client error. Please verify network settings."),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
     } catch (e) {
@@ -270,9 +331,15 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Unexpected error: $e"),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.expense,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 }

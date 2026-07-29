@@ -4,4 +4,4 @@ String expenseUrl = "$baseUrl/expenses/";
 String bookUrl = "$baseUrl/books/";
 String categoryUrl = "$baseUrl/categories/";
 String investmentUrl = "$baseUrl/investments/";
-String UserUrl = "$baseUrl/api/users/";
+String userUrl = "$baseUrl/api/users/";

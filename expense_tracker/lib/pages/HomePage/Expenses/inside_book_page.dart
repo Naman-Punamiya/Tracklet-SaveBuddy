@@ -45,24 +45,65 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF9FAFB),
       body: pages[currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          setState(() {
-            currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long, color: Colors.black),
-            label: "Expenses Details",
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x0D000000), // ~5% opacity soft floating shadow
+              blurRadius: 12,
+              offset: Offset(0, -4),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: currentIndex,
+          elevation: 0,
+          backgroundColor: Colors.white,
+          selectedItemColor: const Color(0xFF3EAD91),
+          unselectedItemColor: Colors.grey.shade500,
+          selectedFontSize: 13,
+          unselectedFontSize: 12,
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.2,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart, color: Colors.black),
-            label: "Expense Reports",
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w400,
           ),
-        ],
+          type: BottomNavigationBarType.fixed,
+          onTap: (index) {
+            setState(() {
+              currentIndex = index;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.receipt_long_rounded, size: 24),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.receipt_long_rounded, size: 24, color: Color(0xFF3EAD91)),
+              ),
+              label: "Expenses Details",
+            ),
+            BottomNavigationBarItem(
+              icon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.bar_chart_rounded, size: 24),
+              ),
+              activeIcon: Padding(
+                padding: EdgeInsets.only(bottom: 4.0),
+                child: Icon(Icons.bar_chart_rounded, size: 24, color: Color(0xFF3EAD91)),
+              ),
+              label: "Expense Reports",
+            ),
+          ],
+        ),
       ),
     );
   }

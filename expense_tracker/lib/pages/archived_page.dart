@@ -72,19 +72,19 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     }
   }
 
-  void filterBooks(String query) {
-    setState(() {
-      if (query.isEmpty) {
+  void filterBooks(String query) async {
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.isEmpty) {
+      setState(() {
         filteredBooks = List.from(allBooks);
-      } else {
-        filteredBooks = allBooks.where((book) {
-          final name = book["name"].toString().toLowerCase();
-          final subtitle = (book["subtitle"] ?? "").toString().toLowerCase();
-          query = query.toLowerCase();
-          return name.contains(query) || subtitle.contains(query);
-        }).toList();
-      }
-    });
+      });
+    } else {
+      final results = await bookRepo.searchBooks(trimmedQuery, 1);
+      if (!mounted) return;
+      setState(() {
+        filteredBooks = results;
+      });
+    }
   }
 
   void _showBookDetails(Map<String, dynamic> item) {
@@ -179,9 +179,35 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   Widget buildBody() {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
-    } else if (filteredBooks.isEmpty) {
-      return const Center(
-        child: Text("No Books Found", style: TextStyle(fontSize: 18)),
+    }
+
+    // CASE 1: There are NO books in the database at all
+    if (allBooks.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.book_outlined,
+              size: 90,
+              color: Colors.deepPurple.shade200,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "No Books Yet",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
+              ),
+            ),
+            const SizedBox(height: 5),
+            const Text(
+              "Create your first book.",
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
       );
     }
 
@@ -223,8 +249,35 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
           ),
         ),
         Expanded(
-          child: ListView.builder(
-            itemCount: filteredBooks.length,
+          child: filteredBooks.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.search_off_rounded,
+                        size: 90,
+                        color: Colors.deepPurple.shade200,
+                      ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "No Books Found",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      const Text(
+                        "Try another search.",
+                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: filteredBooks.length,
             itemBuilder: (context, index) {
               final item = filteredBooks[index] as Map<String, dynamic>;
               final bookName = item['name']?.toString() ?? '';
