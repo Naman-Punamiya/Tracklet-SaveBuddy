@@ -4,6 +4,7 @@ import 'package:expense_tracker/keep_alive_service.dart';
 import 'package:expense_tracker/pages/HomePage/book_page.dart';
 import 'package:expense_tracker/pages/HomePage/investment_page.dart';
 import 'package:expense_tracker/pages/HomePage/setting_page.dart';
+import 'package:expense_tracker/services/share_intent_service.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -29,7 +30,17 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    KeepAliveService.start();
+
+    _checkSharedText();
+  }
+
+  Future<void> _checkSharedText() async {
+    final text = await ShareIntentService.getSharedText();
+
+    if (text != null) {
+      print("Received from Android:");
+      print(text);
+    }
   }
 
   @override
@@ -41,20 +52,11 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> pages = [
-      BookPage(
-        email: widget.email,
-        password: widget.password,
-      ),
+      BookPage(email: widget.email, password: widget.password),
 
-      InvestmentPage(
-        email: widget.email,
-        password: widget.password,
-      ),
+      InvestmentPage(email: widget.email, password: widget.password),
 
-      SettingPage(
-        email: widget.email,
-        password: widget.password,
-      ),
+      SettingPage(email: widget.email, password: widget.password),
     ];
 
     return Scaffold(
@@ -83,9 +85,7 @@ class _HomePageState extends State<HomePage> {
             fontWeight: FontWeight.w600,
             letterSpacing: 0.2,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w400,
-          ),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w400),
           type: BottomNavigationBarType.fixed,
           onTap: (index) {
             setState(() {
@@ -100,7 +100,11 @@ class _HomePageState extends State<HomePage> {
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.menu_book_rounded, size: 24, color: Color(0xFF3EAD91)),
+                child: Icon(
+                  Icons.menu_book_rounded,
+                  size: 24,
+                  color: Color(0xFF3EAD91),
+                ),
               ),
               label: "Books",
             ),
@@ -111,7 +115,11 @@ class _HomePageState extends State<HomePage> {
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.auto_graph_rounded, size: 24, color: Color(0xFF3EAD91)),
+                child: Icon(
+                  Icons.auto_graph_rounded,
+                  size: 24,
+                  color: Color(0xFF3EAD91),
+                ),
               ),
               label: "Investment",
             ),
@@ -122,7 +130,11 @@ class _HomePageState extends State<HomePage> {
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.tune_rounded, size: 24, color: Color(0xFF3EAD91)),
+                child: Icon(
+                  Icons.tune_rounded,
+                  size: 24,
+                  color: Color(0xFF3EAD91),
+                ),
               ),
               label: "Settings",
             ),
