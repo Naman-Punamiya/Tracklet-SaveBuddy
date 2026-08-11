@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expense_tracker/features/expense_import/parser/parser_manager.dart';
 import 'package:expense_tracker/keep_alive_service.dart';
 import 'package:expense_tracker/pages/HomePage/book_page.dart';
 import 'package:expense_tracker/pages/HomePage/investment_page.dart';
@@ -38,8 +39,9 @@ class _HomePageState extends State<HomePage> {
     final text = await ShareIntentService.getSharedText();
 
     if (text != null) {
-      print("Received from Android:");
-      print(text);
+      final receipt = ParserManager().parse(text);
+
+      print(receipt);
     }
   }
 

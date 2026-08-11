@@ -5,7 +5,6 @@ import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/category_icon.dart';
 import 'package:expense_tracker/custom_widgets/swipe_expense_card.dart';
-import 'package:expense_tracker/pages/HomePage/Expenses/category_page.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:flutter/material.dart';
@@ -307,34 +306,6 @@ class _ExpensePageState extends State<ExpensePage> {
                 ],
               ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 6),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE8F6F3),
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              iconSize: 20,
-              tooltip: "Manage Categories",
-              onPressed: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CategoryPage(
-                      email: widget.email,
-                      password: widget.password,
-                    ),
-                  ),
-                );
-                fetchCategories();
-                _reloadExpenses(resetFilters: false);
-              },
-              icon: const Icon(
-                Icons.category_outlined,
-                color: Color(0xFF3EAD91),
-              ),
-            ),
-          ),
           Container(
             margin: const EdgeInsets.only(right: 6),
             decoration: const BoxDecoration(
