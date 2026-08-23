@@ -8,11 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-
-import javax.sql.DataSource;
 
 @Configuration
 @EnableWebSecurity
@@ -26,16 +22,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-//                        .requestMatchers("/books/**").permitAll()
-//                        .requestMatchers("/expenses/**").permitAll()
-                        .requestMatchers("/api/users/register").permitAll()
-                        .requestMatchers("/api/users/login").permitAll()
-                        .anyRequest().authenticated()
-                )
-                .httpBasic(Customizer.withDefaults());
+        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth.requestMatchers("/api/users/register").permitAll().requestMatchers("/api/users/login").permitAll()
+
+                // Health endpoint is authenticated
+                // by HealthCheckFilter instead of Basic Auth.
+                .requestMatchers("/health/db").permitAll()
+
+                .anyRequest().authenticated()).httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
