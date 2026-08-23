@@ -22,12 +22,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth.requestMatchers("/api/users/register").permitAll().requestMatchers("/api/users/login").permitAll()
-
+        http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/users/register").permitAll()
+                .requestMatchers("/api/users/login").permitAll()
                 // Health endpoint is authenticated
                 // by HealthCheckFilter instead of Basic Auth.
                 .requestMatchers("/health/db").permitAll()
-
+                .requestMatchers("/health/ping").permitAll()
                 .anyRequest().authenticated()).httpBasic(Customizer.withDefaults());
 
         return http.build();

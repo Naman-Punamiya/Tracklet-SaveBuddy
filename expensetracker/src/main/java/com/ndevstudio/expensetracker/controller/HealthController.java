@@ -30,4 +30,9 @@ public class HealthController {
 
         return ResponseEntity.ok(Map.of("status", "UP", "database", result == 1 ? "CONNECTED" : "UNKNOWN", "timestamp", Instant.now().toString()));
     }
+
+    @GetMapping("/ping")
+    public ResponseEntity<String> ping() {
+        return ResponseEntity.ok("OK");
+    }
 }
