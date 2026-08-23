@@ -42,10 +42,13 @@ class BookRepository {
           body: jsonEncode({'name': name, 'subtitle': subtitle}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          // 3. Mark synced
-          await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+            }
+          }
         }
       } catch (e) {
         debugPrint("API Book create failed (offline mode): $e");
@@ -80,9 +83,10 @@ class BookRepository {
           body: jsonEncode({'name': name, 'subtitle': subtitle}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          // 3. Mark synced
-          await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          }
         }
       } catch (e) {
         debugPrint("API Book edit failed: $e");
@@ -164,8 +168,10 @@ class BookRepository {
           if (res.statusCode == 200) {
             // Remove from pending deletions
             final pending = await dbHelper.getPendingDeletes();
-            final row = pending.firstWhere((p) => p['table_name'] == 'books' && p['server_id'] == serverId);
-            await dbHelper.removePendingSync(row['id']);
+            final row = pending.where((p) => p['table_name'] == 'books' && p['server_id'] == serverId).firstOrNull;
+            if (row != null) {
+              await dbHelper.removePendingSync(row['id']);
+            }
           }
         } catch (e) {
           debugPrint("API Book delete failed: $e");
@@ -194,11 +200,17 @@ class BookRepository {
     try {
       final activeRes = await http.get(Uri.parse("${bookUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (activeRes.statusCode == 200) {
-        serverBooks.addAll(jsonDecode(activeRes.body) as List);
+        final decoded = safeJsonDecode(activeRes.body);
+        if (decoded is List) {
+          serverBooks.addAll(decoded);
+        }
       }
       final archRes = await http.get(Uri.parse("${bookUrl}readAllArchived"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (archRes.statusCode == 200) {
-        serverBooks.addAll(jsonDecode(archRes.body) as List);
+        final decoded = safeJsonDecode(archRes.body);
+        if (decoded is List) {
+          serverBooks.addAll(decoded);
+        }
       }
     } catch (e) {
       debugPrint("Failed to load server books during sync: $e");
@@ -328,9 +340,13 @@ class CategoryRepository {
           body: jsonEncode({'name': name, 'icon': icon, 'color': '#000000'}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('categories', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('categories', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+            }
+          }
         }
       } catch (e) {
         debugPrint("API Category create failed: $e");
@@ -341,6 +357,7 @@ class CategoryRepository {
   Future<void> updateCategory(String id, String name, String icon, String basicAuth) async {
     final nowStr = DateTime.now().toIso8601String();
     final localId = int.parse(id);
+
     final localCategory = await dbHelper.getLocalCategoryById(localId);
     final serverId = localCategory?['server_id'];
 
@@ -361,8 +378,10 @@ class CategoryRepository {
           body: jsonEncode({'name': name, 'icon': icon, 'color': '#000000'}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          await dbHelper.updateSyncStatus('categories', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            await dbHelper.updateSyncStatus('categories', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          }
         }
       } catch (e) {
         debugPrint("API Category edit failed: $e");
@@ -386,8 +405,10 @@ class CategoryRepository {
           final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
-            final row = pending.firstWhere((p) => p['table_name'] == 'categories' && p['server_id'] == serverId);
-            await dbHelper.removePendingSync(row['id']);
+            final row = pending.where((p) => p['table_name'] == 'categories' && p['server_id'] == serverId).firstOrNull;
+            if (row != null) {
+              await dbHelper.removePendingSync(row['id']);
+            }
           }
         } catch (e) {
           debugPrint("API Category delete failed: $e");
@@ -414,7 +435,10 @@ class CategoryRepository {
     try {
       final res = await http.get(Uri.parse("${categoryUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
-        serverCategories = jsonDecode(res.body) as List;
+        final decoded = safeJsonDecode(res.body);
+        if (decoded is List) {
+          serverCategories = decoded;
+        }
       }
     } catch (e) {
       debugPrint("Failed to sync server categories: $e");
@@ -498,6 +522,24 @@ class CategoryRepository {
   }
 }
 
+dynamic safeJsonDecode(String body) {
+  if (body.trim().isEmpty) return null;
+  try {
+    return jsonDecode(body);
+  } catch (e) {
+    debugPrint("Failed to parse JSON response body (non-JSON or HTML returned): $e");
+    return null;
+  }
+}
+
+bool isTransactionCredit(dynamic creditValue) {
+  if (creditValue == null) return false;
+  if (creditValue is bool) return creditValue;
+  if (creditValue is num) return creditValue != 0;
+  final str = creditValue.toString().trim().toLowerCase();
+  return str == 'true' || str == '1' || str == 'credit' || str == 'income';
+}
+
 class ExpenseRepository {
   final DatabaseHelper dbHelper = DatabaseHelper.instance;
 
@@ -514,7 +556,7 @@ class ExpenseRepository {
       double balance = 0.0;
       for (final exp in expenses) {
         final amt = (exp['amount'] as num?)?.toDouble() ?? 0.0;
-        final isCredit = exp['credit'] == 1 || exp['credit'] == true || exp['isCredit'] == true;
+        final isCredit = isTransactionCredit(exp['credit']);
         if (isCredit) {
           balance += amt;
         } else {
@@ -585,9 +627,13 @@ class ExpenseRepository {
             body: jsonEncode(body),
           ).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200 || res.statusCode == 201) {
-            final data = jsonDecode(res.body);
-            final serverId = data['id'];
-            await dbHelper.updateSyncStatus('expenses', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+            final data = safeJsonDecode(res.body);
+            if (data is Map<String, dynamic>) {
+              final serverId = data['id'];
+              if (serverId != null) {
+                await dbHelper.updateSyncStatus('expenses', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+              }
+            }
           } else {
             await dbHelper.updateLocalExpense(localId, {'synced': 2});
           }
@@ -648,8 +694,10 @@ class ExpenseRepository {
           body: jsonEncode(body),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          await dbHelper.updateSyncStatus('expenses', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            await dbHelper.updateSyncStatus('expenses', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          }
         } else {
           await dbHelper.updateLocalExpense(localId, {'synced': 2});
         }
@@ -679,8 +727,10 @@ class ExpenseRepository {
           final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
-            final row = pending.firstWhere((p) => p['table_name'] == 'expenses' && p['server_id'] == serverId);
-            await dbHelper.removePendingSync(row['id']);
+            final row = pending.where((p) => p['table_name'] == 'expenses' && p['server_id'] == serverId).firstOrNull;
+            if (row != null) {
+              await dbHelper.removePendingSync(row['id']);
+            }
           }
         } catch (e) {
           debugPrint("API Expense delete failed: $e");
@@ -722,7 +772,10 @@ class ExpenseRepository {
         final url = Uri.parse("${expenseUrl}book/$serverBookId");
         final res = await http.get(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200) {
-          serverExpenses = jsonDecode(res.body) as List;
+          final decoded = safeJsonDecode(res.body);
+          if (decoded is List) {
+            serverExpenses = decoded;
+          }
         }
       } catch (e) {
         debugPrint("Failed to sync server expenses for book $serverBookId: $e");
@@ -736,7 +789,7 @@ class ExpenseRepository {
         final serverUpdatedAt = se['updatedAt'] ?? se['updated_at'] ?? se['date'] ?? DateTime.fromMillisecondsSinceEpoch(0).toIso8601String();
         final description = se['description'] ?? "";
         final amount = (se['amount'] as num?)?.toDouble() ?? 0.0;
-        final isCredit = se['credit'] == true || se['credit'] == 1 || se['credit'].toString().toLowerCase() == "true";
+        final isCredit = isTransactionCredit(se['credit']);
         final date = se['date'] ?? DateTime.now().toIso8601String();
         final serverCatId = se['category']?['id'];
 
@@ -909,9 +962,13 @@ class InvestmentRepository {
           body: jsonEncode({'description': description, 'amount': amount}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('investments', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('investments', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+            }
+          }
         }
       } catch (e) {
         debugPrint("API Investment create failed: $e");
@@ -944,8 +1001,10 @@ class InvestmentRepository {
           body: jsonEncode({'description': description, 'amount': amount}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          await dbHelper.updateSyncStatus('investments', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            await dbHelper.updateSyncStatus('investments', localId, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? nowStr);
+          }
         }
       } catch (e) {
         debugPrint("API Investment edit failed: $e");
@@ -972,8 +1031,10 @@ class InvestmentRepository {
           final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
-            final row = pending.firstWhere((p) => p['table_name'] == 'investments' && p['server_id'] == serverId);
-            await dbHelper.removePendingSync(row['id']);
+            final row = pending.where((p) => p['table_name'] == 'investments' && p['server_id'] == serverId).firstOrNull;
+            if (row != null) {
+              await dbHelper.removePendingSync(row['id']);
+            }
           }
         } catch (e) {
           debugPrint("API Investment delete failed: $e");
@@ -1002,7 +1063,10 @@ class InvestmentRepository {
     try {
       final res = await http.get(Uri.parse("${investmentUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
-        serverInvestments = jsonDecode(res.body) as List;
+        final decoded = safeJsonDecode(res.body);
+        if (decoded is List) {
+          serverInvestments = decoded;
+        }
       }
     } catch (e) {
       debugPrint("Failed to sync server investments: $e");
@@ -1080,9 +1144,13 @@ class InvestmentRepository {
           body: jsonEncode({'description': inv['description'], 'amount': inv['amount']}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('investments', inv['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? inv['updated_at']);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('investments', inv['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? inv['updated_at']);
+            }
+          }
         }
       } catch (_) {}
     }
@@ -1125,51 +1193,55 @@ class UserRepository {
     required String newPassword,
     required String basicAuth,
   }) async {
-    if (await ConnectivityService.isOnline()) {
-      try {
-        final url = Uri.parse("${userUrl}update-password");
-        final response = await http
-            .put(
-              url,
-              headers: {
-                'Authorization': basicAuth,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-              },
-              body: jsonEncode({
-                'email': email,
-                'currentPassword': currentPassword,
-                'newPassword': newPassword,
-                'password': newPassword,
-              }),
-            )
-            .timeout(const Duration(seconds: 15));
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          return true;
-        } else {
-          final fallbackUrl = Uri.parse("${userUrl}change-password");
-          final res2 = await http
-              .post(
-                fallbackUrl,
-                headers: {
-                  'Authorization': basicAuth,
-                  'Content-Type': 'application/json',
-                },
-                body: jsonEncode({
-                  'email': email,
-                  'currentPassword': currentPassword,
-                  'newPassword': newPassword,
-                  'password': newPassword,
-                }),
-              )
-              .timeout(const Duration(seconds: 10));
-          return res2.statusCode == 200 || res2.statusCode == 201;
-        }
-      } catch (e) {
-        debugPrint("API updatePassword failed (offline fallback): $e");
-      }
+    if (!await ConnectivityService.isOnline()) {
+      debugPrint("API updatePassword aborted: device is offline");
+      return false;
     }
-    return true;
+
+    try {
+      final url = Uri.parse("${userUrl}update-password");
+      final response = await http
+          .put(
+            url,
+            headers: {
+              'Authorization': basicAuth,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'currentPassword': currentPassword,
+              'newPassword': newPassword,
+              'password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      }
+
+      final fallbackUrl = Uri.parse("${userUrl}change-password");
+      final res2 = await http
+          .post(
+            fallbackUrl,
+            headers: {
+              'Authorization': basicAuth,
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'email': email,
+              'currentPassword': currentPassword,
+              'newPassword': newPassword,
+              'password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      return res2.statusCode == 200 || res2.statusCode == 201;
+    } catch (e) {
+      debugPrint("API updatePassword exception: $e");
+      return false;
+    }
   }
 }

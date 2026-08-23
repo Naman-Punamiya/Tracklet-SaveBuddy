@@ -10,12 +10,14 @@ class SplashScreen extends StatefulWidget {
   final bool isLoggedIn;
   final String email;
   final String password;
+  final int userId;
 
   const SplashScreen({
     super.key,
     required this.isLoggedIn,
     required this.email,
     required this.password,
+    required this.userId,
   });
 
   @override
@@ -54,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
         PageRouteBuilder(
           pageBuilder: (context, animation, secondaryAnimation) => widget.isLoggedIn
               ? HomePage(
-                  userId: 0,
+                  userId: widget.userId,
                   email: widget.email,
                   password: widget.password,
                 )

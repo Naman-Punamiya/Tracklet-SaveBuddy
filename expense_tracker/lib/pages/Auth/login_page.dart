@@ -13,6 +13,7 @@ import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/Auth/register_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
+import 'package:expense_tracker/repositories/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -226,10 +227,21 @@ class _LoginPageState extends State<LoginPage> {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
 
+    final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Email cannot be empty"),
+          backgroundColor: AppColors.expense,
+        ),
+      );
+      return;
+    }
+
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid email address (e.g. user@example.com)"),
           backgroundColor: AppColors.expense,
         ),
       );
@@ -265,29 +277,42 @@ class _LoginPageState extends State<LoginPage> {
       if (!mounted) return;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setBool("isLoggedIn", true);
-        await prefs.setString("email", email);
-        await prefs.setString("password", password);
+        final data = safeJsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          final int fetchedUserId = (data['id'] as num?)?.toInt() ?? 0;
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool("isLoggedIn", true);
+          await prefs.setString("email", email);
+          await prefs.setString("password", password);
+          if (fetchedUserId > 0) {
+            await prefs.setInt("userId", fetchedUserId);
+          }
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Login successful"),
-            backgroundColor: AppColors.income,
-          ),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => HomePage(
-              userId: data['id'] ?? 0,
-              email: email,
-              password: password,
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Login successful"),
+              backgroundColor: AppColors.income,
             ),
-          ),
-        );
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => HomePage(
+                userId: fetchedUserId,
+                email: email,
+                password: password,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Server returned an invalid response. Please try again."),
+              backgroundColor: AppColors.expense,
+            ),
+          );
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

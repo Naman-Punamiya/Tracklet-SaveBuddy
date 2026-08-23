@@ -246,9 +246,8 @@ class _ExpenseReportState extends State<ExpenseReport> {
   }
 
   bool _isCredit(dynamic item) {
-    final val = item['credit'];
-    if (val is bool) return val;
-    return val.toString().toLowerCase() == 'true';
+    if (item == null) return false;
+    return isTransactionCredit(item['credit']);
   }
 
   double _parseAmount(dynamic amount) {

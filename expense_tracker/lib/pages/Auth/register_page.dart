@@ -13,6 +13,7 @@ import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
+import 'package:expense_tracker/repositories/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -136,22 +137,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               width: double.infinity,
                               height: AppDimensions.buttonHeight52,
                               child: ElevatedButton(
-                                onPressed: _isLoading
-                                    ? null
-                                    : () {
-                                        if (passwordController.text.trim() !=
-                                            confirmPasswordController.text.trim()) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text("Passwords do not match!"),
-                                              backgroundColor: AppColors.expense,
-                                            ),
-                                          );
-                                          return;
-                                        } else {
-                                          userAuthenticated();
-                                        }
-                                      },
+                                onPressed: _isLoading ? null : userAuthenticated,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
@@ -226,21 +212,33 @@ class _RegisterPageState extends State<RegisterPage> {
     final name = fullNameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Name cannot be empty"),
+          content: Text("Please enter your full name"),
           backgroundColor: AppColors.expense,
         ),
       );
       return;
     }
 
+    final emailRegex = RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$");
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Email cannot be empty"),
+          content: Text("Please enter your email address"),
+          backgroundColor: AppColors.expense,
+        ),
+      );
+      return;
+    }
+
+    if (!emailRegex.hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please enter a valid email address (e.g. user@example.com)"),
           backgroundColor: AppColors.expense,
         ),
       );
@@ -250,7 +248,27 @@ class _RegisterPageState extends State<RegisterPage> {
     if (password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Password cannot be empty"),
+          content: Text("Please enter a password"),
+          backgroundColor: AppColors.expense,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password must be at least 6 characters long"),
+          backgroundColor: AppColors.expense,
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Passwords do not match"),
           backgroundColor: AppColors.expense,
         ),
       );
@@ -288,29 +306,42 @@ class _RegisterPageState extends State<RegisterPage> {
         );
         return;
       } else {
-        final data = jsonDecode(response.body);
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setBool("isLoggedIn", true);
-        await prefs.setString("email", email);
-        await prefs.setString("password", password);
+        final data = safeJsonDecode(response.body);
+        if (data is Map<String, dynamic>) {
+          final int fetchedUserId = (data['id'] as num?)?.toInt() ?? 0;
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool("isLoggedIn", true);
+          await prefs.setString("email", email);
+          await prefs.setString("password", password);
+          if (fetchedUserId > 0) {
+            await prefs.setInt("userId", fetchedUserId);
+          }
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Registration successful!"),
-            backgroundColor: AppColors.income,
-          ),
-        );
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => HomePage(
-              userId: data['id'] ?? 0,
-              email: email,
-              password: password,
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Registration successful!"),
+              backgroundColor: AppColors.income,
             ),
-          ),
-        );
+          );
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => HomePage(
+                userId: fetchedUserId,
+                email: email,
+                password: password,
+              ),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Server returned an invalid response. Please try again."),
+              backgroundColor: AppColors.expense,
+            ),
+          );
+        }
       }
     } on SocketException catch (e) {
       debugPrint("Register SocketException: $e");

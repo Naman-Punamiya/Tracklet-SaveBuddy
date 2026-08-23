@@ -455,7 +455,7 @@ class _ExpensePageState extends State<ExpensePage> {
                               duration: const Duration(milliseconds: 300),
                               child: Text(
                                 CurrencyService.formatCompact(balance),
-                                key: ValueKey<int>(balance),
+                                key: ValueKey<double>(balance),
                                 style: const TextStyle(
                                   fontSize: 32,
                                   color: AppColors.textWhite,
@@ -745,8 +745,7 @@ class _ExpensePageState extends State<ExpensePage> {
                     final description = item['description'] ?? "";
                     final amount = item['amount'] ?? 0;
                     final dateTime = _safeParseDate(item['date']);
-                    final isCredit =
-                        item['credit'].toString().toLowerCase() == "true";
+                    final isCredit = isTransactionCredit(item['credit']);
                     final categoryName =
                         item['category']?['name'] ??
                         item['category_name'] ??
@@ -992,11 +991,13 @@ class _ExpensePageState extends State<ExpensePage> {
     );
   }
 
-  int calculateTotal(List<dynamic> expenses, bool credit) {
-    return expenses.fold(0, (total, item) {
-      final isCreditExpense = item['credit'].toString().toLowerCase() == 'true';
+  double calculateTotal(List<dynamic> expenses, bool credit) {
+    return expenses.fold(0.0, (total, item) {
+      final isCreditExpense = item['credit'] == 1 ||
+          item['credit'] == true ||
+          item['credit'].toString().toLowerCase() == 'true';
       if (isCreditExpense == credit) {
-        return total + (item['amount'] as num).toInt();
+        return total + ((item['amount'] as num?)?.toDouble() ?? 0.0);
       }
       return total;
     });
@@ -1747,7 +1748,7 @@ class _ExpensePageState extends State<ExpensePage> {
     selectedCategoryName = item['category']?['name']?.toString() ?? item['category_name']?.toString();
     descriptionController.text = item['description']?.toString() ?? '';
     amountController.text = item['amount']?.toString() ?? '';
-    isCredit = item['credit'].toString().toLowerCase() == 'true';
+    isCredit = isTransactionCredit(item['credit']);
 
     showDialog(
       context: context,
@@ -1854,12 +1855,10 @@ class _ExpensePageState extends State<ExpensePage> {
                               onChanged: (value) {
                                 dialogSetState(() {
                                   selectedCategoryId = value;
-                                  selectedCategoryName = categories
-                                      .firstWhere(
-                                        (category) =>
-                                            category['id'].toString() == value,
-                                      )['name']
-                                      .toString();
+                                  final matchCat = categories
+                                      .where((category) => category['id'].toString() == value)
+                                      .firstOrNull;
+                                  selectedCategoryName = matchCat?['name']?.toString() ?? 'Uncategorized';
                                 });
                               },
                             ),
@@ -2006,7 +2005,7 @@ class _ExpensePageState extends State<ExpensePage> {
   void _showExpenseDetails(Map<String, dynamic> item) {
     final description = item['description']?.toString() ?? '';
     final amount = item['amount']?.toString() ?? '';
-    final isCreditExpense = item['credit'].toString().toLowerCase() == 'true';
+    final isCreditExpense = isTransactionCredit(item['credit']);
 
     showDialog(
       context: context,
@@ -2600,9 +2599,7 @@ class _ExpensePageState extends State<ExpensePage> {
           selectedFilterCategory == "All" ||
           categoryName == selectedFilterCategory;
 
-      final creditValue = expense['credit'];
-      final expenseIsCredit =
-          creditValue.toString().toLowerCase() == "true" || creditValue == 1;
+      final expenseIsCredit = isTransactionCredit(expense['credit']);
       final typeMatch =
           selectedFilterType == "All" ||
           (selectedFilterType == "Credit" && expenseIsCredit) ||

@@ -16,12 +16,16 @@ class CurrencyService {
   }
 
   static String format(num amount) {
-    final formattedNum = NumberFormat('#,##,##0.00').format(amount);
+    final double doubleVal = amount.toDouble();
+    final formattedNum = NumberFormat('#,##0.00').format(doubleVal);
     return '$symbol$formattedNum';
   }
 
   static String formatCompact(num amount) {
-    final formattedNum = NumberFormat('#,##,##0').format(amount.toInt());
+    final double doubleVal = amount.toDouble();
+    final bool hasDecimals = (doubleVal % 1) != 0;
+    final String pattern = hasDecimals ? '#,##0.00' : '#,##0';
+    final formattedNum = NumberFormat(pattern).format(doubleVal);
     return '$symbol$formattedNum';
   }
 }

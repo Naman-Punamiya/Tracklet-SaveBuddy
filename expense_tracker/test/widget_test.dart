@@ -15,7 +15,7 @@ void main() {
   group('MyApp Root Widget Tests', () {
     testWidgets('renders LoginPage when not logged in', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MyApp(isLoggedIn: false, email: '', password: ''),
+        const MyApp(isLoggedIn: false, email: '', password: '', userId: 0),
       );
       await tester.pump(const Duration(milliseconds: 500));
 
@@ -25,7 +25,7 @@ void main() {
 
     testWidgets('renders HomePage when logged in', (WidgetTester tester) async {
       await tester.pumpWidget(
-        const MyApp(isLoggedIn: true, email: 'user@test.com', password: 'password'),
+        const MyApp(isLoggedIn: true, email: 'user@test.com', password: 'password', userId: 1),
       );
       await tester.pump(const Duration(milliseconds: 500));
 

@@ -17,6 +17,15 @@ void main() async {
   bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
   String email = prefs.getString("email") ?? "";
   String password = prefs.getString("password") ?? "";
+  int? storedUserId = prefs.getInt("userId");
+
+  // Validate session integrity: if userId is invalid/missing, require login
+  if (isLoggedIn && (storedUserId == null || storedUserId <= 0 || email.isEmpty)) {
+    isLoggedIn = false;
+    storedUserId = null;
+  }
+
+  int userId = storedUserId ?? 0;
 
   String savedTheme = prefs.getString("user_theme") ?? "System Default";
   if (savedTheme == "Light") {
@@ -30,18 +39,25 @@ void main() async {
   String savedCurrency = prefs.getString("user_currency") ?? "USD (\$)";
   CurrencyService.currencyNotifier.value = savedCurrency;
 
-  runApp(MyApp(isLoggedIn: isLoggedIn, email: email, password: password));
+  runApp(MyApp(
+    isLoggedIn: isLoggedIn,
+    email: email,
+    password: password,
+    userId: userId,
+  ));
 }
 
 class MyApp extends StatelessWidget {
   final bool isLoggedIn;
   final String email;
   final String password;
+  final int userId;
   const MyApp({
     super.key,
     required this.isLoggedIn,
     required this.email,
     required this.password,
+    required this.userId,
   });
 
   @override
@@ -60,6 +76,7 @@ class MyApp extends StatelessWidget {
             isLoggedIn: isLoggedIn,
             email: email,
             password: password,
+            userId: userId,
           ),
         );
       },

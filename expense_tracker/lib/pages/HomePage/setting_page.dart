@@ -283,31 +283,42 @@ class _SettingPageState extends State<SettingPage> {
                 if (!isValid) return;
 
                 // 1. Call backend/database update API
-                await userRepo.updatePassword(
+                final bool success = await userRepo.updatePassword(
                   email: widget.email,
                   currentPassword: currentPwd,
                   newPassword: newPwd,
                   basicAuth: basicAuth,
                 );
 
-                // 2. Persist new password to SharedPreferences
-                await prefs.setString("password", newPwd);
+                if (success) {
+                  // 2. Persist new password to SharedPreferences
+                  await prefs.setString("password", newPwd);
 
-                // 3. Update local state activePassword
-                setState(() {
-                  _customPassword = newPwd;
-                });
+                  if (mounted) {
+                    // 3. Update local state activePassword
+                    setState(() {
+                      _customPassword = newPwd;
+                    });
+                  }
 
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
 
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Password updated successfully!"),
-                    backgroundColor: AppColors.income,
-                  ),
-                );
+                  AppNotificationService.instance.messengerKey.currentState?.showSnackBar(
+                    const SnackBar(
+                      content: Text("Password updated successfully!"),
+                      backgroundColor: AppColors.income,
+                    ),
+                  );
+                } else {
+                  AppNotificationService.instance.messengerKey.currentState?.showSnackBar(
+                    const SnackBar(
+                      content: Text("Failed to update password. Please check your connection or credentials."),
+                      backgroundColor: AppColors.expense,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -1243,7 +1254,11 @@ class _SettingPageState extends State<SettingPage> {
   Future<void> logout() async {
     KeepAliveService.stop();
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.setBool("isLoggedIn", false);
+    await prefs.remove("email");
+    await prefs.remove("password");
+    await prefs.remove("userId");
+    await prefs.remove("user_display_name");
     if (!mounted) return;
     Navigator.of(
       context,
