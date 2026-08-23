@@ -9,10 +9,16 @@ enum ConnectivityStatus {
 
 class ConnectivityService {
   static final Connectivity _connectivity = Connectivity();
+  static ConnectivityStatus? mockStatus;
 
   static Future<ConnectivityStatus> getConnectivityStatus() async {
-    final result = await _connectivity.checkConnectivity();
-    return _mapResult(result);
+    if (mockStatus != null) return mockStatus!;
+    try {
+      final result = await _connectivity.checkConnectivity();
+      return _mapResult(result);
+    } catch (_) {
+      return ConnectivityStatus.offline;
+    }
   }
 
   static Future<bool> isOnline() async {
@@ -55,8 +61,12 @@ class ConnectivityService {
   }
 
   static Stream<ConnectivityStatus> get connectivityStream {
-    return _connectivity.onConnectivityChanged.map((event) {
-      return _mapResult(event);
-    });
+    try {
+      return _connectivity.onConnectivityChanged.map((event) {
+        return _mapResult(event);
+      }).handleError((_) => ConnectivityStatus.offline);
+    } catch (_) {
+      return Stream.value(mockStatus ?? ConnectivityStatus.offline);
+    }
   }
 }

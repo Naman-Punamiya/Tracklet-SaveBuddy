@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
     if (text != null) {
       final receipt = ParserManager().parse(text);
 
-      print(receipt);
+      debugPrint(receipt.toString());
     }
   }
 

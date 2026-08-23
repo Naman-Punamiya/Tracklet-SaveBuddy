@@ -9,15 +9,19 @@ class DatabaseHelper {
 
   factory DatabaseHelper() => instance;
 
+  static String? testDatabasePath;
   static Database? _database;
+  static set mockDatabase(Database? db) => _database = db;
+  static void resetDatabase() => _database = null;
+
   Future<Database> get database async {
-    if (_database != null) return _database!;
+    if (_database != null && _database!.isOpen) return _database!;
     _database = await _initDatabase();
     return _database!;
   }
 
   Future<Database> _initDatabase() async {
-    String path = join(await getDatabasesPath(), 'expense_tracker.db');
+    String path = testDatabasePath ?? join(await getDatabasesPath(), 'expense_tracker.db');
     return await openDatabase(
       path,
       version: 3,
