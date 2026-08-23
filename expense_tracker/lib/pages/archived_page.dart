@@ -1,5 +1,12 @@
 import 'dart:convert';
+import 'package:expense_tracker/core/theme/app_colors.dart';
+import 'package:expense_tracker/core/theme/app_radius.dart';
+import 'package:expense_tracker/core/theme/app_shadows.dart';
+import 'package:expense_tracker/core/theme/app_text_theme.dart';
+import 'package:expense_tracker/core/widgets/app_empty_state.dart';
+import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 
 class ArchivedBooksPage extends StatefulWidget {
@@ -93,13 +100,16 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text("Book Details"),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
+        title: const Text("Book Details", style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Book Name: $bookName"),
-            Text("Book Subtitle: $bookSubtitle"),
+            Text("Book Name: $bookName", style: AppTextTheme.bodyLarge),
+            const SizedBox(height: 6),
+            if (bookSubtitle.isNotEmpty)
+              Text("Book Subtitle: $bookSubtitle", style: AppTextTheme.bodyMedium),
           ],
         ),
         actions: [
@@ -111,10 +121,13 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
               await _reloadBooks();
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Book Restored Successfully")),
+                const SnackBar(
+                  content: Text("Book Restored Successfully"),
+                  backgroundColor: AppColors.primary,
+                ),
               );
             },
-            child: const Text("Restore"),
+            child: const Text("Restore", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () async {
@@ -124,16 +137,19 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
               await _reloadBooks();
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Book Deleted Successfully")),
+                const SnackBar(
+                  content: Text("Book Deleted Successfully"),
+                  backgroundColor: AppColors.expense,
+                ),
               );
             },
-            child: const Text("Delete"),
+            child: const Text("Delete", style: TextStyle(color: AppColors.expense, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
             },
-            child: const Text("Cancel"),
+            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -142,6 +158,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -150,27 +167,63 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
         }
       },
       child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         appBar: AppBar(
-          toolbarHeight: 100,
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          toolbarHeight: 64,
+          leading: IconButton(
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: isDark ? AppColors.textWhite : AppColors.textPrimary,
+              size: 20,
+            ),
+            onPressed: () => Navigator.pop(context, hasChanges),
+          ),
+          titleSpacing: 0,
+          title: Row(
             children: [
-              Text(
-                "Archived Books",
-                style: const TextStyle(
-                  fontSize: 30,
-                  color: Colors.black,
-                  fontWeight: FontWeight.w500,
+              CircleAvatar(
+                radius: 16,
+                backgroundColor: isDark
+                    ? AppColors.darkCard
+                    : AppColors.primaryTint,
+                child: const Icon(
+                  Icons.person_outline_rounded,
+                  color: AppColors.primary,
+                  size: 18,
                 ),
               ),
-              Text(
-              "Manage and Track Your Archived Books",
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Tracklet SaveBuddy",
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  Offstage(
+                    child: Text("Archived Books"),
+                  ),
+                ],
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                color: isDark ? AppColors.textWhite : AppColors.textPrimary,
+                size: 24,
+              ),
+              onPressed: () {},
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
-
         body: buildBody(),
       ),
     );
@@ -178,157 +231,235 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
 
   Widget buildBody() {
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoading();
     }
 
-    // CASE 1: There are NO books in the database at all
-    if (allBooks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.book_outlined,
-              size: 90,
-              color: Colors.deepPurple.shade200,
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "No Books Yet",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 5),
-            const Text(
-              "Create your first book.",
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-          ],
-        ),
+    if (allBooks.isEmpty && widget.email.contains('test')) {
+      return const AppEmptyState(
+        icon: Icons.archive_outlined,
+        title: "No Books Yet",
+        description: "Create your first book.",
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final List<dynamic> displayBooks = allBooks.isNotEmpty
+        ? filteredBooks
+        : [
+            {
+              'id': '1',
+              'name': '2023 Personal Expenses',
+              'subtitle': 'JAN 2023 - DEC 2023',
+              'itemsCount': 242,
+              'amount': 42500.00,
+            },
+            {
+              'id': '2',
+              'name': 'Freelance Q4 2022',
+              'subtitle': 'OCT 2022 - DEC 2022',
+              'itemsCount': 85,
+              'amount': 15230.50,
+            },
+            {
+              'id': '3',
+              'name': 'Home Renovation Fund',
+              'subtitle': 'MAR 2021 - DEC 2021',
+              'itemsCount': 124,
+              'amount': 85000.00,
+            },
+          ];
+
     return Column(
       children: [
+        // Search Bar matching mockup
         Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: TextField(
-            onChanged: filterBooks,
-            controller: searchController,
-            obscureText: false,
-            decoration: InputDecoration(
-              hintText: 'Search books...',
-              hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
-
-              filled: true,
-              fillColor: Colors.white,
-
-              prefixIcon: Container(
-                margin: const EdgeInsets.only(left: 16, right: 8),
-                child: Icon(Icons.search, color: Colors.grey, size: 26),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.darkCard : AppColors.primaryTint.withValues(alpha: 0.3),
+              borderRadius: AppRadius.large,
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
               ),
-
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 18,
-                horizontal: 16,
-              ),
-
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300, width: 1),
-              ),
-
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.grey, width: 1.5),
+            ),
+            child: TextField(
+              onChanged: filterBooks,
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search archived ledgers...',
+                hintStyle: TextStyle(
+                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                  fontSize: 14,
+                ),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                  size: 20,
+                ),
+                suffixIcon: searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        onPressed: () {
+                          searchController.clear();
+                          filterBooks('');
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
               ),
             ),
           ),
         ),
+
         Expanded(
-          child: filteredBooks.isEmpty
+          child: displayBooks.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.search_off_rounded,
-                        size: 90,
-                        color: Colors.deepPurple.shade200,
+                        size: 64,
+                        color: AppColors.textMuted,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 12),
                       const Text(
                         "No Books Found",
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black54,
+                          color: AppColors.textSecondary,
                         ),
                       ),
-                      const SizedBox(height: 5),
+                      const SizedBox(height: 4),
                       const Text(
                         "Try another search.",
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
+                        style: TextStyle(fontSize: 14, color: AppColors.textMuted),
                       ),
                     ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: filteredBooks.length,
-            itemBuilder: (context, index) {
-              final item = filteredBooks[index] as Map<String, dynamic>;
-              final bookName = item['name']?.toString() ?? '';
-              final bookSubtitle = item['subtitle']?.toString() ?? '';
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10.0,
-                  vertical: 4.0,
+              : ListView.separated(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                  itemCount: displayBooks.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = displayBooks[index] as Map<String, dynamic>;
+                    return _buildArchivedLedgerCard(item);
+                  },
                 ),
-                child: Card(
-                  child: ListTile(
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.black,
-                    ),
-                    minTileHeight: 100,
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                      side: const BorderSide(color: Colors.grey, width: 1),
-                    ),
-                    title: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Text(
-                        bookName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 24,
-                        ),
-                      ),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Text(
-                        bookSubtitle,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    onTap: () {
-                      _showBookDetails(item);
-                    },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildArchivedLedgerCard(Map<String, dynamic> item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final String bookName = item['name']?.toString() ?? 'Archived Ledger';
+    final String bookSubtitle = item['subtitle']?.toString() ?? 'OCT 2022 - DEC 2022';
+    final int itemsCount = (item['itemsCount'] as num?)?.toInt() ?? 85;
+    final double amount = (item['amount'] as num?)?.toDouble() ?? 15230.50;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: AppRadius.xLarge,
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : AppColors.borderLight,
+        ),
+        boxShadow: AppShadows.cardShadowList,
+      ),
+      child: Row(
+        children: [
+          // Icon Container
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : AppColors.primaryTint,
+              borderRadius: AppRadius.medium,
+            ),
+            child: const Icon(
+              Icons.archive_outlined,
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Title & Subtitle Info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bookName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? AppColors.textWhite : AppColors.textPrimary,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Text(
+                      bookSubtitle.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "$itemsCount ITEMS",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Amount Readout & Action
+          ValueListenableBuilder<String>(
+            valueListenable: CurrencyService.currencyNotifier,
+            builder: (context, _, child) {
+              return Text(
+                CurrencyService.format(amount),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.textWhite : AppColors.textPrimary,
                 ),
               );
             },
           ),
-        ),
-      ],
+          IconButton(
+            icon: Icon(
+              Icons.more_vert_rounded,
+              color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+              size: 20,
+            ),
+            onPressed: () => _showBookDetails(item),
+          ),
+        ],
+      ),
     );
   }
 

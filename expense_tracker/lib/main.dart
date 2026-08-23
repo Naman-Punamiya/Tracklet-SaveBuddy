@@ -1,17 +1,34 @@
 import 'package:expense_tracker/core/theme/app_theme.dart';
-import 'package:expense_tracker/pages/Auth/login_page.dart';
-import 'package:expense_tracker/pages/home_page.dart';
+import 'package:expense_tracker/pages/splash_screen.dart';
+import 'package:expense_tracker/services/currency_service.dart';
+import 'package:expense_tracker/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await AppNotificationService.instance.init();
 
   SharedPreferences prefs = await SharedPreferences.getInstance();
 
   bool isLoggedIn = prefs.getBool("isLoggedIn") ?? false;
   String email = prefs.getString("email") ?? "";
   String password = prefs.getString("password") ?? "";
+
+  String savedTheme = prefs.getString("user_theme") ?? "System Default";
+  if (savedTheme == "Light") {
+    themeNotifier.value = ThemeMode.light;
+  } else if (savedTheme == "Dark") {
+    themeNotifier.value = ThemeMode.dark;
+  } else {
+    themeNotifier.value = ThemeMode.system;
+  }
+
+  String savedCurrency = prefs.getString("user_currency") ?? "USD (\$)";
+  CurrencyService.currencyNotifier.value = savedCurrency;
 
   runApp(MyApp(isLoggedIn: isLoggedIn, email: email, password: password));
 }
@@ -29,15 +46,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Tracklet SaveBuddy',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: isLoggedIn
-          ? HomePage(userId: 0, email: email, password: password)
-          : const LoginPage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (context, currentMode, _) {
+        return MaterialApp(
+          scaffoldMessengerKey: AppNotificationService.instance.messengerKey,
+          title: 'Tracklet SaveBuddy',
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: currentMode,
+          debugShowCheckedModeBanner: false,
+          home: SplashScreen(
+            isLoggedIn: isLoggedIn,
+            email: email,
+            password: password,
+          ),
+        );
+      },
     );
   }
 }

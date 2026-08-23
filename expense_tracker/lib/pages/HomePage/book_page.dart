@@ -1,5 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:expense_tracker/core/theme/app_colors.dart';
+import 'package:expense_tracker/core/theme/app_radius.dart';
+import 'package:expense_tracker/core/theme/app_shadows.dart';
+import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/category_page.dart';
@@ -7,6 +11,7 @@ import 'package:expense_tracker/pages/HomePage/Expenses/inside_book_page.dart';
 import 'package:expense_tracker/pages/archived_page.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/connectivity_service.dart';
+import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 
 class BookPage extends StatefulWidget {
@@ -140,8 +145,7 @@ class _BookPageState extends State<BookPage> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, dialogSetState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
             title: const Text(
               "Add Book",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -151,15 +155,17 @@ class _BookPageState extends State<BookPage> {
               children: [
                 TextField(
                   controller: bookNameController,
+                  autofocus: true,
                   decoration: InputDecoration(
-                    labelText: 'Book Name',
+                    labelText: "Book Name",
+                    hintText: "e.g. Personal Expenses, Travel",
                     errorText: nameError,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.medium,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3EAD91), width: 1.5),
+                      borderRadius: AppRadius.medium,
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                     ),
                   ),
                 ),
@@ -167,13 +173,14 @@ class _BookPageState extends State<BookPage> {
                 TextField(
                   controller: bookSubtitleController,
                   decoration: InputDecoration(
-                    labelText: 'Book Subtitle',
+                    labelText: "Book Subtitle",
+                    hintText: "Optional short note or tag",
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.medium,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3EAD91), width: 1.5),
+                      borderRadius: AppRadius.medium,
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                     ),
                   ),
                 ),
@@ -181,10 +188,8 @@ class _BookPageState extends State<BookPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                },
-                child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -198,7 +203,7 @@ class _BookPageState extends State<BookPage> {
 
                   final messenger = ScaffoldMessenger.of(context);
                   Navigator.pop(dialogContext);
-                  await addBook(trimmedName, bookSubtitleController.text);
+                  await addBook(trimmedName, bookSubtitleController.text.trim());
 
                   if (!mounted) return;
                   await _reloadBooks();
@@ -206,15 +211,15 @@ class _BookPageState extends State<BookPage> {
                   messenger.showSnackBar(
                     const SnackBar(
                       content: Text("Book Added Successfully"),
-                      backgroundColor: Color(0xFF3EAD91),
+                      backgroundColor: AppColors.primary,
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3EAD91),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textWhite,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: AppRadius.medium,
                   ),
                 ),
                 child: const Text("Add"),
@@ -226,13 +231,9 @@ class _BookPageState extends State<BookPage> {
     );
   }
 
-  void _showEditBookDialog(
-    String id,
-    String currentBookName,
-    String currentBookSubtitle,
-  ) {
-    bookNameController.text = currentBookName;
-    bookSubtitleController.text = currentBookSubtitle;
+  void _showEditBookDialog(String id, String currentName, String currentSubtitle) {
+    bookNameController.text = currentName;
+    bookSubtitleController.text = currentSubtitle;
     String? nameError;
 
     showDialog(
@@ -240,8 +241,7 @@ class _BookPageState extends State<BookPage> {
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, dialogSetState) {
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
             title: const Text(
               "Edit Book",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -252,14 +252,14 @@ class _BookPageState extends State<BookPage> {
                 TextField(
                   controller: bookNameController,
                   decoration: InputDecoration(
-                    labelText: 'Book Name',
+                    labelText: "Book Name",
                     errorText: nameError,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.medium,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3EAD91), width: 1.5),
+                      borderRadius: AppRadius.medium,
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                     ),
                   ),
                 ),
@@ -267,13 +267,13 @@ class _BookPageState extends State<BookPage> {
                 TextField(
                   controller: bookSubtitleController,
                   decoration: InputDecoration(
-                    labelText: 'Book Subtitle',
+                    labelText: "Book Subtitle",
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.medium,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: Color(0xFF3EAD91), width: 1.5),
+                      borderRadius: AppRadius.medium,
+                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                     ),
                   ),
                 ),
@@ -281,10 +281,8 @@ class _BookPageState extends State<BookPage> {
             ),
             actions: [
               TextButton(
-                onPressed: () {
-                  Navigator.pop(dialogContext);
-                },
-                child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -310,15 +308,15 @@ class _BookPageState extends State<BookPage> {
                   messenger.showSnackBar(
                     const SnackBar(
                       content: Text("Book Updated Successfully"),
-                      backgroundColor: Color(0xFF3EAD91),
+                      backgroundColor: AppColors.primary,
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3EAD91),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textWhite,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: AppRadius.medium,
                   ),
                 ),
                 child: const Text("Save"),
@@ -336,8 +334,7 @@ class _BookPageState extends State<BookPage> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: const Text(
           "Book Options",
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
@@ -348,13 +345,13 @@ class _BookPageState extends State<BookPage> {
           children: [
             Text(
               "Book Name: $bookName",
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              style: AppTextTheme.bodyLarge,
             ),
             if (bookSubtitle.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 "Subtitle: $bookSubtitle",
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                style: AppTextTheme.bodyMedium,
               ),
             ],
           ],
@@ -369,7 +366,7 @@ class _BookPageState extends State<BookPage> {
                 bookSubtitle,
               );
             },
-            child: const Text("Edit", style: TextStyle(color: Color(0xFF3EAD91))),
+            child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () async {
@@ -377,8 +374,7 @@ class _BookPageState extends State<BookPage> {
               showDialog(
                 context: context,
                 builder: (confirmContext) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
                   title: const Text(
                     "Manage Book",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -392,7 +388,7 @@ class _BookPageState extends State<BookPage> {
                       onPressed: () {
                         Navigator.pop(confirmContext);
                       },
-                      child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
+                      child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
                     ),
                     TextButton(
                       onPressed: () async {
@@ -404,13 +400,13 @@ class _BookPageState extends State<BookPage> {
                         messenger.showSnackBar(
                           const SnackBar(
                             content: Text("Book Archived Successfully"),
-                            backgroundColor: Color(0xFF3EAD91),
+                            backgroundColor: AppColors.primary,
                           ),
                         );
                       },
                       child: const Text(
                         "Archive",
-                        style: TextStyle(color: Colors.orange),
+                        style: TextStyle(color: AppColors.warning, fontWeight: FontWeight.bold),
                       ),
                     ),
                     TextButton(
@@ -423,26 +419,26 @@ class _BookPageState extends State<BookPage> {
                         messenger.showSnackBar(
                           const SnackBar(
                             content: Text("Book Deleted Successfully"),
-                            backgroundColor: Colors.red,
+                            backgroundColor: AppColors.expense,
                           ),
                         );
                       },
                       child: const Text(
                         "Delete",
-                        style: TextStyle(color: Colors.red),
+                        style: TextStyle(color: AppColors.expense, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                 ),
               );
             },
-            child: const Text("Delete / Archive", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete / Archive", style: TextStyle(color: AppColors.expense, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
             },
-            child: Text("Close", style: TextStyle(color: Colors.grey.shade600)),
+            child: const Text("Close", style: TextStyle(color: AppColors.textSecondary)),
           ),
         ],
       ),
@@ -451,32 +447,32 @@ class _BookPageState extends State<BookPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
-        toolbarHeight: 90,
-        backgroundColor: const Color(0xFFF9FAFB),
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+        surfaceTintColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
         elevation: 0,
-        surfaceTintColor: const Color(0xFFF9FAFB),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        titleSpacing: 16,
+        title: Row(
           children: [
-            Text(
-              "My Books",
-              style: TextStyle(
-                fontSize: 30,
-                color: Colors.grey.shade900,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -0.5,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryTint,
+                shape: BoxShape.circle,
               ),
+              child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 20),
             ),
-            const SizedBox(height: 4),
-            Text(
-              "Manage and track all your expenses in one place",
+            const SizedBox(width: 12),
+            const Text(
+              "Tracklet SaveBuddy",
               style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w400,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
               ),
             ),
           ],
@@ -485,16 +481,16 @@ class _BookPageState extends State<BookPage> {
           Container(
             margin: const EdgeInsets.only(right: 6),
             decoration: const BoxDecoration(
-              color: Color(0xFFE8F6F3),
+              color: AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
             child: IconButton(
               icon: const Icon(
                 Icons.category_outlined,
-                color: Color(0xFF3EAD91),
-                size: 22,
+                color: AppColors.primary,
+                size: 20,
               ),
-              tooltip: "Manage Categories",
+              tooltip: "Categories",
               onPressed: () {
                 Navigator.push(
                   context,
@@ -508,35 +504,46 @@ class _BookPageState extends State<BookPage> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Color(0xFFE8F6F3),
-                shape: BoxShape.circle,
+          Container(
+            margin: const EdgeInsets.only(right: 6),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTint,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: const Icon(
+                Icons.archive_outlined,
+                color: AppColors.primary,
+                size: 20,
               ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.archive_outlined,
-                  color: Color(0xFF3EAD91),
-                  size: 22,
-                ),
-                tooltip: "Archived Books",
-                onPressed: () async {
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ArchivedBooksPage(
-                        email: widget.email,
-                        password: widget.password,
-                      ),
+              tooltip: "Archived",
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ArchivedBooksPage(
+                      email: widget.email,
+                      password: widget.password,
                     ),
-                  );
-                  if (result == true) {
-                    await _reloadBooks();
-                  }
-                },
-              ),
+                  ),
+                );
+                if (result == true) {
+                  await _reloadBooks();
+                }
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(right: 16),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryTint,
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              iconSize: 20,
+              tooltip: "Notifications",
+              onPressed: () {},
+              icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary),
             ),
           ),
         ],
@@ -544,20 +551,20 @@ class _BookPageState extends State<BookPage> {
       body: buildBody(),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_book_fab',
-        backgroundColor: const Color(0xFF3EAD91),
-        elevation: 3,
+        tooltip: 'Add Book',
+        backgroundColor: AppColors.primary,
+        elevation: 4,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: AppRadius.pill,
         ),
         onPressed: _showAddBookDialog,
-        icon: const Icon(Icons.add_rounded, color: Colors.white, size: 24),
+        icon: const Icon(Icons.add_rounded, color: AppColors.textWhite, size: 24),
         label: const Text(
           "Add Book",
           style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
+            color: AppColors.textWhite,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -579,197 +586,79 @@ class _BookPageState extends State<BookPage> {
       );
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Summary Cards Section
+        // Title Header Section
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x0C000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFE8F6F3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.menu_book_rounded,
-                          color: Color(0xFF3EAD91),
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Total Books",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          Text(
-                            "${allBooks.length}",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey.shade900,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              Text(
+                "My Books",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? AppColors.textWhite : AppColors.textPrimary,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CategoryPage(
-                          email: widget.email,
-                          password: widget.password,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0C000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFE8F6F3),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.category_outlined,
-                            color: Color(0xFF3EAD91),
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Categories",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              "Manage",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: const Color(0xFF3EAD91),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+              const SizedBox(height: 2),
+              Text(
+                "Manage your financial spaces",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
                 ),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
 
         // Search Section
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x0C000000),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
+              color: isDark ? AppColors.darkCard : AppColors.lightCard,
+              borderRadius: AppRadius.large,
+              border: Border.all(
+                color: isDark ? AppColors.borderDark : AppColors.borderLight,
+              ),
+              boxShadow: AppShadows.cardShadowList,
             ),
             child: TextField(
               controller: searchController,
               onChanged: filterBooks,
-              style: TextStyle(fontSize: 15, color: Colors.grey.shade900),
+              style: TextStyle(fontSize: 15, color: isDark ? AppColors.textWhite : AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: "Search books...",
-                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 15),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF3EAD91), size: 22),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (searchController.text.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear_rounded, size: 20),
-                        color: Colors.grey.shade500,
+                hintStyle: TextStyle(color: isDark ? AppColors.textMuted : AppColors.textMuted, fontSize: 14),
+                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 20),
+                suffixIcon: searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear_rounded, size: 18),
+                        color: AppColors.textMuted,
                         onPressed: () {
                           searchController.clear();
                           filterBooks('');
                         },
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.mic_rounded, size: 20),
-                      color: const Color(0xFF3EAD91),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.tune_rounded, size: 20),
-                      color: const Color(0xFF3EAD91),
-                      onPressed: () {},
-                    ),
-                    const SizedBox(width: 4),
-                  ],
-                ),
+                      )
+                    : null,
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
             ),
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
 
         // Books List Section
         Expanded(
@@ -778,17 +667,17 @@ class _BookPageState extends State<BookPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.search_off_rounded,
-                        size: 48,
-                        color: Colors.grey.shade400,
+                        size: 56,
+                        color: AppColors.textMuted,
                       ),
                       const SizedBox(height: 12),
-                      Text(
+                      const Text(
                         "No matching books found",
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey.shade600,
+                          color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -901,64 +790,63 @@ class _BookCardItemState extends State<_BookCardItem> {
 
     switch (status) {
       case 1:
-        bgColor = const Color(0xFFE8F6F3);
-        textColor = const Color(0xFF3EAD91);
+        bgColor = AppColors.primaryTint;
+        textColor = AppColors.primary;
         icon = Icons.cloud_done_rounded;
         text = "Synced";
         break;
       case 2:
-        bgColor = const Color(0xFFFDE8E8);
-        textColor = const Color(0xFFEF4444);
+        bgColor = AppColors.expenseTint;
+        textColor = AppColors.expense;
         icon = Icons.cloud_off_rounded;
         text = "Sync Failed";
         break;
       case 0:
       default:
-        bgColor = const Color(0xFFFEF3C7);
-        textColor = const Color(0xFFD97706);
+        bgColor = AppColors.warningTint;
+        textColor = AppColors.warning;
         icon = Icons.cloud_upload_outlined;
-        text = "Pending Sync";
+        text = "Pending";
         break;
     }
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 250),
-      child: Container(
-        key: ValueKey<int>(status),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: textColor, size: 13),
-            const SizedBox(width: 4),
-            Text(
-              text,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: textColor, size: 11),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tagSubtitle = widget.subtitle.isEmpty ? "DEFAULT" : widget.subtitle.toUpperCase();
+
     return AnimatedScale(
       scale: isPressed ? 0.98 : 1.0,
       duration: const Duration(milliseconds: 100),
       child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.darkCard : AppColors.lightCard,
+        borderRadius: AppRadius.xLarge,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.xLarge,
           onTapDown: (_) => setState(() => isPressed = true),
           onTapUp: (_) => setState(() => isPressed = false),
           onTapCancel: () => setState(() => isPressed = false),
@@ -969,28 +857,25 @@ class _BookCardItemState extends State<_BookCardItem> {
             child: Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x0C000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+                color: isDark ? AppColors.darkCard : AppColors.lightCard,
+                borderRadius: AppRadius.xLarge,
+                border: Border.all(
+                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                ),
+                boxShadow: AppShadows.cardShadowList,
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: const BoxDecoration(
-                      color: Color(0xFFE8F6F3),
+                      color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       widget.catIcon,
-                      color: const Color(0xFF3EAD91),
-                      size: 26,
+                      color: AppColors.textWhite,
+                      size: 22,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -1001,32 +886,79 @@ class _BookCardItemState extends State<_BookCardItem> {
                         Text(
                           widget.bookName,
                           style: TextStyle(
-                            fontSize: 17,
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey.shade900,
-                            letterSpacing: -0.2,
+                            color: isDark ? AppColors.textWhite : AppColors.textPrimary,
                           ),
                         ),
-                        if (widget.subtitle.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.subtitle,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w400,
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Text(
+                              tagSubtitle,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                                letterSpacing: 0.5,
+                              ),
                             ),
-                          ),
-                        ],
-                        const SizedBox(height: 8),
+                            if (widget.subtitle.isNotEmpty) ...[
+                              const SizedBox(width: 4),
+                              Text(
+                                "• ${widget.subtitle}",
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 6),
                         _buildSyncBadge(widget.syncedStatus),
                       ],
                     ),
                   ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.grey.shade400,
-                    size: 24,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "Balance",
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      FutureBuilder<double>(
+                        future: ExpenseRepository().getBookBalance(widget.item['id'].toString()),
+                        builder: (context, snapshot) {
+                          final double rawBalance = snapshot.data ?? (widget.item['amount'] as num?)?.toDouble() ?? 0.0;
+                          return ValueListenableBuilder<String>(
+                            valueListenable: CurrencyService.currencyNotifier,
+                            builder: (context, _, child) {
+                              return Text(
+                                CurrencyService.format(rawBalance),
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? AppColors.textWhite : AppColors.textPrimary,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                      size: 20,
+                    ),
+                    onPressed: widget.onLongPress,
                   ),
                 ],
               ),

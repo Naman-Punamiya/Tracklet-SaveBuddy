@@ -13,6 +13,7 @@ abstract class AppTheme {
       scaffoldBackgroundColor: AppColors.lightBackground,
       colorScheme: const ColorScheme.light(
         primary: AppColors.primary,
+        secondary: AppColors.primaryLight,
         surface: AppColors.lightSurface,
         onPrimary: AppColors.textWhite,
         error: AppColors.expense,
@@ -23,15 +24,19 @@ abstract class AppTheme {
         elevation: 0,
         centerTitle: false,
         titleTextStyle: AppTextTheme.displayLarge,
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
       cardTheme: CardThemeData(
         color: AppColors.lightCard,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.large),
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.large,
+          side: const BorderSide(color: AppColors.borderLight, width: 1),
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.lightSurface,
-        elevation: 4,
+        elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -43,7 +48,7 @@ abstract class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textWhite,
-        elevation: 3,
+        elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -61,6 +66,10 @@ abstract class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
           borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.expense),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -89,6 +98,7 @@ abstract class AppTheme {
       scaffoldBackgroundColor: AppColors.darkBackground,
       colorScheme: const ColorScheme.dark(
         primary: AppColors.primary,
+        secondary: AppColors.primaryLight,
         surface: AppColors.darkSurface,
         onPrimary: AppColors.textWhite,
         error: AppColors.expense,
@@ -103,28 +113,68 @@ abstract class AppTheme {
           fontWeight: FontWeight.bold,
           color: AppColors.textWhite,
         ),
+        iconTheme: IconThemeData(color: AppColors.textWhite),
       ),
       cardTheme: CardThemeData(
         color: AppColors.darkCard,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.large),
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.large,
+          side: const BorderSide(color: AppColors.borderDark, width: 1),
+        ),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.darkSurface,
-        elevation: 4,
+        elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.darkSurface,
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: AppColors.primaryLight,
         unselectedItemColor: AppColors.textMuted,
         elevation: 8,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.textWhite,
-        elevation: 3,
+        elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: AppColors.darkSurface,
+        contentPadding: AppSpacing.px16py12,
+        border: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.borderDark),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.borderDark),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.expense),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.textWhite,
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
+          textStyle: AppTextTheme.buttonText,
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
+        backgroundColor: AppColors.darkSurface,
+        contentTextStyle: const TextStyle(color: AppColors.textWhite),
       ),
     );
   }

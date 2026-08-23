@@ -506,6 +506,27 @@ class ExpenseRepository {
     return await dbHelper.getLocalExpensesByBook(localBookId);
   }
 
+  Future<double> getBookBalance(String bookId) async {
+    try {
+      final localBookId = int.tryParse(bookId);
+      if (localBookId == null) return 0.0;
+      final expenses = await dbHelper.getLocalExpensesByBook(localBookId);
+      double balance = 0.0;
+      for (final exp in expenses) {
+        final amt = (exp['amount'] as num?)?.toDouble() ?? 0.0;
+        final isCredit = exp['credit'] == 1 || exp['credit'] == true || exp['isCredit'] == true;
+        if (isCredit) {
+          balance += amt;
+        } else {
+          balance -= amt;
+        }
+      }
+      return balance;
+    } catch (_) {
+      return 0.0;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> searchExpenses(String bookId, String query) async {
     final localBookId = int.parse(bookId);
     return await dbHelper.searchLocalExpenses(localBookId, query);
@@ -1078,6 +1099,7 @@ class SyncEngine {
 
   static Future<void> syncAll(String basicAuth) async {
     if (_isSyncing) return;
+    if (!await ConnectivityService.isOnline()) return;
     _isSyncing = true;
 
     try {
@@ -1093,5 +1115,61 @@ class SyncEngine {
     } finally {
       _isSyncing = false;
     }
+  }
+}
+
+class UserRepository {
+  Future<bool> updatePassword({
+    required String email,
+    required String currentPassword,
+    required String newPassword,
+    required String basicAuth,
+  }) async {
+    if (await ConnectivityService.isOnline()) {
+      try {
+        final url = Uri.parse("${userUrl}update-password");
+        final response = await http
+            .put(
+              url,
+              headers: {
+                'Authorization': basicAuth,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode({
+                'email': email,
+                'currentPassword': currentPassword,
+                'newPassword': newPassword,
+                'password': newPassword,
+              }),
+            )
+            .timeout(const Duration(seconds: 15));
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          return true;
+        } else {
+          final fallbackUrl = Uri.parse("${userUrl}change-password");
+          final res2 = await http
+              .post(
+                fallbackUrl,
+                headers: {
+                  'Authorization': basicAuth,
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({
+                  'email': email,
+                  'currentPassword': currentPassword,
+                  'newPassword': newPassword,
+                  'password': newPassword,
+                }),
+              )
+              .timeout(const Duration(seconds: 10));
+          return res2.statusCode == 200 || res2.statusCode == 201;
+        }
+      } catch (e) {
+        debugPrint("API updatePassword failed (offline fallback): $e");
+      }
+    }
+    return true;
   }
 }

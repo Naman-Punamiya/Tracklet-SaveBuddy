@@ -1,3 +1,4 @@
+import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 
 class CategoryBreakdownTile extends StatelessWidget {
@@ -36,7 +37,7 @@ class CategoryBreakdownTile extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(category),
-                    Text("₹${amount.toStringAsFixed(0)}"),
+                    Text(CurrencyService.formatCompact(amount)),
                   ],
                 ),
                 SizedBox(height: 4),

@@ -18,7 +18,8 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
 
       expect(find.text('Investments'), findsOneWidget);
       expect(find.text('No Investments Yet'), findsOneWidget);
@@ -30,7 +31,7 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 1));
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
       await tester.pump(const Duration(milliseconds: 300));
@@ -49,7 +50,7 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 1));
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
       await tester.pump(const Duration(milliseconds: 300));
@@ -69,17 +70,17 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(seconds: 1));
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
       await tester.pump(const Duration(milliseconds: 300));
 
-      await tester.enterText(find.widgetWithText(TextField, 'Investment Name'), 'Mutual Fund SIP');
-      await tester.enterText(find.widgetWithText(TextField, 'Invested Amount (₹)'), '5000');
+      final dialogFields = find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField));
+      await tester.enterText(dialogFields.at(0), 'Mutual Fund SIP');
+      await tester.enterText(dialogFields.at(1), '5000');
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(milliseconds: 500));
-
+      await tester.pump(const Duration(seconds: 1));
       expect(find.text('Mutual Fund SIP'), findsOneWidget);
       expect(find.text('1 Investments'), findsOneWidget);
       expect(find.text('Investment added successfully.'), findsOneWidget);

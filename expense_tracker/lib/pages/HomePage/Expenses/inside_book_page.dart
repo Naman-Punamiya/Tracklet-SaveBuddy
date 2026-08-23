@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/expense_page.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/expense_report.dart';
 import 'package:flutter/material.dart';
@@ -44,15 +45,17 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
+      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       body: pages[currentIndex],
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          boxShadow: const [
             BoxShadow(
-              color: Color(0x0D000000), // ~5% opacity soft floating shadow
+              color: Color(0x0D000000),
               blurRadius: 12,
               offset: Offset(0, -4),
             ),
@@ -61,9 +64,9 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           elevation: 0,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF3EAD91),
-          unselectedItemColor: Colors.grey.shade500,
+          backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: isDark ? AppColors.textMuted : AppColors.textMuted,
           selectedFontSize: 13,
           unselectedFontSize: 12,
           selectedLabelStyle: const TextStyle(
@@ -87,7 +90,7 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.receipt_long_rounded, size: 24, color: Color(0xFF3EAD91)),
+                child: Icon(Icons.receipt_long_rounded, size: 24, color: AppColors.primary),
               ),
               label: "Expenses Details",
             ),
@@ -98,7 +101,7 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
               ),
               activeIcon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.bar_chart_rounded, size: 24, color: Color(0xFF3EAD91)),
+                child: Icon(Icons.bar_chart_rounded, size: 24, color: AppColors.primary),
               ),
               label: "Expense Reports",
             ),

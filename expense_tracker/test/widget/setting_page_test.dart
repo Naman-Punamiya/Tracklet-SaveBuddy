@@ -43,7 +43,7 @@ void main() {
       expect(logoutFinder, findsOneWidget);
     });
 
-    testWidgets('shows Dark Mode coming soon snackbar when switch is toggled', (WidgetTester tester) async {
+    testWidgets('allows selecting Light, Dark, or System Default theme options', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: SettingPage(
@@ -54,10 +54,16 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
 
-      await tester.tap(find.byType(Switch));
-      await tester.pump();
+      final themeTile = find.text('Theme');
+      await tester.ensureVisible(themeTile);
+      await tester.tap(themeTile);
+      await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Dark Mode theme coming soon in next update!'), findsOneWidget);
+      expect(find.text('Select Theme'), findsOneWidget);
+      expect(find.text('Dark'), findsOneWidget);
+
+      await tester.tap(find.text('Dark'));
+      await tester.pump(const Duration(milliseconds: 300));
     });
 
     testWidgets('opens info dialogs on tile taps', (WidgetTester tester) async {
