@@ -36,7 +36,7 @@ void main() async {
     themeNotifier.value = ThemeMode.system;
   }
 
-  String savedCurrency = prefs.getString("user_currency") ?? "USD (\$)";
+  String savedCurrency = prefs.getString("user_currency") ?? "INR (₹)";
   CurrencyService.currencyNotifier.value = savedCurrency;
 
   runApp(MyApp(

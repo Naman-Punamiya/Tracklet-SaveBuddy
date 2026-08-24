@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 
 class CurrencyService {
   static final ValueNotifier<String> currencyNotifier =
-      ValueNotifier<String>("USD (\$)");
+      ValueNotifier<String>("INR (₹)");
 
   static String get currentCurrency => currencyNotifier.value;
 
@@ -12,7 +12,8 @@ class CurrencyService {
     if (curr.contains('₹') || curr.contains('INR')) return '₹';
     if (curr.contains('€') || curr.contains('EUR')) return '€';
     if (curr.contains('£') || curr.contains('GBP')) return '£';
-    return '\$'; // USD, CAD, AUD default
+    if (curr.contains('\$') || curr.contains('USD') || curr.contains('CAD') || curr.contains('AUD')) return '\$';
+    return '₹'; // Default to Rupee
   }
 
   static String format(num amount) {

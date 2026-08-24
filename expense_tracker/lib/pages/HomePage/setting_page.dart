@@ -29,7 +29,7 @@ class _SettingPageState extends State<SettingPage> {
   String get activePassword => _customPassword ?? widget.password;
 
   String userName = "Alex Henderson";
-  String selectedCurrency = "USD (\$)";
+  String selectedCurrency = "INR (₹)";
   String selectedLanguage = "English";
   String selectedTheme = "Light";
   bool isDarkMode = false;
@@ -55,7 +55,7 @@ class _SettingPageState extends State<SettingPage> {
           (widget.email.contains('admin')
               ? 'Alex Henderson'
               : widget.email.split('@').first);
-      selectedCurrency = prefs.getString('user_currency') ?? "USD (\$)";
+      selectedCurrency = prefs.getString('user_currency') ?? "INR (₹)";
       selectedLanguage = prefs.getString('user_language') ?? "English";
       selectedTheme = prefs.getString('user_theme') ?? "Light";
       isDarkMode = selectedTheme == "Dark";
@@ -427,8 +427,8 @@ class _SettingPageState extends State<SettingPage> {
 
   void _showCurrencyPicker() {
     final currencies = [
-      "USD (\$)",
       "INR (₹)",
+      "USD (\$)",
       "EUR (€)",
       "GBP (£)",
       "CAD (\$)",
