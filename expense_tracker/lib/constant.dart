@@ -1,4 +1,4 @@
-const String baseUrl = "https://tracklet-savebuddy-1.onrender.com";
+const String baseUrl = "http://132.226.191.34:8080";
 
 String expenseUrl = "$baseUrl/expenses/";
 String bookUrl = "$baseUrl/books/";
