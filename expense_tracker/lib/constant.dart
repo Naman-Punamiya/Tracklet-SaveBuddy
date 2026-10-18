@@ -1,4 +1,4 @@
-const String baseUrl = "http://132.226.191.34:8080";
+const String baseUrl = "https://132.226.191.34";
 
 String expenseUrl = "$baseUrl/expenses/";
 String bookUrl = "$baseUrl/books/";
