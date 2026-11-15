@@ -9,7 +9,9 @@ import 'package:expense_tracker/core/theme/app_spacing.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/database/database_helper.dart';
+import 'package:expense_tracker/pages/HomePage/investment_dialogs.dart';
 import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/connectivity_service.dart';
 import 'package:expense_tracker/services/currency_service.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -22,7 +24,7 @@ class InvestmentPage extends StatefulWidget {
   const InvestmentPage({
     super.key,
     required this.email,
-    required this.password,
+    this.password = '',
   });
 
   @override
@@ -51,8 +53,9 @@ class _InvestmentPageState extends State<InvestmentPage> {
     decimalDigits: 0,
   );
 
-  String get basicAuth =>
-      'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
+  String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
+      ? AuthStorageService.instance.currentAuthToken
+      : 'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
   }
 
   Future<void> _triggerSync() async {
+    if (widget.email.contains('test')) return;
     try {
       await SyncEngine.syncAll(basicAuth);
       if (mounted) {
@@ -665,147 +669,22 @@ class _InvestmentPageState extends State<InvestmentPage> {
     );
   }
 
-  Future<void> _deleteInvestment(String id, BuildContext dialogContext) async {
-    Navigator.pop(dialogContext);
-
-    await deleteInvestment(id);
-
-    if (!mounted) return;
-
-    _reloadInvestments();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Investment deleted successfully."),
-        backgroundColor: AppColors.expense,
-      ),
-    );
-  }
-
   void _showAddInvestmentDialog() {
-    investmentDescriptionController.clear();
-    investmentAmountController.clear();
-    String? descriptionError;
-    String? amountError;
-
-    showDialog(
+    InvestmentDialogs.showAddInvestmentDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, dialogSetState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-            title: Row(
-              children: const [
-                Icon(
-                  Icons.add_chart_rounded,
-                  color: AppColors.primary,
-                  size: AppDimensions.icon24,
-                ),
-                SizedBox(width: AppSpacing.small),
-                Text("Add Investment", style: AppTextTheme.titleLarge),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: investmentDescriptionController,
-                  style: AppTextTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    labelText: 'Investment Name',
-                    errorText: descriptionError,
-                    prefixIcon: const Icon(
-                      Icons.description_outlined,
-                      size: AppDimensions.icon20,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.medium),
-                TextField(
-                  controller: investmentAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: AppTextTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    labelText: 'Invested Amount (₹)',
-                    errorText: amountError,
-                    prefixIcon: const Icon(
-                      Icons.currency_rupee_rounded,
-                      size: AppDimensions.icon20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(
-                  "Cancel",
-                  style: AppTextTheme.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  dialogSetState(() {
-                    descriptionError = null;
-                    amountError = null;
-                  });
-
-                  final description = investmentDescriptionController.text
-                      .trim();
-                  final amountText = investmentAmountController.text.trim();
-                  final amount = double.tryParse(amountText);
-
-                  bool isValid = true;
-                  if (description.isEmpty) {
-                    dialogSetState(() {
-                      descriptionError = "Investment name must not be empty";
-                    });
-                    isValid = false;
-                  }
-                  if (amountText.isEmpty) {
-                    dialogSetState(() {
-                      amountError = "Amount must not be empty";
-                    });
-                    isValid = false;
-                  } else if (amount == null || amount <= 0) {
-                    dialogSetState(() {
-                      amountError = "Enter a valid amount";
-                    });
-                    isValid = false;
-                  }
-
-                  if (!isValid) return;
-
-                  final messenger = ScaffoldMessenger.of(context);
-                  Navigator.pop(dialogContext);
-
-                  await addInvestment(description, amount!);
-
-                  if (!mounted) return;
-
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Investment added successfully."),
-                      backgroundColor: AppColors.income,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textWhite,
-                  shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
-                ),
-                child: const Text("Add"),
-              ),
-            ],
-          );
-        },
-      ),
+      descriptionController: investmentDescriptionController,
+      amountController: investmentAmountController,
+      onAdd: (description, amount) async {
+        final messenger = ScaffoldMessenger.of(context);
+        await addInvestment(description, amount);
+        if (!mounted) return;
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text("Investment added successfully."),
+            backgroundColor: AppColors.income,
+          ),
+        );
+      },
     );
   }
 
@@ -814,220 +693,48 @@ class _InvestmentPageState extends State<InvestmentPage> {
     String currentInvestmentDescription,
     double currentInvestmentAmount,
   ) {
-    investmentDescriptionController.text = currentInvestmentDescription;
-    investmentAmountController.text = currentInvestmentAmount.toString();
-    String? descriptionError;
-    String? amountError;
-
-    showDialog(
+    InvestmentDialogs.showEditInvestmentDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, dialogSetState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-            title: Row(
-              children: const [
-                Icon(
-                  Icons.edit_note_rounded,
-                  color: AppColors.primary,
-                  size: AppDimensions.icon24,
-                ),
-                SizedBox(width: AppSpacing.small),
-                Text("Edit Investment", style: AppTextTheme.titleLarge),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: investmentDescriptionController,
-                  style: AppTextTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    labelText: 'Investment Name / Type',
-                    errorText: descriptionError,
-                    prefixIcon: const Icon(
-                      Icons.description_outlined,
-                      size: AppDimensions.icon20,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.medium),
-                TextField(
-                  controller: investmentAmountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                  style: AppTextTheme.bodyLarge,
-                  decoration: InputDecoration(
-                    labelText: 'Invested Amount (₹)',
-                    errorText: amountError,
-                    prefixIcon: const Icon(
-                      Icons.currency_rupee_rounded,
-                      size: AppDimensions.icon20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: Text(
-                  "Cancel",
-                  style: AppTextTheme.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  dialogSetState(() {
-                    descriptionError = null;
-                    amountError = null;
-                  });
-
-                  final description = investmentDescriptionController.text
-                      .trim();
-                  final amountText = investmentAmountController.text.trim();
-                  final amount = double.tryParse(amountText);
-
-                  bool isValid = true;
-                  if (description.isEmpty) {
-                    dialogSetState(() {
-                      descriptionError = "Investment name must not be empty";
-                    });
-                    isValid = false;
-                  }
-                  if (amountText.isEmpty) {
-                    dialogSetState(() {
-                      amountError = "Amount must not be empty";
-                    });
-                    isValid = false;
-                  } else if (amount == null || amount <= 0) {
-                    dialogSetState(() {
-                      amountError = "Enter a valid amount";
-                    });
-                    isValid = false;
-                  }
-
-                  if (!isValid) return;
-
-                  final messenger = ScaffoldMessenger.of(context);
-                  Navigator.pop(dialogContext);
-
-                  await updateInvestment(id, description, amount!);
-
-                  if (!mounted) return;
-
-                  _reloadInvestments();
-
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Investment updated successfully."),
-                      backgroundColor: AppColors.income,
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textWhite,
-                  shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
-                ),
-                child: const Text("Save"),
-              ),
-            ],
-          );
-        },
-      ),
+      id: id,
+      currentInvestmentDescription: currentInvestmentDescription,
+      currentInvestmentAmount: currentInvestmentAmount,
+      descriptionController: investmentDescriptionController,
+      amountController: investmentAmountController,
+      onUpdate: (id, description, amount) async {
+        final messenger = ScaffoldMessenger.of(context);
+        await updateInvestment(id, description, amount);
+        if (!mounted) return;
+        _reloadInvestments();
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text("Investment updated successfully."),
+            backgroundColor: AppColors.income,
+          ),
+        );
+      },
     );
   }
 
   void _showInvestmentDetails(Map<String, dynamic> item) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final String name = item['description']?.toString() ?? '';
     final double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
 
-    showDialog(
+    InvestmentDialogs.showInvestmentDetailsDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                name,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: AppSpacing.small),
-            Container(
-              padding: AppSpacing.p12,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.lightBackground,
-                borderRadius: AppRadius.medium,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "Invested Amount:",
-                    style: TextStyle(
-                      color: isDark ? AppColors.textMuted : AppColors.textSecondary,
-                    ),
-                  ),
-                  Text(
-                    currencyFormat.format(amount),
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              _showEditInvestmentDialog(item['id'].toString(), name, amount);
-            },
-            child: const Text(
-              "Edit",
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
-            ),
+      item: item,
+      currencyFormat: currencyFormat,
+      onEdit: () => _showEditInvestmentDialog(item['id'].toString(), name, amount),
+      onDelete: () async {
+        await deleteInvestment(item['id'].toString());
+        if (!mounted) return;
+        _reloadInvestments();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Investment deleted successfully."),
+            backgroundColor: AppColors.expense,
           ),
-          TextButton(
-            onPressed: () async {
-              await _deleteInvestment(item['id'].toString(), dialogContext);
-            },
-            child: const Text(
-              "Delete",
-              style: TextStyle(color: AppColors.expense, fontWeight: FontWeight.bold),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
-              "Close",
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

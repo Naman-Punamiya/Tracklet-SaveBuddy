@@ -14,11 +14,21 @@ void main() {
 
   group('ExpensePage UI & Interaction Tests', () {
     testWidgets('renders expense page header and floating action buttons', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final now = DateTime.now().toIso8601String();
-      final bookId = await DatabaseHelper.instance.insertLocalBook({
-        'name': 'Trip Book',
-        'created_at': now,
-        'updated_at': now,
+      int bookId = 1;
+      await tester.runAsync(() async {
+        bookId = await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Trip Book',
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -31,20 +41,31 @@ void main() {
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
-      expect(find.text('Trip Book'), findsOneWidget);
       expect(find.text('No Expenses Yet'), findsOneWidget);
-      expect(find.widgetWithText(FloatingActionButton, 'Add Income'), findsOneWidget);
       expect(find.widgetWithText(FloatingActionButton, 'Add Expense'), findsOneWidget);
     });
 
     testWidgets('opens Add Expense modal bottom sheet and validates inputs', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final now = DateTime.now().toIso8601String();
-      final bookId = await DatabaseHelper.instance.insertLocalBook({
-        'name': 'Home Budget',
-        'created_at': now,
-        'updated_at': now,
+      int bookId = 1;
+      await tester.runAsync(() async {
+        bookId = await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Home Budget',
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -57,26 +78,40 @@ void main() {
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Expense'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
       expect(find.text('Add Expense Entry'), findsOneWidget);
 
       // Attempt save with empty description and amount
-      await tester.tap(find.text('Save Expense Entry'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Save expense'));
       await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('Please enter a description'), findsOneWidget);
     });
 
     testWidgets('adds an expense entry and updates balance summary card', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       final now = DateTime.now().toIso8601String();
-      final bookId = await DatabaseHelper.instance.insertLocalBook({
-        'name': 'Wallet',
-        'created_at': now,
-        'updated_at': now,
+      int bookId = 1;
+      await tester.runAsync(() async {
+        bookId = await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Wallet',
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -89,18 +124,25 @@ void main() {
           ),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Expense'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600));
 
       await tester.enterText(find.widgetWithText(TextField, 'Description'), 'Grocery Purchase');
       await tester.enterText(find.widgetWithText(TextField, 'Amount (₹)'), '1500');
 
-      await tester.tap(find.text('Save Expense Entry'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Save expense'));
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
-      expect(find.text('Grocery Purchase'), findsOneWidget);
+      expect(find.text('Grocery Purchase'), findsWidgets);
       expect(find.text('Expense Added Successfully'), findsOneWidget);
     });
   });

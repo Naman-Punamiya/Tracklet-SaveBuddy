@@ -4,6 +4,7 @@ import 'package:expense_tracker/custom_widgets/category_breakdown_tile.dart';
 import 'package:expense_tracker/custom_widgets/custom_summarycard.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/custom_widgets/toggle_button.dart';
+import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -100,7 +101,7 @@ void main() {
       );
 
       expect(find.text('Food & Dining'), findsOneWidget);
-      expect(find.text('₹3500'), findsOneWidget);
+      expect(find.text(CurrencyService.formatCompact(3500.0)), findsOneWidget);
       expect(find.text('35%'), findsOneWidget);
     });
 

@@ -30,15 +30,15 @@ void main() {
 
       expect(find.text('Settings'), findsOneWidget);
       expect(find.text('admin@savebuddy.com'), findsOneWidget);
-      expect(find.text('Profile Information'), findsOneWidget);
+      expect(find.text('Security'), findsOneWidget);
       expect(find.text('Category Management'), findsOneWidget);
-      expect(find.text('Dark Mode Theme'), findsOneWidget);
+      expect(find.text('Theme'), findsOneWidget);
 
-      final aboutFinder = find.text('About Tracklet SaveBuddy');
+      final aboutFinder = find.text('About');
       await tester.ensureVisible(aboutFinder);
       expect(aboutFinder, findsOneWidget);
 
-      final logoutFinder = find.text('Logout Account');
+      final logoutFinder = find.text('Log Out');
       await tester.ensureVisible(logoutFinder);
       expect(logoutFinder, findsOneWidget);
     });
@@ -77,16 +77,16 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
 
-      final securityFinder = find.text('Security & Passwords');
+      final securityFinder = find.text('Security');
       await tester.ensureVisible(securityFinder);
       await tester.tap(securityFinder);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
-      expect(find.text('Security'), findsOneWidget);
+      expect(find.text('Security & Password'), findsOneWidget);
       expect(find.text('Close'), findsOneWidget);
 
       await tester.tap(find.text('Close'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('shows Logout confirmation dialog and clears session on confirm', (WidgetTester tester) async {
@@ -100,16 +100,19 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 500));
 
-      final logoutTileFinder = find.text('Logout Account');
+      final logoutTileFinder = find.text('Log Out');
       await tester.ensureVisible(logoutTileFinder);
       await tester.tap(logoutTileFinder);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Logout'), findsWidgets);
       expect(find.text('Are you sure you want to log out of Tracklet SaveBuddy?'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Logout'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 300));
+      });
+      await tester.pumpAndSettle();
 
       // Navigation back to LoginPage
       expect(find.text('Welcome Back'), findsOneWidget);

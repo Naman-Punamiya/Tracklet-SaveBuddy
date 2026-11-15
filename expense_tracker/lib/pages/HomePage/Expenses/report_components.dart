@@ -1,0 +1,1044 @@
+import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+class ReportCategoryData {
+  final String name;
+  final double amount;
+  final int count;
+  final double percentage;
+  final Color color;
+
+  const ReportCategoryData({
+    required this.name,
+    required this.amount,
+    required this.count,
+    required this.percentage,
+    required this.color,
+  });
+}
+
+class ReportIntervalData {
+  final String label;
+  final double income;
+  final double expense;
+
+  const ReportIntervalData({
+    required this.label,
+    required this.income,
+    required this.expense,
+  });
+}
+
+class ReportComponents {
+  static const Color stitchGreen = Color(0xFF00875A);
+  static const Color stitchSpendingGray = Color(0xFFB0BEC5);
+  static const Color stitchDarkGreenText = Color(0xFF1A2E22);
+  static const Color stitchHighlightYellow = Color(0xFFFFF4D3);
+  static const Color stitchBgLight = Color(0xFFF2F4F0);
+
+  // Period Navigator
+  static Widget buildPeriodNavigator({
+    required BuildContext context,
+    required bool isDark,
+    required int selectedPeriodIndex,
+    required DateTime selectedDate,
+    required String periodSelectorTitle,
+    required String periodWord,
+    required VoidCallback onPrevious,
+    required VoidCallback onNext,
+    required VoidCallback onCurrent,
+    required VoidCallback onSelectMonth,
+  }) {
+    final now = DateTime.now();
+    bool isCurrentPeriod = false;
+    if (selectedPeriodIndex == 0) {
+      final startNow = now.subtract(Duration(days: now.weekday - 1));
+      final startSel = selectedDate.subtract(Duration(days: selectedDate.weekday - 1));
+      isCurrentPeriod = startNow.year == startSel.year &&
+          startNow.month == startSel.month &&
+          startNow.day == startSel.day;
+    } else if (selectedPeriodIndex == 1) {
+      isCurrentPeriod = now.year == selectedDate.year && now.month == selectedDate.month;
+    } else {
+      isCurrentPeriod = now.year == selectedDate.year;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B).withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded, size: 22),
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            onPressed: onPrevious,
+            tooltip: "Previous $periodWord",
+          ),
+          GestureDetector(
+            onTap: selectedPeriodIndex == 1 ? onSelectMonth : null,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_rounded,
+                  size: 14,
+                  color: stitchGreen.withValues(alpha: 0.85),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  periodSelectorTitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  ),
+                ),
+                if (selectedPeriodIndex == 1) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.arrow_drop_down_rounded,
+                    size: 18,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isCurrentPeriod)
+                TextButton(
+                  onPressed: onCurrent,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    "Current",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: stitchGreen,
+                    ),
+                  ),
+                ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right_rounded, size: 22),
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                onPressed: onNext,
+                tooltip: "Next $periodWord",
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Total Spent Section
+  static Widget buildTotalSpentSection({
+    required bool isDark,
+    required String periodWord,
+    required double totalExpense,
+    required double totalIncome,
+    required double balance,
+    required String Function(double) formatAmount,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "spent this $periodWord",
+          style: GoogleFonts.caveat(
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
+          ),
+        ),
+        const SizedBox(height: 2),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              formatAmount(totalExpense),
+              style: TextStyle(
+                fontSize: 38,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+                color: isDark ? Colors.white : stitchDarkGreenText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFDCFCE7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_upward_rounded, size: 13, color: Color(0xFF15803D)),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Income: ${formatAmount(totalIncome)}",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF15803D),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: balance >= 0
+                    ? (isDark ? const Color(0xFF042F2E).withValues(alpha: 0.5) : const Color(0xFFCCFBF1))
+                    : (isDark ? const Color(0xFF4C0519).withValues(alpha: 0.5) : const Color(0xFFFFE4E6)),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    balance >= 0 ? Icons.savings_rounded : Icons.trending_down_rounded,
+                    size: 13,
+                    color: balance >= 0 ? const Color(0xFF0F766E) : const Color(0xFFBE123C),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    "Net: ${balance >= 0 ? '+' : ''}${formatAmount(balance)}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: balance >= 0 ? const Color(0xFF0F766E) : const Color(0xFFBE123C),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // Breakdown Section (Donut Chart + Progress Bars)
+  static Widget buildBreakdownSection({
+    required bool isDark,
+    required List<ReportCategoryData> categoryBreakdown,
+    required double totalExpense,
+    required int expenseEntriesCount,
+    required String periodWord,
+    required String Function(double) formatAmount,
+  }) {
+    final topCategories = categoryBreakdown.take(3).toList();
+    if (categoryBreakdown.length > 3) {
+      final others = categoryBreakdown.skip(3).toList();
+      final double othersSum = others.fold(0.0, (acc, item) => acc + item.amount);
+      final int othersCount = others.fold(0, (acc, item) => acc + item.count);
+      final double othersPct = totalExpense > 0 ? (othersSum / totalExpense) * 100.0 : 0.0;
+      topCategories.add(
+        ReportCategoryData(
+          name: "Others",
+          amount: othersSum,
+          count: othersCount,
+          percentage: othersPct,
+          color: const Color(0xFF94A3B8),
+        ),
+      );
+    }
+
+    final sections = <PieChartSectionData>[];
+    if (topCategories.isNotEmpty && totalExpense > 0) {
+      for (var cat in topCategories) {
+        sections.add(
+          PieChartSectionData(
+            value: cat.amount,
+            color: cat.color,
+            radius: 16,
+            showTitle: false,
+          ),
+        );
+      }
+    } else {
+      sections.add(
+        PieChartSectionData(
+          value: 1,
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          radius: 16,
+          showTitle: false,
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 140,
+          height: 140,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  sections: sections,
+                  centerSpaceRadius: 42,
+                  sectionsSpace: 3,
+                  startDegreeOffset: -90,
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    "$expenseEntriesCount entries",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: topCategories.isEmpty
+              ? Container(
+                  padding: const EdgeInsets.all(16),
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "No expense entries found for this $periodWord.",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                )
+              : Column(
+                  children: topCategories.map((cat) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                cat.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Text(
+                                    formatAmount(cat.amount),
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: isDark ? Colors.white : const Color(0xFF111827),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "${cat.percentage.toStringAsFixed(0)}%",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF6B7280),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 7,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor: (cat.percentage / 100.0).clamp(0.02, 1.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cat.color,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+        ),
+      ],
+    );
+  }
+
+  // Income vs Spending Card
+  static Widget buildIncomeVsSpendingCard({
+    required bool isDark,
+    required List<ReportIntervalData> intervalData,
+    required int? selectedBarIndex,
+    required ValueChanged<int?> onBarSelected,
+    required String Function(double) formatAmount,
+  }) {
+    double maxVal = 0.0;
+    for (var d in intervalData) {
+      if (d.income > maxVal) maxVal = d.income;
+      if (d.expense > maxVal) maxVal = d.expense;
+    }
+    if (maxVal == 0) maxVal = 100.0;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Income vs spending",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                ),
+              ),
+              Row(
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: stitchGreen,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Income",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: stitchSpendingGray,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        "Spending",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            height: 125,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(intervalData.length, (index) {
+                final item = intervalData[index];
+                final incomeHeight = (item.income / maxVal).clamp(0.0, 1.0) * 88.0;
+                final expenseHeight = (item.expense / maxVal).clamp(0.0, 1.0) * 88.0;
+                final isSelected = selectedBarIndex == index;
+
+                return GestureDetector(
+                  onTap: () {
+                    if (selectedBarIndex == index) {
+                      onBarSelected(null);
+                    } else {
+                      onBarSelected(index);
+                    }
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: isSelected
+                            ? BoxDecoration(
+                                color: stitchGreen.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              )
+                            : null,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              width: 12,
+                              height: incomeHeight > 3 ? incomeHeight : 3,
+                              decoration: const BoxDecoration(
+                                color: stitchGreen,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 12,
+                              height: expenseHeight > 3 ? expenseHeight : 3,
+                              decoration: const BoxDecoration(
+                                color: stitchSpendingGray,
+                                borderRadius: BorderRadius.vertical(top: Radius.circular(3)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.label,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? stitchGreen
+                              : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280)),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
+          if (selectedBarIndex != null && selectedBarIndex < intervalData.length) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${intervalData[selectedBarIndex].label} Details:",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        "Income: ${formatAmount(intervalData[selectedBarIndex].income)}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: stitchGreen,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Spent: ${formatAmount(intervalData[selectedBarIndex].expense)}",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Highlight Card
+  static Widget buildHighlightCard({
+    required bool isDark,
+    required List<ReportCategoryData> categoryBreakdown,
+    required double totalExpense,
+    required String periodWord,
+  }) {
+    String message;
+    if (categoryBreakdown.isNotEmpty && totalExpense > 0) {
+      final topCat = categoryBreakdown.first;
+      message = "${topCat.name} is your biggest expense this $periodWord.";
+    } else {
+      message = "No expenses recorded this $periodWord. Great job on keeping costs at zero!";
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF2C2411) : stitchHighlightYellow,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF5A4820) : const Color(0xFFFDE68A).withValues(alpha: 0.5),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Text(
+        message,
+        style: GoogleFonts.caveat(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: isDark ? const Color(0xFFFEF3C7) : const Color(0xFF2C2C2C),
+          height: 1.25,
+        ),
+      ),
+    );
+  }
+
+  // All Categories Breakdown List
+  static Widget buildAllCategoriesSection({
+    required bool isDark,
+    required List<ReportCategoryData> categoryBreakdown,
+    required bool showAllCategories,
+    required VoidCallback onToggle,
+    required String Function(double) formatAmount,
+  }) {
+    if (categoryBreakdown.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(24),
+            child: Padding(
+              padding: const EdgeInsets.all(18.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: stitchGreen.withValues(alpha: 0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.pie_chart_outline_rounded, color: stitchGreen, size: 16),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        "All Categories Breakdown",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1F2937),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        "${categoryBreakdown.length} categories",
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        showAllCategories ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        color: const Color(0xFF6B7280),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (showAllCategories) ...[
+            const Divider(height: 1, thickness: 1),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: categoryBreakdown.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final cat = categoryBreakdown[index];
+                final mono = cat.name.trim().length >= 2
+                    ? cat.name.trim().substring(0, 2).toUpperCase()
+                    : cat.name.trim().toUpperCase();
+
+                return Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: cat.color.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        mono,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: cat.color,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            cat.name,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : const Color(0xFF1F2937),
+                            ),
+                          ),
+                          Text(
+                            "${cat.count} ${cat.count == 1 ? 'transaction' : 'transactions'} • ${cat.percentage.toStringAsFixed(1)}%",
+                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      formatAmount(cat.amount),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF111827),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Overview Stats
+  static Widget buildOverviewStats({
+    required bool isDark,
+    required double averageExpense,
+    required double highestExpense,
+    required double lowestExpense,
+    required int expenseEntriesCount,
+    required String Function(double) formatAmount,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Statistics & Insights",
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white70 : const Color(0xFF4B5563),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatTile(
+                "Average Expense",
+                formatAmount(averageExpense),
+                Icons.analytics_outlined,
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatTile(
+                "Highest Expense",
+                formatAmount(highestExpense),
+                Icons.arrow_upward_rounded,
+                isDark,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatTile(
+                "Lowest Expense",
+                formatAmount(lowestExpense),
+                Icons.arrow_downward_rounded,
+                isDark,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatTile(
+                "Total Entries",
+                "$expenseEntriesCount",
+                Icons.receipt_long_rounded,
+                isDark,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  static Widget _buildStatTile(String label, String value, IconData icon, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: stitchGreen.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: stitchGreen, size: 16),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1F2937),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Month Picker Sheet
+  static void showMonthPickerSheet({
+    required BuildContext context,
+    required DateTime selectedDate,
+    required ValueChanged<DateTime> onDateSelected,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    DateTime tempDate = selectedDate;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            setModalState(() {
+                              tempDate = DateTime(tempDate.year - 1, tempDate.month, 1);
+                            });
+                          },
+                          icon: const Icon(Icons.chevron_left_rounded),
+                        ),
+                        Text(
+                          "${tempDate.year}",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            setModalState(() {
+                              tempDate = DateTime(tempDate.year + 1, tempDate.month, 1);
+                            });
+                          },
+                          icon: const Icon(Icons.chevron_right_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: 12,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 10,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 2.2,
+                      ),
+                      itemBuilder: (context, i) {
+                        final monthNum = i + 1;
+                        final isCurrent = tempDate.month == monthNum;
+                        final monthLabel = DateFormat('MMM').format(DateTime(2026, monthNum));
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            onDateSelected(DateTime(tempDate.year, monthNum, 1));
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: isCurrent
+                                  ? stitchGreen
+                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              monthLabel,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                                color: isCurrent
+                                    ? Colors.white
+                                    : (isDark ? Colors.white70 : Colors.black87),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}

@@ -14,6 +14,7 @@ import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -312,7 +313,10 @@ class _RegisterPageState extends State<RegisterPage> {
           SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setBool("isLoggedIn", true);
           await prefs.setString("email", email);
-          await prefs.setString("password", password);
+          // Securely save credentials into Keystore backed storage
+          await AuthStorageService.instance.saveCredentials(email: email, password: password);
+          // Purge any legacy plaintext password from SharedPreferences
+          await prefs.remove("password");
           if (fetchedUserId > 0) {
             await prefs.setInt("userId", fetchedUserId);
           }

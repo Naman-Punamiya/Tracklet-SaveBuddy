@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Delete Account & Data - Tracklet SaveBuddy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1f2937; background: #f9fafb; margin: 0; padding: 24px 16px; }
+    .container { max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+    h1 { color: #dc2626; font-size: 26px; margin-top: 0; }
+    h2 { color: #374151; font-size: 18px; margin-top: 24px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+    p, li { color: #4b5563; font-size: 15px; }
+    .alert-box { background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 20px 0; }
+    .alert-box p { color: #991b1b; margin: 0; font-size: 14px; font-weight: 500; }
+    form { margin-top: 24px; }
+    label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; color: #374151; }
+    input[type="email"], textarea { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px; margin-bottom: 16px; }
+    input[type="email"]:focus, textarea:focus { outline: none; border-color: #2563eb; ring: 2px solid #bfdbfe; }
+    button { background: #dc2626; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #b91c1c; }
+    footer { text-align: center; margin-top: 32px; font-size: 13px; color: #9ca3af; }
+    a { color: #2563eb; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Account & Data Deletion Request</h1>
+    <p>In compliance with <strong>Google Play Developer Policies</strong> on Account Deletion, users of <strong>Tracklet SaveBuddy</strong> may request the complete and permanent deletion of their account and all associated personal and financial data without needing to retain the app on their device.</p>
+
+    <div class="alert-box">
+      <p>⚠️ Warning: Permanent & Irreversible Action</p>
+      <p style="margin-top: 8px; font-weight: normal; font-size: 13px; color: #b91c1c;">
+        Submitting this request will permanently erase your profile, all financial ledgers ("Books"), transactions, categories, investments, and synchronization records from our cloud database.
+      </p>
+    </div>
+
+    <h2>Option 1: In-App Immediate Deletion (Recommended)</h2>
+    <p>If you have the app installed:</p>
+    <ol>
+      <li>Open <strong>Tracklet SaveBuddy</strong> on your Android device.</li>
+      <li>Tap the <strong>Settings</strong> tab in the bottom navigation bar.</li>
+      <li>Scroll down to <strong>Account Management</strong> and tap <strong>Delete Account</strong>.</li>
+      <li>Confirm deletion. Your local SQLite storage and remote cloud data are deleted immediately.</li>
+    </ol>
+
+    <h2>Option 2: External Web Deletion Request Form</h2>
+    <p>If you no longer have access to the app or have uninstalled it, submit your deletion request below. We will verify your email and process permanent account deletion within 72 hours.</p>
+
+    <form action="mailto:support@savebuddy.app?subject=Account%20Deletion%20Request%20-%20Tracklet%20SaveBuddy" method="POST" enctype="text/plain">
+      <label for="email">Registered Account Email Address</label>
+      <input type="email" id="email" name="email" placeholder="you@example.com" required>
+
+      <label for="reason">Reason for Deletion (Optional)</label>
+      <textarea id="reason" name="reason" rows="3" placeholder="Let us know how we could improve..."></textarea>
+
+      <button type="submit">Submit Account Deletion Request</button>
+    </form>
+  </div>
+  <footer>
+    <a href="privacy.html">Privacy Policy</a> &bull; &copy; 2026 Tracklet SaveBuddy.
+  </footer>
+</body>
+</html>

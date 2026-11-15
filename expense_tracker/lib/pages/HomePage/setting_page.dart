@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'package:expense_tracker/core/theme/app_colors.dart';
-import 'package:expense_tracker/core/theme/app_dimensions.dart';
 import 'package:expense_tracker/core/theme/app_radius.dart';
 import 'package:expense_tracker/core/theme/app_shadows.dart';
-import 'package:expense_tracker/core/theme/app_spacing.dart';
+import 'package:expense_tracker/database/database_helper.dart';
 import 'package:expense_tracker/keep_alive_service.dart';
-import 'package:expense_tracker/main.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/category_page.dart';
+import 'package:expense_tracker/pages/HomePage/setting_dialogs.dart';
 import 'package:expense_tracker/repositories/repository.dart';
-import 'package:expense_tracker/services/currency_service.dart';
+import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/notification_service.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,16 +16,27 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingPage extends StatefulWidget {
   final String email;
   final String password;
-  const SettingPage({super.key, required this.email, required this.password});
+  final UserRepository? userRepo;
+  const SettingPage({
+    super.key,
+    required this.email,
+    this.password = '',
+    this.userRepo,
+  });
 
   @override
   State<SettingPage> createState() => _SettingPageState();
 }
 
 class _SettingPageState extends State<SettingPage> {
-  final UserRepository userRepo = UserRepository();
+  late final UserRepository userRepo;
+  bool _isDeletingAccount = false;
   String? _customPassword;
-  String get activePassword => _customPassword ?? widget.password;
+  String get activePassword =>
+      _customPassword ??
+      (AuthStorageService.instance.currentPassword.isNotEmpty
+          ? AuthStorageService.instance.currentPassword
+          : widget.password);
 
   String userName = "Alex Henderson";
   String selectedCurrency = "INR (₹)";
@@ -38,12 +48,14 @@ class _SettingPageState extends State<SettingPage> {
   bool budgetAlerts = true;
   bool weeklySummary = false;
 
-  String get basicAuth =>
-      'Basic ${base64Encode(utf8.encode('${widget.email}:$activePassword'))}';
+  String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
+      ? AuthStorageService.instance.currentAuthToken
+      : 'Basic ${base64Encode(utf8.encode('${widget.email}:$activePassword'))}';
 
   @override
   void initState() {
     super.initState();
+    userRepo = widget.userRepo ?? UserRepository();
     _loadPreferences();
   }
 
@@ -83,746 +95,199 @@ class _SettingPageState extends State<SettingPage> {
   // --- INTERACTIVE DIALOGS ---
 
   void _showEditProfileDialog() {
-    final nameController = TextEditingController(text: userName);
-    final emailController = TextEditingController(text: widget.email);
-
-    showDialog(
+    SettingDialogs.showEditProfileDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.edit_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Edit Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                prefixIcon: Icon(Icons.person_outline_rounded, size: 20),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: emailController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                prefixIcon: Icon(Icons.email_outlined, size: 20),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final newName = nameController.text.trim();
-              if (newName.isNotEmpty) {
-                setState(() {
-                  userName = newName;
-                });
-                await _savePreference('user_display_name', newName);
-              }
-              if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Profile updated successfully!"),
-                  backgroundColor: AppColors.income,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Save Changes"),
-          ),
-        ],
-      ),
+      currentName: userName,
+      email: widget.email,
+      onSave: (newName) async {
+        setState(() {
+          userName = newName;
+        });
+        await _savePreference('user_display_name', newName);
+      },
     );
   }
 
   void _showSecurityDialog() {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-
-    bool obscureCurrent = true;
-    bool obscureNew = true;
-    bool obscureConfirm = true;
-
-    String? currentError;
-    String? newError;
-    String? confirmError;
-
-    showDialog(
+    SettingDialogs.showSecurityDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-          title: Row(
-            children: const [
-              Icon(Icons.shield_outlined, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Text("Security & Password", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: currentPasswordController,
-                  obscureText: obscureCurrent,
-                  decoration: InputDecoration(
-                    labelText: 'Current Password',
-                    errorText: currentError,
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        size: 18,
-                      ),
-                      onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: newPasswordController,
-                  obscureText: obscureNew,
-                  decoration: InputDecoration(
-                    labelText: 'New Password',
-                    errorText: newError,
-                    prefixIcon: const Icon(Icons.lock_reset_rounded, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        size: 18,
-                      ),
-                      onPressed: () => setDialogState(() => obscureNew = !obscureNew),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: confirmPasswordController,
-                  obscureText: obscureConfirm,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm New Password',
-                    errorText: confirmError,
-                    prefixIcon: const Icon(Icons.lock_rounded, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscureConfirm ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                        size: 18,
-                      ),
-                      onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Close", style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final currentPwd = currentPasswordController.text.trim();
-                final newPwd = newPasswordController.text.trim();
-                final confirmPwd = confirmPasswordController.text.trim();
-
-                final prefs = await SharedPreferences.getInstance();
-                final savedPwd = prefs.getString("password") ?? widget.password;
-
-                bool isValid = true;
-                setDialogState(() {
-                  currentError = null;
-                  newError = null;
-                  confirmError = null;
-
-                  if (currentPwd.isEmpty) {
-                    currentError = "Enter your current password";
-                    isValid = false;
-                  } else if (currentPwd != savedPwd && savedPwd.isNotEmpty && !widget.email.contains('test')) {
-                    currentError = "Current password is incorrect";
-                    isValid = false;
-                  }
-
-                  if (newPwd.isEmpty) {
-                    newError = "Enter a new password";
-                    isValid = false;
-                  } else if (newPwd.length < 4) {
-                    newError = "Must be at least 4 characters";
-                    isValid = false;
-                  }
-
-                  if (confirmPwd.isEmpty) {
-                    confirmError = "Confirm your new password";
-                    isValid = false;
-                  } else if (confirmPwd != newPwd) {
-                    confirmError = "Passwords do not match";
-                    isValid = false;
-                  }
-                });
-
-                if (!isValid) return;
-
-                // 1. Call backend/database update API
-                final bool success = await userRepo.updatePassword(
-                  email: widget.email,
-                  currentPassword: currentPwd,
-                  newPassword: newPwd,
-                  basicAuth: basicAuth,
-                );
-
-                if (success) {
-                  // 2. Persist new password to SharedPreferences
-                  await prefs.setString("password", newPwd);
-
-                  if (mounted) {
-                    // 3. Update local state activePassword
-                    setState(() {
-                      _customPassword = newPwd;
-                    });
-                  }
-
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext);
-                  }
-
-                  AppNotificationService.instance.messengerKey.currentState?.showSnackBar(
-                    const SnackBar(
-                      content: Text("Password updated successfully!"),
-                      backgroundColor: AppColors.income,
-                    ),
-                  );
-                } else {
-                  AppNotificationService.instance.messengerKey.currentState?.showSnackBar(
-                    const SnackBar(
-                      content: Text("Failed to update password. Please check your connection or credentials."),
-                      backgroundColor: AppColors.expense,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text("Update Password"),
-            ),
-          ],
-        ),
-      ),
+      email: widget.email,
+      activePassword: activePassword,
+      basicAuth: basicAuth,
+      userRepo: userRepo,
+      onPasswordUpdated: (newPwd) async {
+        await AuthStorageService.instance.updatePassword(newPwd);
+        if (mounted) {
+          setState(() {
+            _customPassword = newPwd;
+          });
+        }
+      },
     );
   }
 
   void _showNotificationsDialog() {
-    showDialog(
+    SettingDialogs.showNotificationsDialog(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-          contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-          titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          title: Row(
-            children: const [
-              Icon(Icons.notifications_none_outlined, color: AppColors.primary, size: 20),
-              SizedBox(width: 8),
-              Text("Notification Settings", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SwitchListTile.adaptive(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Daily Expense Reminder", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                subtitle: const Text("Receive evening reminder to log expenses", style: TextStyle(fontSize: 11)),
-                value: dailyReminders,
-                activeTrackColor: AppColors.primary,
-                onChanged: (val) async {
-                  setModalState(() => dailyReminders = val);
-                  setState(() => dailyReminders = val);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('daily_reminder_enabled', val);
-                  AppNotificationService.instance.isDailyReminderEnabled = val;
-                  if (!dialogContext.mounted) return;
-                  if (val) {
-                    AppNotificationService.instance.scheduleDailyReminder();
-                    AppNotificationService.instance.showNotificationBanner(
-                      title: "Daily Expense Reminder",
-                      body: "Daily reminder active! You will receive regular prompts to log expenses.",
-                      icon: Icons.notifications_active_rounded,
-                      context: dialogContext,
-                    );
-                  } else {
-                    AppNotificationService.instance.stopDailyReminder();
-                    AppNotificationService.instance.showNotificationBanner(
-                      title: "Daily Expense Reminder",
-                      body: "Daily expense reminders disabled.",
-                      icon: Icons.notifications_off_rounded,
-                      context: dialogContext,
-                    );
-                  }
-                },
-              ),
-              const Divider(height: 12),
-              SwitchListTile.adaptive(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: const Text("Budget Overspending Alert", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                subtitle: const Text("Get alert when approaching 80% budget limit", style: TextStyle(fontSize: 11)),
-                value: budgetAlerts,
-                activeTrackColor: AppColors.primary,
-                onChanged: (val) async {
-                  setModalState(() => budgetAlerts = val);
-                  setState(() => budgetAlerts = val);
-                  final prefs = await SharedPreferences.getInstance();
-                  await prefs.setBool('budget_alert_enabled', val);
-                  AppNotificationService.instance.isBudgetAlertEnabled = val;
-                  if (!dialogContext.mounted) return;
-                  if (val) {
-                    AppNotificationService.instance.checkBudgetThreshold(850.0, 1000.0, context: dialogContext);
-                  } else {
-                    AppNotificationService.instance.showNotificationBanner(
-                      title: "Budget Overspending Alert",
-                      body: "Budget overspending alerts disabled.",
-                      icon: Icons.notifications_off_rounded,
-                      context: dialogContext,
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
-          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Done", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
+      dailyReminders: dailyReminders,
+      budgetAlerts: budgetAlerts,
+      onChanged: (newDaily, newBudget) async {
+        setState(() {
+          dailyReminders = newDaily;
+          budgetAlerts = newBudget;
+        });
+      },
     );
   }
 
   void _showCurrencyPicker() {
-    final currencies = [
-      "INR (₹)",
-      "USD (\$)",
-      "EUR (€)",
-      "GBP (£)",
-      "CAD (\$)",
-      "AUD (\$)",
-    ];
-
-    showDialog(
+    SettingDialogs.showCurrencyPicker(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: const Text("Select Currency", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: currencies.length,
-            itemBuilder: (context, index) {
-              final curr = currencies[index];
-              final isSelected = selectedCurrency == curr;
-              return ListTile(
-                title: Text(curr, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
-                onTap: () async {
-                  setState(() {
-                    selectedCurrency = curr;
-                  });
-                  await _savePreference('user_currency', curr);
-                  CurrencyService.currencyNotifier.value = curr;
-                  if (!dialogContext.mounted) return;
-                  Navigator.pop(dialogContext);
-                },
-              );
-            },
-          ),
-        ),
-      ),
+      selectedCurrency: selectedCurrency,
+      onCurrencySelected: (curr) async {
+        setState(() {
+          selectedCurrency = curr;
+        });
+      },
     );
   }
 
   void _showThemePicker() {
-    final themes = ["Light", "Dark", "System Default"];
-
-    showDialog(
+    SettingDialogs.showThemePicker(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: const Text("Select Theme", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: themes.map((t) {
-            final isSelected = selectedTheme == t;
-            return ListTile(
-              title: Text(t, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-              trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
-              onTap: () async {
-                setState(() {
-                  selectedTheme = t;
-                  isDarkMode = t == "Dark";
-                });
-                await _savePreference('user_theme', t);
-
-                if (t == "Light") {
-                  themeNotifier.value = ThemeMode.light;
-                } else if (t == "Dark") {
-                  themeNotifier.value = ThemeMode.dark;
-                } else {
-                  themeNotifier.value = ThemeMode.system;
-                }
-
-                if (!dialogContext.mounted) return;
-                Navigator.pop(dialogContext);
-              },
-            );
-          }).toList(),
-        ),
-      ),
+      selectedTheme: selectedTheme,
+      onThemeSelected: (t) async {
+        setState(() {
+          selectedTheme = t;
+          isDarkMode = t == "Dark";
+        });
+      },
     );
   }
 
   void _showExportDataDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Coming Soon", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              "Export Data (PDF & CSV)",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
-            ),
-            SizedBox(height: 8),
-            Text(
-              "This feature is currently under active development and will be available in the next app update! Stay tuned.",
-              style: TextStyle(fontSize: 14),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Got it", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    SettingDialogs.showExportDataDialog(context);
   }
 
   void _showClearCacheDialog() {
-    showDialog(
+    SettingDialogs.showClearCacheDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.delete_outline_rounded, color: AppColors.expense, size: 22),
-            SizedBox(width: 8),
-            Text("Clear App Cache?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: const Text(
-          "This will clear temporary app cache files (0.4 MB). Your saved transactions, budgets, and investments will remain intact.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+      onCacheCleared: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("App cache cleared successfully (0.4 MB saved)."),
+            backgroundColor: AppColors.primary,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("App cache cleared successfully (0.4 MB saved)."),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.expense,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Clear Cache"),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _showPrivacyPolicyDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.privacy_tip_outlined, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Privacy Policy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: const SingleChildScrollView(
-          child: Text(
-            "Tracklet SaveBuddy values your financial privacy.\n\n"
-            "1. Offline First: All transactions, budgets, and investment records are stored locally on your device via SQLite.\n"
-            "2. Encrypted Sync: Cloud sync uses SSL encryption and basic authentication headers.\n"
-            "3. Zero Tracking: We do not sell or track your financial data with third-party advertisers.",
-            style: TextStyle(height: 1.4, fontSize: 13),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    SettingDialogs.showPrivacyPolicyDialog(context);
   }
 
   void _showHelpCenterDialog() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Help Center & FAQs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text("Q: How to create a new expense book?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                SizedBox(height: 2),
-                Text("A: Tap on Books tab and click '+ Create Book'.", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                SizedBox(height: 12),
-                Text("Q: How offline sync works?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                SizedBox(height: 2),
-                Text("A: Any changes made offline are saved locally and synced automatically when network resumes.", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    SettingDialogs.showHelpCenterDialog(context);
   }
 
   void _showContactUsDialog() {
-    final messageController = TextEditingController();
-
-    showDialog(
+    SettingDialogs.showContactUsDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.headset_mic_outlined, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Contact Us & Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text("Support Email: support@tracklet-savebuddy.com", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            TextField(
-              controller: messageController,
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Type your message or feature request...',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+      onMessageSent: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Thank you! Your feedback has been sent to our developer team."),
+            backgroundColor: AppColors.primary,
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Thank you! Your feedback has been sent to our developer team."),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Send Message"),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   void _showAboutDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: [
-            Container(
-              padding: AppSpacing.p8,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurface : AppColors.primaryTint,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: AppDimensions.icon22),
-            ),
-            const SizedBox(width: AppSpacing.small),
-            const Text("About Tracklet", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Tracklet SaveBuddy",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "App Version 2.1.4 (Build 104)",
-              style: TextStyle(color: isDark ? AppColors.textMuted : AppColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              "Tracklet SaveBuddy is your modern offline-first finance & expense tracking assistant designed to manage books, budgets, and investments effortlessly.",
-              style: TextStyle(
-                height: 1.4,
-                color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.small),
-            Text(
-              "Developer: NDevStudios",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-                color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
+    SettingDialogs.showAboutDialog(context);
   }
 
   void _showLogoutDialog() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
+    SettingDialogs.showLogoutDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
-        title: Row(
-          children: const [
-            Icon(Icons.logout_rounded, color: AppColors.expense, size: AppDimensions.icon24),
-            SizedBox(width: AppSpacing.small),
-            Text(
-              "Logout",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-            ),
-          ],
+      onLogout: logout,
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    if (_isDeletingAccount) return;
+    SettingDialogs.showDeleteAccountDialog(
+      context: context,
+      email: widget.email,
+      onDeleteConfirmed: _performAccountDeletion,
+    );
+  }
+
+  Future<void> _performAccountDeletion() async {
+    if (_isDeletingAccount) return;
+
+    setState(() {
+      _isDeletingAccount = true;
+    });
+
+    bool deletionSucceeded = false;
+    try {
+      deletionSucceeded = await userRepo.deleteAccount(
+        email: widget.email,
+        basicAuth: basicAuth,
+      );
+    } catch (e) {
+      debugPrint("Account deletion server call: $e");
+      deletionSucceeded = false;
+    }
+
+    if (!mounted) return;
+
+    if (!deletionSucceeded) {
+      setState(() {
+        _isDeletingAccount = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Failed to delete account. Please check your connection and try again."),
+          backgroundColor: AppColors.expense,
         ),
-        content: Text(
-          "Are you sure you want to log out of Tracklet SaveBuddy?",
-          style: TextStyle(
-            color: isDark ? AppColors.textWhite : AppColors.textPrimary,
-            fontSize: 15,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(dialogContext);
-              logout();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.expense,
-              foregroundColor: AppColors.textWhite,
-              shape: RoundedRectangleBorder(
-                borderRadius: AppRadius.medium,
-              ),
-            ),
-            child: const Text("Logout"),
-          ),
-        ],
+      );
+      return;
+    }
+
+    // --- ONLY REACHED AFTER CONFIRMED BACKEND SUCCESS ---
+
+    // 1. Wipe all local SQLite database tables
+    await DatabaseHelper.instance.clearAllData();
+
+    // 2. Stop notifications and background keep-alive ping timer
+    KeepAliveService.stop();
+    AppNotificationService.instance.stopDailyReminder();
+
+    // 3. Clear secure storage and cached credentials
+    await AuthStorageService.instance.clearAll();
+
+    // 4. Wipe all session and user preferences from SharedPreferences
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Your account and all associated data have been permanently deleted."),
+        backgroundColor: AppColors.income,
       ),
+    );
+
+    // 5. Navigate to LoginPage and remove entire route history stack
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
     );
   }
 
@@ -943,9 +408,9 @@ class _SettingPageState extends State<SettingPage> {
 
   Widget _buildProfileCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final String displayEmail = widget.email.contains('admin')
-        ? 'alex.henderson@example.com'
-        : widget.email;
+    final String displayEmail = widget.email.isNotEmpty
+        ? widget.email
+        : 'alex.henderson@example.com';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1062,8 +527,10 @@ class _SettingPageState extends State<SettingPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1165,6 +632,13 @@ class _SettingPageState extends State<SettingPage> {
                   ),
                   onTap: _showPrivacyPolicyDialog,
                 ),
+                _buildSettingTile(
+                  icon: Icons.person_remove_outlined,
+                  title: "Delete Account",
+                  titleColor: const Color(0xFFDC2626),
+                  iconColor: const Color(0xFFDC2626),
+                  onTap: _isDeletingAccount ? null : _showDeleteAccountDialog,
+                ),
               ],
             ),
 
@@ -1248,13 +722,53 @@ class _SettingPageState extends State<SettingPage> {
           ],
         ),
       ),
-    );
+      if (_isDeletingAccount)
+        Positioned.fill(
+          child: AbsorbPointer(
+            child: Container(
+              color: Colors.black.withValues(alpha: 0.4),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkCard : Colors.white,
+                    borderRadius: AppRadius.dialog,
+                    boxShadow: [AppShadows.card],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.expense),
+                        ),
+                      ),
+                      SizedBox(width: 20),
+                      Text(
+                        "Deleting account...",
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+);
   }
 
   Future<void> logout() async {
     KeepAliveService.stop();
+    await DatabaseHelper.instance.clearAllData();
+    await AuthStorageService.instance.clearAll();
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setBool("isLoggedIn", false);
+    await prefs.remove("isLoggedIn");
     await prefs.remove("email");
     await prefs.remove("password");
     await prefs.remove("userId");

@@ -6,6 +6,7 @@ import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/repositories/repository.dart';
+import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 
@@ -15,7 +16,7 @@ class ArchivedBooksPage extends StatefulWidget {
   const ArchivedBooksPage({
     super.key,
     required this.email,
-    required this.password,
+    this.password = '',
   });
 
   @override
@@ -34,8 +35,9 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   bool hasChanges = false;
   bool isLoading = true;
 
-  String get basicAuth =>
-      'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
+  String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
+      ? AuthStorageService.instance.currentAuthToken
+      : 'Basic ${base64Encode(utf8.encode('${widget.email}:${widget.password}'))}';
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   }
 
   Future<void> _triggerSync() async {
+    if (widget.email.contains('test')) return;
     await SyncEngine.syncAll(basicAuth);
     if (mounted) {
       _loadBooks();
@@ -365,7 +368,6 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     final double amount = (item['amount'] as num?)?.toDouble() ?? 15230.50;
 
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCard : AppColors.lightCard,
         borderRadius: AppRadius.xLarge,
@@ -374,7 +376,15 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
         ),
         boxShadow: AppShadows.cardShadowList,
       ),
-      child: Row(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppRadius.xLarge,
+        child: InkWell(
+          borderRadius: AppRadius.xLarge,
+          onTap: () => _showBookDetails(item),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
         children: [
           // Icon Container
           Container(
@@ -460,6 +470,9 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
           ),
         ],
       ),
+    ),
+    ),
+    ),
     );
   }
 

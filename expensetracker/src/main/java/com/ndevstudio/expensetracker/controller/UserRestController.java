@@ -2,9 +2,11 @@ package com.ndevstudio.expensetracker.controller;
 
 import com.ndevstudio.expensetracker.entity.User;
 import com.ndevstudio.expensetracker.repository.UserRepository;
+import com.ndevstudio.expensetracker.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +21,8 @@ public class UserRestController {
     private UserRepository userRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserService userService;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -50,16 +54,11 @@ public class UserRestController {
 
         User user = optionalUser.get();
 
-        System.out.println(loginRequest.getPassword());
-        System.out.println(user.getPassword());
-
         boolean isPasswordCorrect =
                 passwordEncoder.matches(
                         loginRequest.getPassword(),
                         user.getPassword()
                 );
-
-        System.out.println(isPasswordCorrect);
 
         if (!isPasswordCorrect) {
             return ResponseEntity
@@ -84,5 +83,20 @@ public class UserRestController {
                     .body("User not found");
         }
         return ResponseEntity.ok(user.get());
+    }
+
+    /**
+     * Permanently deletes the authenticated user's account and all associated cloud data.
+     * Identifies account solely via the verified Spring Security principal (HTTP Basic Auth).
+     * Rejects any client-specified identity and returns HTTP 204 No Content upon completion.
+     */
+    @DeleteMapping({"/delete-account", "/delete"})
+    public ResponseEntity<Void> deleteAccount(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getName())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        userService.deleteUserAccount(authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 }

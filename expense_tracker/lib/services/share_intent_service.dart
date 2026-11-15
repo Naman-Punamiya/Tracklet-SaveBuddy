@@ -5,6 +5,10 @@ class ShareIntentService {
       MethodChannel('expense_tracker/share');
 
   static Future<String?> getSharedText() async {
-    return await _channel.invokeMethod<String>('getSharedText');
+    try {
+      return await _channel.invokeMethod<String>('getSharedText');
+    } catch (_) {
+      return null;
+    }
   }
 }

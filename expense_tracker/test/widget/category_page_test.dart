@@ -19,7 +19,10 @@ void main() {
           home: CategoryPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Category Management'), findsOneWidget);
       expect(find.widgetWithText(FloatingActionButton, 'Add Category'), findsOneWidget);
@@ -31,17 +34,24 @@ void main() {
           home: CategoryPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Category'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Select Icon'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Please enter a category name'), findsOneWidget);
+
+      // Close dialog cleanly to avoid pending cursor timer
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('creates new category and adds it to list', (WidgetTester tester) async {
@@ -50,28 +60,44 @@ void main() {
           home: CategoryPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Category'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextField, 'Category Name'), 'Streaming Services');
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      await tester.pump();
 
       expect(find.text('Category Created Successfully'), findsOneWidget);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Search categories...'), 'Streaming');
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
       expect(find.text('Streaming Services'), findsOneWidget);
     });
 
     testWidgets('opens delete category confirmation dialog', (WidgetTester tester) async {
       final now = DateTime.now().toIso8601String();
-      await DatabaseHelper.instance.insertLocalCategory({
-        'name': 'Gym & Fitness',
-        'icon': 'Healthcare',
-        'color': '#000000',
-        'created_at': now,
-        'updated_at': now,
+      await tester.runAsync(() async {
+        await DatabaseHelper.instance.insertLocalCategory({
+          'name': 'Gym & Fitness',
+          'icon': 'Healthcare',
+          'color': '#000000',
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -79,18 +105,24 @@ void main() {
           home: CategoryPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Gym & Fitness'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Delete').first);
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Delete Category'), findsOneWidget);
       expect(find.textContaining('Gym & Fitness'), findsWidgets);
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Category Deleted'), findsOneWidget);
       expect(find.text('Gym & Fitness'), findsNothing);

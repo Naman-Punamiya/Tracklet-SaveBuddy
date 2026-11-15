@@ -19,20 +19,25 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
 
-      expect(find.text('Archived Books'), findsOneWidget);
+      expect(find.text('Archived Books', skipOffstage: false), findsOneWidget);
       expect(find.text('No Books Yet'), findsOneWidget);
     });
 
     testWidgets('displays archived books and allows restoring', (WidgetTester tester) async {
       final now = DateTime.now().toIso8601String();
-      await DatabaseHelper.instance.insertLocalBook({
-        'name': 'Old 2025 Book',
-        'subtitle': 'Archived',
-        'archived': 1,
-        'created_at': now,
-        'updated_at': now,
+      await tester.runAsync(() async {
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Old 2025 Book',
+          'subtitle': 'Archived',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -40,7 +45,10 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
 
       expect(find.text('Old 2025 Book'), findsOneWidget);
 
@@ -51,7 +59,10 @@ void main() {
       expect(find.text('Restore'), findsOneWidget);
 
       await tester.tap(find.text('Restore'));
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Book Restored Successfully'), findsOneWidget);
       expect(find.text('No Books Yet'), findsOneWidget);
@@ -59,12 +70,14 @@ void main() {
 
     testWidgets('allows permanently deleting an archived book', (WidgetTester tester) async {
       final now = DateTime.now().toIso8601String();
-      await DatabaseHelper.instance.insertLocalBook({
-        'name': 'Trash Book',
-        'subtitle': 'Delete Me',
-        'archived': 1,
-        'created_at': now,
-        'updated_at': now,
+      await tester.runAsync(() async {
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Trash Book',
+          'subtitle': 'Delete Me',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
       });
 
       await tester.pumpWidget(
@@ -72,14 +85,21 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pump();
 
       await tester.tap(find.text('Trash Book'));
       await tester.pump(const Duration(milliseconds: 300));
 
       await tester.tap(find.text('Delete'));
-      await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
+      expect(find.text('No Books Yet'), findsOneWidget);
       expect(find.text('Book Deleted Successfully'), findsOneWidget);
     });
   });

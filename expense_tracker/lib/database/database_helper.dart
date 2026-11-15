@@ -474,4 +474,18 @@ class DatabaseHelper {
     final db = await database;
     await db.delete('pending_sync', where: 'id = ?', whereArgs: [id]);
   }
+
+  // ==========================================
+  // SESSION & USER DATA PURGE
+  // ==========================================
+
+  /// Purges all local transaction and ledger tables to ensure user data isolation.
+  Future<void> clearAllData() async {
+    final db = await database;
+    await db.delete('expenses');
+    await db.delete('books');
+    await db.delete('categories');
+    await db.delete('investments');
+    await db.delete('pending_sync');
+  }
 }

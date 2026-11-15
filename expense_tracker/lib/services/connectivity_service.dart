@@ -61,6 +61,9 @@ class ConnectivityService {
   }
 
   static Stream<ConnectivityStatus> get connectivityStream {
+    if (mockStatus != null) {
+      return Stream.value(mockStatus!);
+    }
     try {
       return _connectivity.onConnectivityChanged.map((event) {
         return _mapResult(event);

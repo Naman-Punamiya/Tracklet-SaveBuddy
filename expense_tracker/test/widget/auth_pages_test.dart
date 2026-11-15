@@ -84,7 +84,7 @@ void main() {
       final createOneFinder = find.text('Create one');
       await tester.ensureVisible(createOneFinder);
       await tester.tap(createOneFinder);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
 
       expect(find.text('Create Account'), findsOneWidget);
     });
@@ -97,7 +97,7 @@ void main() {
           home: RegisterPage(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Create Account'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Full Name'), findsOneWidget);
@@ -113,7 +113,7 @@ void main() {
           home: RegisterPage(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextField, 'Full Name'), 'John Doe');
       await tester.enterText(find.widgetWithText(TextField, 'Email'), 'john@example.com');
@@ -123,7 +123,7 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Register'));
       await tester.pump();
 
-      expect(find.text('Passwords do not match!'), findsOneWidget);
+      expect(find.text('Passwords do not match'), findsOneWidget);
     });
 
     testWidgets('shows validation snackbar on empty name', (WidgetTester tester) async {
@@ -132,7 +132,7 @@ void main() {
           home: RegisterPage(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextField, 'Password'), 'pass123');
       await tester.enterText(find.widgetWithText(TextField, 'Confirm Password'), 'pass123');
@@ -140,7 +140,7 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'Register'));
       await tester.pump();
 
-      expect(find.text('Name cannot be empty'), findsOneWidget);
+      expect(find.text('Please enter your full name'), findsOneWidget);
     });
 
     testWidgets('navigates to LoginPage when Sign in is tapped', (WidgetTester tester) async {
@@ -149,12 +149,12 @@ void main() {
           home: RegisterPage(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       final signInFinder = find.text('Sign in');
       await tester.ensureVisible(signInFinder);
       await tester.tap(signInFinder);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
 
       expect(find.text('Welcome Back'), findsOneWidget);
     });

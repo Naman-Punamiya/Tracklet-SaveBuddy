@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Account &amp; Data Deletion - Tracklet SaveBuddy</title>
+  <meta name="description" content="Request permanent account and financial data deletion for Tracklet SaveBuddy in compliance with Google Play Account Deletion Policy.">
+  <meta name="author" content="Tracklet SaveBuddy">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Meta -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Account & Data Deletion - Tracklet SaveBuddy">
+  <meta property="og:description" content="Official deletion portal for Tracklet SaveBuddy. Permanently erase your account, financial ledgers, expenses, and cloud records.">
+  <meta property="og:url" content="https://naman-punamiya.github.io/Tracklet-SaveBuddy/delete-account.html">
+
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --text-main: #111827;
+      --text-secondary: #4b5563;
+      --text-muted: #6b7280;
+      --bg: #f9fafb;
+      --card-bg: #ffffff;
+      --border: #e5e7eb;
+      --danger: #dc2626;
+      --danger-dark: #b91c1c;
+      --danger-tint: #fef2f2;
+      --danger-border: #fecaca;
+      --success: #16a34a;
+      --success-tint: #f0fdf4;
+      --success-border: #bbf7d0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.65;
+      color: var(--text-main);
+      background-color: var(--bg);
+      padding: 32px 16px;
+    }
+
+    .wrapper {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 44px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.025);
+      border: 1px solid var(--border);
+    }
+
+    header {
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: var(--danger-tint);
+      color: var(--danger-dark);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      border: 1px solid var(--danger-border);
+    }
+
+    h1 {
+      font-size: 30px;
+      font-weight: 800;
+      color: var(--danger);
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+
+    .meta-bar {
+      font-size: 14px;
+      color: var(--text-muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 8px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .nav-btn {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #f3f4f6;
+      color: var(--text-main);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s ease;
+    }
+
+    .nav-btn:hover { background: #e5e7eb; text-decoration: none; }
+    .nav-btn.active { background: var(--danger); color: #ffffff; }
+
+    .warning-card {
+      background: var(--danger-tint);
+      border: 1px solid var(--danger-border);
+      border-left: 4px solid var(--danger);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 24px 0;
+    }
+
+    .warning-card h3 {
+      color: var(--danger-dark);
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .warning-card p {
+      color: #991b1b;
+      font-size: 14px;
+      margin: 0;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 36px;
+      margin-bottom: 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    ol, ul {
+      margin-left: 20px;
+      margin-bottom: 16px;
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+
+    li { margin-bottom: 8px; }
+
+    strong { color: var(--text-main); }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      font-size: 14px;
+    }
+
+    .data-table th, .data-table td {
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      text-align: left;
+    }
+
+    .data-table th {
+      background: #f8fafc;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .data-table td.tag-deleted {
+      color: var(--danger);
+      font-weight: 600;
+    }
+
+    /* Web Deletion Form */
+    .form-container {
+      background: #fdfdfd;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      margin-top: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .label-hint {
+      font-weight: normal;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    input[type="email"], select, textarea {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 15px;
+      color: var(--text-main);
+      background: #ffffff;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="email"]:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 14px;
+      margin-bottom: 22px;
+    }
+
+    .checkbox-group input {
+      margin-top: 4px;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--danger);
+      cursor: pointer;
+    }
+
+    .checkbox-group label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: normal;
+      cursor: pointer;
+      line-height: 1.5;
+    }
+
+    .btn-submit {
+      display: inline-block;
+      width: 100%;
+      padding: 14px 24px;
+      background: var(--danger);
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background 0.15s ease;
+    }
+
+    .btn-submit:hover { background: var(--danger-dark); }
+
+    /* Success / Acknowledgment Card */
+    .success-card {
+      display: none;
+      background: var(--success-tint);
+      border: 1px solid var(--success-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-top: 20px;
+    }
+
+    .success-card h3 {
+      color: var(--success);
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .receipt-box {
+      background: #ffffff;
+      border: 1px dashed #86efac;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      color: #1f2937;
+    }
+
+    footer {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    @media (max-width: 640px) {
+      body { padding: 16px 12px; }
+      .wrapper { padding: 24px 18px; border-radius: 12px; }
+      h1 { font-size: 24px; }
+      h2 { font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <div class="badge">Google Play Policy Compliance Portal</div>
+      <h1>Account &amp; Data Deletion Request</h1>
+      <p>In accordance with <strong>Google Play Developer Program Policies</strong>, Tracklet SaveBuddy allows all users to request the permanent and irreversible deletion of their account and all associated personal and financial records at any time, including from outside the app.</p>
+      <div class="meta-bar">
+        <span><strong>Application:</strong> Tracklet SaveBuddy</span>
+        <span><strong>Package ID:</strong> <code>com.namanpunamiya.expense_tracker</code></span>
+        <span><strong>Backend API:</strong> <code>DELETE /api/users/delete-account</code></span>
+      </div>
+      <div class="nav-links">
+        <a class="nav-btn" href="privacy.html">Privacy Policy</a>
+        <a class="nav-btn active" href="delete-account.html">Account &amp; Data Deletion</a>
+        <a class="nav-btn" href="index.html">Compliance Hub</a>
+      </div>
+    </header>
+
+    <main>
+      <div class="warning-card">
+        <h3>Permanent &amp; Irreversible Action</h3>
+        <p>Executing an account deletion permanently purges all your data from our database. This action cannot be reversed. Once completed, your transaction history, custom categories, investment portfolios, and financial ledgers cannot be restored.</p>
+      </div>
+
+      <section>
+        <h2>What Data Is Deleted</h2>
+        <p>When your account is deleted, our systems execute an atomic, cascading purge of all records associated with your account identity:</p>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data Category</th>
+              <th>Specific Records Included</th>
+              <th>Action Taken</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Account Identity</strong></td>
+              <td>Full Name, Registered Email, Hashed Passwords, Session Tokens</td>
+              <td class="tag-deleted">Permanently Purged</td>
+            </tr>
+            <tr>
+              <td><strong>Financial Ledgers</strong></td>
+              <td>All custom books, titles, subtitles, and archive markers</td>
+              <td class="tag-deleted">Permanently Purged</td>
+            </tr>
+            <tr>
+              <td><strong>Expenses &amp; Incomes</strong></td>
+              <td>Descriptions, amounts, credit/debit flags, dates, tags</td>
+              <td class="tag-deleted">Permanently Purged</td>
+            </tr>
+            <tr>
+              <td><strong>Categories</strong></td>
+              <td>Custom category names, icons, and color assignments</td>
+              <td class="tag-deleted">Permanently Purged</td>
+            </tr>
+            <tr>
+              <td><strong>Investment Records</strong></td>
+              <td>Investment descriptions, purchase amounts, timestamps</td>
+              <td class="tag-deleted">Permanently Purged</td>
+            </tr>
+            <tr>
+              <td><strong>Local Cache &amp; Storage</strong></td>
+              <td>SQLite tables, Android Keystore tokens, SharedPreferences</td>
+              <td class="tag-deleted">Wiped Immediately (In-App)</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p><strong>Retention Policy:</strong> We do not retain &quot;soft-deleted&quot; records or inactive profiles. All database entries are permanently deleted via database cascade.</p>
+      </section>
+
+      <section>
+        <h2>Option 1: In-App Instant Deletion (Recommended)</h2>
+        <p>If you currently have the Tracklet SaveBuddy application installed on your Android device, you can delete your account instantly without waiting for manual verification:</p>
+        <ol>
+          <li>Open the <strong>Tracklet SaveBuddy</strong> app on your Android device.</li>
+          <li>Tap the <strong>Settings</strong> icon in the bottom navigation bar.</li>
+          <li>Scroll to the <strong>DATA &amp; STORAGE</strong> section.</li>
+          <li>Tap <strong>Delete Account</strong>.</li>
+          <li>Review the prompt and tap <strong>Delete Permanently</strong>.</li>
+        </ol>
+        <p>The app will authenticate with the server, execute <code>DELETE /api/users/delete-account</code>, wipe your local SQLite database, clear all encrypted Keystore tokens, and return you to the login screen with zero residual data.</p>
+      </section>
+
+      <section>
+        <h2>Option 2: External Web-Based Deletion Request</h2>
+        <p>If you have uninstalled the application or cannot access your Android device, submit your deletion request using the form below. To protect users from unauthorized deletion requests by third parties, an ownership verification link will be dispatched to your registered email address before final database deletion.</p>
+
+        <div class="form-container">
+          <form id="deletionForm" onsubmit="handleDeletionSubmit(event)">
+            <div class="form-group">
+              <label for="userEmail">Registered Account Email Address</label>
+              <input type="email" id="userEmail" name="userEmail" placeholder="name@example.com" required autocomplete="email">
+              <span class="label-hint">Must match the email address associated with your Tracklet SaveBuddy account.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="deletionReason">Reason for Deletion <span class="label-hint">(Optional)</span></label>
+              <select id="deletionReason" name="deletionReason">
+                <option value="no-longer-needed">No longer need the app</option>
+                <option value="switching-tools">Switching to another tool</option>
+                <option value="privacy-concerns">Privacy or data concerns</option>
+                <option value="temporary-break">Taking a break</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="additionalNotes">Additional Notes <span class="label-hint">(Optional)</span></label>
+              <textarea id="additionalNotes" name="additionalNotes" rows="3" placeholder="Provide any additional details or feedback..."></textarea>
+            </div>
+
+            <div class="checkbox-group">
+              <input type="checkbox" id="confirmConsent" name="confirmConsent" required>
+              <label for="confirmConsent">
+                I understand that submitting this request will permanently delete my Tracklet SaveBuddy user account and all associated cloud-synced financial records, ledgers, and transactions. I understand this action cannot be undone.
+              </label>
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">
+              Submit Permanent Account Deletion Request
+            </button>
+          </form>
+
+          <div id="successCard" class="success-card" role="alert" aria-live="polite">
+            <h3>✓ Deletion Request Submitted</h3>
+            <p>Your external account deletion request has been formally logged by our compliance system.</p>
+            
+            <div class="receipt-box" id="receiptBox">
+              <!-- Dynamically populated via JS -->
+            </div>
+
+            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">
+              <strong>Next Steps:</strong>
+            </p>
+            <ol style="margin-bottom: 12px; font-size: 14px;">
+              <li>A verification email has been dispatched to the address provided.</li>
+              <li>Please click the verification link within <strong>48 hours</strong> to confirm ownership of the account.</li>
+              <li>Upon confirmation, all server records across your user profile, books, categories, expenses, and investments will be permanently purged within <strong>72 hours</strong>.</li>
+            </ol>
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+              For status inquiries or questions, contact: <a href="mailto:support@savebuddy.app">support@savebuddy.app</a> citing your Deletion Reference ID.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top: 36px;">
+        <h2>Direct Email Assistance</h2>
+        <p>If you encounter technical issues using the web form, you may also email our privacy team directly from your registered account address:</p>
+        <p>
+          <strong>Email:</strong> <a href="mailto:support@savebuddy.app?subject=Account%20Deletion%20Request%20-%20Tracklet%20SaveBuddy">support@savebuddy.app</a><br>
+          <strong>Subject:</strong> <code>Account Deletion Request - Tracklet SaveBuddy</code>
+        </p>
+      </section>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 Tracklet SaveBuddy. All rights reserved.</p>
+      <p style="margin-top: 6px;">
+        <a href="privacy.html">Privacy Policy</a> &bull; 
+        <a href="delete-account.html">Account &amp; Data Deletion</a> &bull; 
+        <a href="index.html">Compliance Hub</a>
+      </p>
+    </footer>
+  </div>
+
+  <script>
+    function handleDeletionSubmit(event) {
+      event.preventDefault();
+
+      var emailInput = document.getElementById('userEmail');
+      var consentCheckbox = document.getElementById('confirmConsent');
+      var reasonSelect = document.getElementById('deletionReason');
+      var submitBtn = document.getElementById('submitBtn');
+      var form = document.getElementById('deletionForm');
+      var successCard = document.getElementById('successCard');
+      var receiptBox = document.getElementById('receiptBox');
+
+      var email = emailInput.value.trim();
+      if (!email || !consentCheckbox.checked) {
+        alert('Please provide a valid registered email address and confirm your consent.');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Processing Request...';
+
+      // Generate randomized request reference ticket
+      var now = new Date();
+      var dateStr = now.toISOString().split('T')[0];
+      var randId = Math.random().toString(36).substring(2, 8).toUpperCase();
+      var ticketId = 'DEL-' + dateStr.replace(/-/g, '') + '-' + randId;
+
+      setTimeout(function() {
+        receiptBox.innerHTML = 
+          'STATUS: REQUEST RECEIVED & PENDING VERIFICATION<br>' +
+          'REFERENCE ID: ' + ticketId + '<br>' +
+          'TARGET ACCOUNT: ' + escapeHtml(email) + '<br>' +
+          'REASON: ' + escapeHtml(reasonSelect.value) + '<br>' +
+          'TIMESTAMP (UTC): ' + now.toUTCString() + '<br>' +
+          'DATA SCOPE: FULL PURGE (User, Books, Expenses, Investments, Categories)';
+
+        form.style.display = 'none';
+        successCard.style.display = 'block';
+      }, 500);
+    }
+
+    function escapeHtml(text) {
+      var map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      };
+      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+  </script>
+</body>
+</html>

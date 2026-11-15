@@ -1,0 +1,13 @@
+# Google Play Production Release Keystore Configuration
+# Copy this file to "key.properties" in the same directory (android/key.properties)
+# and replace the values with your actual production keystore credentials.
+#
+# NEVER COMMIT key.properties OR *.jks / *.keystore TO VERSION CONTROL!
+#
+# Generate a keystore with:
+# keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+
+storePassword=YOUR_KEYSTORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=upload
+storeFile=../upload-keystore.jks

@@ -18,8 +18,10 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Investments'), findsOneWidget);
       expect(find.text('No Investments Yet'), findsOneWidget);
@@ -31,17 +33,23 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(seconds: 1));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       // Submit empty
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Investment name must not be empty'), findsOneWidget);
       expect(find.text('Amount must not be empty'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('validates zero/negative amount in Add Investment', (WidgetTester tester) async {
@@ -50,18 +58,24 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(seconds: 1));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextField, 'Investment Name'), 'Crypto');
       await tester.enterText(find.widgetWithText(TextField, 'Invested Amount (₹)'), '0');
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       expect(find.text('Enter a valid amount'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
     });
 
     testWidgets('successfully creates an investment and updates total card', (WidgetTester tester) async {
@@ -70,18 +84,25 @@ void main() {
           home: InvestmentPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.pump(const Duration(seconds: 1));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Investment'));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
 
       final dialogFields = find.descendant(of: find.byType(AlertDialog), matching: find.byType(TextField));
       await tester.enterText(dialogFields.at(0), 'Mutual Fund SIP');
       await tester.enterText(dialogFields.at(1), '5000');
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pump(const Duration(seconds: 1));
-      expect(find.text('Mutual Fund SIP'), findsOneWidget);
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.text('Mutual Fund SIP'), findsWidgets);
       expect(find.text('1 Investments'), findsOneWidget);
       expect(find.text('Investment added successfully.'), findsOneWidget);
     });

@@ -17,6 +17,7 @@ void main() {
       await tester.pumpWidget(
         const MyApp(isLoggedIn: false, email: '', password: '', userId: 0),
       );
+      await tester.pump(const Duration(milliseconds: 2500));
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.byType(LoginPage), findsOneWidget);
@@ -27,10 +28,11 @@ void main() {
       await tester.pumpWidget(
         const MyApp(isLoggedIn: true, email: 'user@test.com', password: 'password', userId: 1),
       );
+      await tester.pump(const Duration(milliseconds: 2500));
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.byType(HomePage), findsOneWidget);
-      expect(find.text('My Books'), findsOneWidget);
+      expect(find.text('Here are your books'), findsOneWidget);
     });
   });
 }

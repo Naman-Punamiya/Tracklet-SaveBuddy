@@ -10,11 +10,7 @@ void main() {
 
   setUp(() async {
     setupTestSharedPreferences();
-    final db = await DatabaseHelper.instance.database;
-    await db.delete('expenses');
-    await db.delete('books');
-    await db.delete('categories');
-    await db.delete('investments');
+    await resetTestDatabase();
   });
 
   group('Integration Flow - E2E User Journeys', () {
@@ -36,12 +32,19 @@ void main() {
       final signInFinder = find.text('Sign in');
       await tester.ensureVisible(signInFinder);
       await tester.tap(signInFinder);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
 
       expect(find.text('Welcome Back'), findsOneWidget);
     });
 
     testWidgets('Full Book Lifecycle - Create, Edit, Archive, Restore, Delete', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 2.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       await tester.pumpWidget(
         const MaterialApp(
           home: HomePage(
@@ -51,22 +54,31 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       // 1. Create Book
-      await tester.tap(find.widgetWithText(FloatingActionButton, 'Add Book'));
+      await tester.tap(find.text('Create Book'));
       await tester.pumpAndSettle();
 
       await tester.enterText(find.widgetWithText(TextField, 'Book Name'), 'Vacation Trip');
       await tester.enterText(find.widgetWithText(TextField, 'Book Subtitle'), 'Summer 2026');
 
       await tester.tap(find.widgetWithText(ElevatedButton, 'Add'));
-      await tester.pumpAndSettle();
+      for (int i = 0; i < 10; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Vacation Trip'), findsOneWidget);
 
       // Verify DB persistence
-      final books = await DatabaseHelper.instance.getLocalBooks(archived: 0);
+      List<dynamic> books = [];
+      await tester.runAsync(() async {
+        books = await DatabaseHelper.instance.getLocalBooks(archived: 0);
+      });
       expect(books.length, 1);
       expect(books.first['name'], 'Vacation Trip');
     });

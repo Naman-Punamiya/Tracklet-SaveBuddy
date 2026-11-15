@@ -1187,6 +1187,10 @@ class SyncEngine {
 }
 
 class UserRepository {
+  final http.Client client;
+
+  UserRepository({http.Client? client}) : client = client ?? http.Client();
+
   Future<bool> updatePassword({
     required String email,
     required String currentPassword,
@@ -1241,6 +1245,55 @@ class UserRepository {
       return res2.statusCode == 200 || res2.statusCode == 201;
     } catch (e) {
       debugPrint("API updatePassword exception: $e");
+      return false;
+    }
+  }
+
+  /// Permanently deletes the user account and associated cloud data.
+  /// Satisfies Google Play Account Deletion Policy requirement.
+  Future<bool> deleteAccount({
+    required String email,
+    required String basicAuth,
+  }) async {
+    if (!await ConnectivityService.isOnline()) {
+      debugPrint("API deleteAccount aborted: device is offline");
+      return false;
+    }
+
+    try {
+      final url = Uri.parse("${userUrl}delete-account");
+      final response = await client
+          .delete(
+            url,
+            headers: {
+              'Authorization': basicAuth,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        return true;
+      }
+
+      final fallbackUrl = Uri.parse("${userUrl}delete");
+      final res2 = await client
+          .delete(
+            fallbackUrl,
+            headers: {
+              'Authorization': basicAuth,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      return res2.statusCode == 200 || res2.statusCode == 204;
+    } catch (e) {
+      debugPrint("API deleteAccount exception: $e");
       return false;
     }
   }

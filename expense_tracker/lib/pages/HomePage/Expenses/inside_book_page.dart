@@ -11,7 +11,7 @@ class BookInsideHomePage extends StatefulWidget {
   const BookInsideHomePage({
     super.key,
     required this.email,
-    required this.password,
+    this.password = '',
     required this.bookId,
     required this.bookName,
   });
@@ -48,33 +48,40 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFFBF9F4),
       body: pages[currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
+              width: 1,
+            ),
+          ),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 12,
-              offset: Offset(0, -4),
+              color: Color(0x0A000000),
+              blurRadius: 10,
+              offset: Offset(0, -2),
             ),
           ],
         ),
         child: BottomNavigationBar(
           currentIndex: currentIndex,
           elevation: 0,
-          backgroundColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: isDark ? AppColors.textMuted : AppColors.textMuted,
+          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+          selectedItemColor: const Color(0xFF0F766E),
+          unselectedItemColor: const Color(0xFF9CA3AF),
           selectedFontSize: 13,
-          unselectedFontSize: 12,
+          unselectedFontSize: 13,
           selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
             letterSpacing: 0.2,
           ),
           unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w400,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.2,
           ),
           type: BottomNavigationBarType.fixed,
           onTap: (index) {
@@ -86,24 +93,16 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.receipt_long_rounded, size: 24),
+                child: Icon(Icons.receipt_long_rounded, size: 22),
               ),
-              activeIcon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.receipt_long_rounded, size: 24, color: AppColors.primary),
-              ),
-              label: "Expenses Details",
+              label: "Expenses",
             ),
             BottomNavigationBarItem(
               icon: Padding(
                 padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.bar_chart_rounded, size: 24),
+                child: Icon(Icons.bar_chart_rounded, size: 22),
               ),
-              activeIcon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.bar_chart_rounded, size: 24, color: AppColors.primary),
-              ),
-              label: "Expense Reports",
+              label: "Report",
             ),
           ],
         ),

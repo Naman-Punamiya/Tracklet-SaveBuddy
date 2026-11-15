@@ -247,5 +247,38 @@ void main() {
       expect(remaining.length, 1);
       expect(remaining.first['table_name'], 'expenses');
     });
+
+    test('clearAllData purges all tables for user isolation', () async {
+      final now = DateTime.now().toIso8601String();
+      await dbHelper.insertLocalBook({
+        'name': 'Test Book',
+        'subtitle': 'Sub',
+        'archived': 0,
+        'created_at': now,
+        'updated_at': now,
+        'synced': 1,
+      });
+      await dbHelper.insertLocalInvestment({
+        'description': 'Test Inv',
+        'amount': 1000.0,
+        'created_at': now,
+        'updated_at': now,
+        'synced': 1,
+      });
+      await dbHelper.logPendingDelete('books', 999);
+
+      // Verify records exist
+      expect((await dbHelper.getLocalBooks(archived: 0)).isNotEmpty, isTrue);
+      expect((await dbHelper.getLocalInvestments()).isNotEmpty, isTrue);
+      expect((await dbHelper.getPendingDeletes()).isNotEmpty, isTrue);
+
+      // Purge all data
+      await dbHelper.clearAllData();
+
+      // Verify all tables are empty
+      expect((await dbHelper.getLocalBooks(archived: 0)).isEmpty, isTrue);
+      expect((await dbHelper.getLocalInvestments()).isEmpty, isTrue);
+      expect((await dbHelper.getPendingDeletes()).isEmpty, isTrue);
+    });
   });
 }

@@ -16,7 +16,7 @@ class SplashScreen extends StatefulWidget {
     super.key,
     required this.isLoggedIn,
     required this.email,
-    required this.password,
+    this.password = '',
     required this.userId,
   });
 

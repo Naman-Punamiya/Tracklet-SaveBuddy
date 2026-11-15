@@ -12,4 +12,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findByUser(User user);
 
     List<Book> findByUserAndArchived(User user,boolean archived);
+
+    void deleteByUser(User user);
 }
