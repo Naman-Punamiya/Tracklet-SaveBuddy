@@ -49,19 +49,19 @@ class _ExpenseReportState extends State<ExpenseReport> {
   bool _showAllCategories = false;
 
   // Stitch Design Palette
-  static const Color stitchGreen = Color(0xFF00875A);
-  static const Color stitchDarkGreenText = Color(0xFF1A2E22);
-  static const Color stitchBgLight = Color(0xFFF2F4F0);
+  static const Color stitchGreen = Color(0xFF065F46);
+  static const Color stitchDarkGreenText = Color(0xFF111827);
+  static const Color stitchBgLight = Color(0xFFFAF8F3);
 
   final List<Color> _chartPalette = const [
-    Color(0xFF00875A), // Category 1: Forest Green
-    Color(0xFF4A85EE), // Category 2: Royal Blue
-    Color(0xFFFFB800), // Category 3: Warm Amber Gold
-    Color(0xFF94A3B8), // Category 4: Slate Gray
-    Color(0xFFEC4899), // Category 5: Pink
-    Color(0xFF8B5CF6), // Category 6: Purple
-    Color(0xFF14B8A6), // Category 7: Teal
-    Color(0xFFF97316), // Category 8: Orange
+    Color(0xFF065F46), // Food: Emerald Green
+    Color(0xFF3B82F6), // Home: Blue
+    Color(0xFFF59E0B), // Transport: Amber
+    Color(0xFF94A3B8), // Others: Slate Gray
+    Color(0xFFEC4899), // Pink
+    Color(0xFF8B5CF6), // Purple
+    Color(0xFF14B8A6), // Teal
+    Color(0xFFF97316), // Orange
   ];
 
   @override
@@ -386,28 +386,7 @@ class _ExpenseReportState extends State<ExpenseReport> {
                     // 1. Header Section (Cursive Title + Period Pill Toggle)
                     _buildHeader(isDark),
 
-                    const SizedBox(height: 10),
-
-                    // 1b. Period Date Navigator (Interactive Date Banner)
-                    ReportComponents.buildPeriodNavigator(
-                      context: context,
-                      isDark: isDark,
-                      selectedPeriodIndex: _selectedPeriodIndex,
-                      selectedDate: _selectedDate,
-                      periodSelectorTitle: _getPeriodSelectorTitle(),
-                      periodWord: _getPeriodWord(),
-                      onPrevious: () => _navigatePeriod(-1),
-                      onNext: () => _navigatePeriod(1),
-                      onCurrent: () {
-                        setState(() {
-                          _selectedDate = DateTime.now();
-                          _recalculateReport();
-                        });
-                      },
-                      onSelectMonth: _showMonthPickerSheet,
-                    ),
-
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
                     // 2. Total Spent Section
                     ReportComponents.buildTotalSpentSection(
@@ -454,32 +433,6 @@ class _ExpenseReportState extends State<ExpenseReport> {
                       categoryBreakdown: _categoryBreakdown,
                       totalExpense: _totalExpense,
                       periodWord: _getPeriodWord(),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // 6. Extra Enhancements: All Categories & Overview Stats
-                    ReportComponents.buildAllCategoriesSection(
-                      isDark: isDark,
-                      categoryBreakdown: _categoryBreakdown,
-                      showAllCategories: _showAllCategories,
-                      onToggle: () {
-                        setState(() {
-                          _showAllCategories = !_showAllCategories;
-                        });
-                      },
-                      formatAmount: _formatAmount,
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    ReportComponents.buildOverviewStats(
-                      isDark: isDark,
-                      averageExpense: _averageExpense,
-                      highestExpense: _highestExpense,
-                      lowestExpense: _lowestExpense,
-                      expenseEntriesCount: _expenseEntriesCount,
-                      formatAmount: _formatAmount,
                     ),
                   ],
                 ),
@@ -546,15 +499,8 @@ class _ExpenseReportState extends State<ExpenseReport> {
         Container(
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEDEDEA),
             borderRadius: BorderRadius.circular(999),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
 abstract class AppColors {
-  // Brand Colors - Emerald Trust
-  static const Color primary = Color(0xFF059669);
-  static const Color primaryLight = Color(0xFF10B981);
-  static const Color primaryTint = Color(0xFFECFDF5);
-  static const Color primaryDark = Color(0xFF047857);
-  static const Color primaryAccent = Color(0xFF34D399);
+  // Brand Colors - Stitch Emerald Trust
+  static const Color primary = Color(0xFF065F46);
+  static const Color primaryLight = Color(0xFF0A7A3E);
+  static const Color primaryTint = Color(0xFFD4F4E4);
+  static const Color primaryDark = Color(0xFF044E39);
+  static const Color primaryAccent = Color(0xFF10B981);
 
-  // Background & Surface - Light
-  static const Color lightBackground = Color(0xFFF8FAFC);
+  // Background & Surface - Warm Cream Light
+  static const Color lightBackground = Color(0xFFFAF8F3);
   static const Color lightSurface = Colors.white;
   static const Color lightCard = Colors.white;
 

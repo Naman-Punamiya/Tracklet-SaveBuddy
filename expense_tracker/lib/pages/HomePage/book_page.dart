@@ -15,9 +15,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 const List<Color> _pastelColors = [
-  Color(0xFFD1FBEA), // Mint Green
-  Color(0xFFE2EDFF), // Soft Periwinkle Blue
-  Color(0xFFFEF3C7), // Warm Pastel Yellow
+  Color(0xFFD3F6E6), // Mint Green (Personal)
+  Color(0xFFDFEAFD), // Soft Periwinkle Blue (Household)
+  Color(0xFFFEF0C7), // Warm Pastel Yellow (Trip fund)
   Color(0xFFFCE7F3), // Soft Blush Pink
   Color(0xFFEDE9FE), // Soft Lavender
   Color(0xFFDCFCE7), // Pastel Sage
@@ -64,6 +64,7 @@ class _BookPageState extends State<BookPage> {
   List<dynamic> allBooks = [];
   List<dynamic> filteredBooks = [];
   bool isLoading = true;
+  double _totalBalance = 0.0;
 
   String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
       ? AuthStorageService.instance.currentAuthToken
@@ -126,6 +127,16 @@ class _BookPageState extends State<BookPage> {
     try {
       allBooks = await fetchBooks();
       filteredBooks = List.from(allBooks);
+      double total = 0.0;
+      for (var book in allBooks) {
+        final bal = await ExpenseRepository().getBookBalance(book['id'].toString());
+        total += bal;
+      }
+      if (mounted) {
+        setState(() {
+          _totalBalance = total;
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -218,10 +229,19 @@ class _BookPageState extends State<BookPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFFBF9F4);
+    final backgroundColor = isDark ? const Color(0xFF0F172A) : const Color(0xFFFAF8F3);
 
     return Scaffold(
       backgroundColor: backgroundColor,
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF065F46),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        shape: const CircleBorder(),
+        tooltip: 'Add Book',
+        onPressed: _showAddBookDialog,
+        child: const Icon(Icons.add_rounded, size: 30),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -229,15 +249,94 @@ class _BookPageState extends State<BookPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(isDark),
-              const SizedBox(height: 18),
+              if (allBooks.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildTotalBalanceCard(isDark),
+              ],
+              const SizedBox(height: 14),
               _buildSearchBar(isDark),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               Expanded(
                 child: buildBody(isDark),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTotalBalanceCard(bool isDark) {
+    final int totalBooks = allBooks.length;
+    final int syncedBooks = allBooks.where((b) {
+      final s = b['synced'];
+      return s == 1 || s == true || s == null;
+    }).length;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Total balance",
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 4),
+              ValueListenableBuilder<String>(
+                valueListenable: CurrencyService.currencyNotifier,
+                builder: (context, _, child) {
+                  return Text(
+                    CurrencyService.format(_totalBalance),
+                    style: TextStyle(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF111827),
+                      letterSpacing: -0.5,
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? const Color(0xFF064E3B).withValues(alpha: 0.5)
+                  : const Color(0xFFD4F4E4),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              totalBooks > 0 ? "$syncedBooks of $totalBooks synced" : "Synced",
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF065F46),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -253,9 +352,9 @@ class _BookPageState extends State<BookPage> {
               Text(
                 _getGreeting(),
                 style: GoogleFonts.caveat(
-                  fontSize: 46,
+                  fontSize: 44,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.2,
                   color: isDark ? Colors.white : const Color(0xFF1A1A1A),
                   height: 1.1,
                 ),
@@ -324,18 +423,11 @@ class _BookPageState extends State<BookPage> {
     required bool isDark,
   }) {
     return Container(
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         shape: BoxShape.circle,
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
         border: Border.all(
           color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
           width: 1,
@@ -343,7 +435,7 @@ class _BookPageState extends State<BookPage> {
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 20, color: const Color(0xFF0A7A3E)),
+        icon: Icon(icon, size: 18, color: const Color(0xFF065F46)),
         tooltip: tooltip,
         onPressed: onPressed,
       ),
@@ -352,44 +444,34 @@ class _BookPageState extends State<BookPage> {
 
   Widget _buildSearchBar(bool isDark) {
     return Container(
+      height: 44,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
-          width: 1,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEDEDEA),
+        borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       child: TextField(
         controller: searchController,
         onChanged: filterBooks,
         style: TextStyle(
-          fontSize: 15,
+          fontSize: 14,
           color: isDark ? Colors.white : const Color(0xFF1A1A1A),
         ),
         decoration: InputDecoration(
           hintText: "Search books...",
           hintStyle: TextStyle(
-            color: isDark ? AppColors.textMuted : const Color(0xFF9CA3AF),
+            color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
             fontSize: 14,
           ),
           icon: const Icon(
             Icons.search_rounded,
-            color: Color(0xFF9CA3AF),
+            color: Color(0xFF6B7280),
             size: 20,
           ),
           suffixIcon: searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded, size: 18),
-                  color: const Color(0xFF9CA3AF),
+                  color: const Color(0xFF6B7280),
                   onPressed: () {
                     searchController.clear();
                     filterBooks('');
@@ -399,7 +481,7 @@ class _BookPageState extends State<BookPage> {
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),
     );
@@ -447,16 +529,11 @@ class _BookPageState extends State<BookPage> {
     final bool isSearching = searchController.text.trim().isNotEmpty;
     final int itemCount = filteredBooks.length + (isSearching ? 0 : 1);
 
-    return GridView.builder(
+    return ListView.separated(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 24),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.05,
-      ),
+      padding: const EdgeInsets.only(bottom: 90),
       itemCount: itemCount,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (!isSearching && index == filteredBooks.length) {
           return _buildNewBookCard(isDark);
@@ -512,32 +589,33 @@ class _BookPageState extends State<BookPage> {
         painter: DashedRoundedBorderPainter(
           color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
           radius: 24,
-          strokeWidth: 1.8,
+          strokeWidth: 1.6,
           dashLength: 6,
           dashGap: 4,
         ),
         child: Container(
+          height: 76,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             color: isDark ? const Color(0x05FFFFFF) : Colors.transparent,
           ),
-          padding: const EdgeInsets.all(16),
-          child: Column(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 36,
+                height: 36,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.add_rounded,
-                  size: 28,
-                  color: Color(0xFF0A7A3E),
+                  size: 26,
+                  color: Color(0xFF065F46),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(width: 8),
               Text(
                 "New book",
                 style: GoogleFonts.caveat(
@@ -603,10 +681,10 @@ class _BookCardItemState extends State<_BookCardItem> {
 
   @override
   Widget build(BuildContext context) {
-    const textColor = Color(0xFF1A1A1A);
+    const textColor = Color(0xFF111827);
 
     return AnimatedScale(
-      scale: isPressed ? 0.97 : 1.0,
+      scale: isPressed ? 0.98 : 1.0,
       duration: const Duration(milliseconds: 100),
       child: Material(
         color: Colors.transparent,
@@ -618,96 +696,87 @@ class _BookCardItemState extends State<_BookCardItem> {
           onTap: widget.onTap,
           onLongPress: widget.onLongPress,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               color: widget.cardColor,
               borderRadius: BorderRadius.circular(24),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x0A000000),
+                  color: Color(0x06000000),
                   blurRadius: 10,
                   offset: Offset(0, 3),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getMonogram(widget.bookName),
-                      style: GoogleFonts.caveat(
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        height: 1.0,
+                // White rounded square avatar with monogram
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
                       ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _getMonogram(widget.bookName),
+                    style: GoogleFonts.caveat(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A1A),
+                      height: 1.0,
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (widget.syncedStatus != 1) ...[
-                          Icon(
-                            widget.syncedStatus == 2
-                                ? Icons.cloud_off_rounded
-                                : Icons.cloud_upload_outlined,
-                            size: 14,
-                            color: widget.syncedStatus == 2
-                                ? AppColors.expense
-                                : AppColors.warning,
-                          ),
-                          const SizedBox(width: 4),
-                        ],
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: widget.onLongPress,
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 4.0),
-                            child: Icon(
-                              Icons.more_vert_rounded,
-                              size: 18,
-                              color: const Color(0x661A1A1A),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Book Title and Subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.bookName,
+                        style: GoogleFonts.caveat(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: textColor,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (widget.subtitle.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2.0),
+                          child: Text(
+                            widget.subtitle,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF4B5563),
+                              fontWeight: FontWeight.w400,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                // Book Balance Amount & Sync indicator
                 Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      widget.bookName,
-                      style: GoogleFonts.caveat(
-                        fontSize: 23,
-                        fontWeight: FontWeight.bold,
-                        color: textColor,
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (widget.subtitle.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1.0),
-                        child: Text(
-                          widget.subtitle,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xA61A1A1A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    const SizedBox(height: 2),
                     FutureBuilder<double>(
                       future: ExpenseRepository()
                           .getBookBalance(widget.item['id'].toString()),
@@ -721,16 +790,28 @@ class _BookCardItemState extends State<_BookCardItem> {
                             return Text(
                               CurrencyService.format(rawBalance),
                               style: const TextStyle(
-                                fontSize: 16,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w700,
                                 color: textColor,
-                                letterSpacing: -0.2,
+                                letterSpacing: -0.3,
                               ),
                             );
                           },
                         );
                       },
                     ),
+                    if (widget.syncedStatus != 1) ...[
+                      const SizedBox(height: 4),
+                      Icon(
+                        widget.syncedStatus == 2
+                            ? Icons.cloud_off_rounded
+                            : Icons.cloud_upload_outlined,
+                        size: 14,
+                        color: widget.syncedStatus == 2
+                            ? AppColors.expense
+                            : AppColors.warning,
+                      ),
+                    ],
                   ],
                 ),
               ],

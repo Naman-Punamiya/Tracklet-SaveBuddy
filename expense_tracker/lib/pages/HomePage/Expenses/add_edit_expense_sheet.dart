@@ -56,9 +56,9 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
 
   // Stitch Design Colors
   static const Color stitchGreen = Color(0xFF065F46); // Deep rich emerald
-  static const Color stitchAccentGreen = Color(0xFF10B981);
-  static const Color stitchLightGreenBg = Color(0xFFF0FDF4);
-  static const Color stitchBorderGreen = Color(0xFF15803D);
+  static const Color stitchAccentGreen = Color(0xFF065F46);
+  static const Color stitchLightGreenBg = Color(0xFFE8F8F0);
+  static const Color stitchBorderGreen = Color(0xFF065F46);
 
   @override
   void initState() {
@@ -734,28 +734,26 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
         children: [
           // Amount Label
           Text(
-            "AMOUNT",
+            "Amount",
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF4B5563),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
 
-          // Huge Amount Center Readout: ₹1,240 |
+          // Amount Center Readout: ₹1,240 |
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 CurrencyService.symbol,
                 style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white70 : const Color(0xFF374151),
+                  fontSize: 44,
+                  fontWeight: FontWeight.w800,
+                  color: isDark ? Colors.white : const Color(0xFF111827),
                 ),
               ),
               const SizedBox(width: 2),
@@ -763,8 +761,8 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
                 child: Text(
                   displayAmt,
                   style: TextStyle(
-                    fontSize: 44,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 48,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: -0.5,
                     color: isDark ? Colors.white : const Color(0xFF111827),
                   ),
@@ -776,8 +774,8 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
               FadeTransition(
                 opacity: _cursorOpacity,
                 child: Container(
-                  width: 3,
-                  height: 36,
+                  width: 3.5,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: stitchAccentGreen,
                     borderRadius: BorderRadius.circular(2),
@@ -889,7 +887,7 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
               ),
               alignment: Alignment.center,
               child: Text(
-                catName,
+                isSelected ? "✓ $catName" : catName,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,

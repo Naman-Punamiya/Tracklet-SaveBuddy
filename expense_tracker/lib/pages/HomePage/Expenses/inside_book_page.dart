@@ -48,7 +48,7 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFFBF9F4),
+      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFFAF8F3),
       body: pages[currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -56,55 +56,49 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
           border: Border(
             top: BorderSide(
               color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
-              width: 1,
+              width: 0.5,
             ),
           ),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x0A000000),
-              blurRadius: 10,
-              offset: Offset(0, -2),
-            ),
-          ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: currentIndex,
-          elevation: 0,
-          backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-          selectedItemColor: const Color(0xFF0F766E),
-          unselectedItemColor: const Color(0xFF9CA3AF),
-          selectedFontSize: 13,
-          unselectedFontSize: 13,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.2,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.2,
-          ),
-          type: BottomNavigationBarType.fixed,
-          onTap: (index) {
-            setState(() {
-              currentIndex = index;
-            });
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.receipt_long_rounded, size: 22),
+        child: SafeArea(
+          child: SizedBox(
+            height: 52,
+            child: BottomNavigationBar(
+              currentIndex: currentIndex,
+              elevation: 0,
+              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+              selectedItemColor: const Color(0xFF065F46),
+              unselectedItemColor: const Color(0xFF6B7280),
+              selectedFontSize: 14,
+              unselectedFontSize: 14,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
               ),
-              label: "Expenses",
-            ),
-            BottomNavigationBarItem(
-              icon: Padding(
-                padding: EdgeInsets.only(bottom: 4.0),
-                child: Icon(Icons.bar_chart_rounded, size: 22),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.2,
               ),
-              label: "Report",
+              type: BottomNavigationBarType.fixed,
+              onTap: (index) {
+                setState(() {
+                  currentIndex = index;
+                });
+              },
+              items: const [
+                BottomNavigationBarItem(
+                  icon: SizedBox(height: 0, width: 0),
+                  activeIcon: SizedBox(height: 0, width: 0),
+                  label: "Expenses",
+                ),
+                BottomNavigationBarItem(
+                  icon: SizedBox(height: 0, width: 0),
+                  activeIcon: SizedBox(height: 0, width: 0),
+                  label: "Report",
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

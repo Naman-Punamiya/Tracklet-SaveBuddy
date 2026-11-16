@@ -18,40 +18,32 @@ CategoryStyle getCategoryStyle(String categoryName, bool isCredit) {
   if (isCredit || name.contains('income') || name.contains('salary') || name.contains('freelance')) {
     return const CategoryStyle(
       monogram: 'In',
-      bgColor: Color(0xFFD1FAE5),
-      textColor: Color(0xFF047857),
+      bgColor: Color(0xFFD1FBEA),
+      textColor: Color(0xFF065F46),
     );
   }
 
   if (name.contains('food') || name.contains('dining') || name.contains('restaurant') || name.contains('grocer') || name.contains('cafe')) {
     return const CategoryStyle(
-      monogram: 'Fd',
-      bgColor: Color(0xFFDCFCE7),
-      textColor: Color(0xFF15803D),
+      monogram: 'Fo',
+      bgColor: Color(0xFFFEF0C7),
+      textColor: Color(0xFF854D0E),
     );
   }
 
-  if (name.contains('travel') || name.contains('flight') || name.contains('trip') || name.contains('hotel')) {
+  if (name.contains('transport') || name.contains('metro') || name.contains('cab') || name.contains('fuel') || name.contains('uber') || name.contains('car') || name.contains('travel') || name.contains('flight') || name.contains('trip') || name.contains('hotel')) {
     return const CategoryStyle(
       monogram: 'Tr',
-      bgColor: Color(0xFFFEF3C7),
-      textColor: Color(0xFFB45309),
+      bgColor: Color(0xFFDFEAFD),
+      textColor: Color(0xFF1E40AF),
     );
   }
 
-  if (name.contains('transport') || name.contains('cab') || name.contains('fuel') || name.contains('uber') || name.contains('car')) {
-    return const CategoryStyle(
-      monogram: 'Tp',
-      bgColor: Color(0xFFE0F2FE),
-      textColor: Color(0xFF0369A1),
-    );
-  }
-
-  if (name.contains('health') || name.contains('med') || name.contains('doctor') || name.contains('hosp')) {
+  if (name.contains('health') || name.contains('med') || name.contains('doctor') || name.contains('hosp') || name.contains('pharmacy')) {
     return const CategoryStyle(
       monogram: 'He',
-      bgColor: Color(0xFFFFE4E6),
-      textColor: Color(0xFFBE123C),
+      bgColor: Color(0xFFFCE7F3),
+      textColor: Color(0xFF991B1B),
     );
   }
 

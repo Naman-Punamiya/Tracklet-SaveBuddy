@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:expense_tracker/core/theme/app_colors.dart';
@@ -332,12 +333,12 @@ class _ExpensePageState extends State<ExpensePage> {
                                 );
 
                                 if (itemDate == today) {
-                                  groupHeader = "TODAY";
+                                  groupHeader = "Today";
                                 } else if (itemDate == yesterday) {
-                                  groupHeader = "YESTERDAY";
+                                  groupHeader = "Yesterday";
                                 } else {
                                   groupHeader =
-                                      DateFormat("d MMMM yyyy").format(dateTime).toUpperCase();
+                                      DateFormat("d MMMM yyyy").format(dateTime);
                                 }
                               }
 
@@ -354,9 +355,8 @@ class _ExpensePageState extends State<ExpensePage> {
                                       child: Text(
                                         groupHeader,
                                         style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 0.8,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
                                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280),
                                         ),
                                       ),
@@ -374,15 +374,16 @@ class _ExpensePageState extends State<ExpensePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF0F766E),
+        backgroundColor: const Color(0xFF065F46),
         foregroundColor: Colors.white,
+        elevation: 4,
         shape: const CircleBorder(),
         tooltip: 'Add Expense',
         onPressed: _showAddExpenseDialog,
         child: Stack(
           alignment: Alignment.center,
           children: const [
-            Icon(Icons.add_rounded, size: 28),
+            Icon(Icons.add_rounded, size: 30),
             Opacity(
               opacity: 0,
               child: SizedBox(
@@ -411,7 +412,7 @@ class _ExpensePageState extends State<ExpensePage> {
           child: Container(
             width: 36,
             height: 36,
-            alignment: Alignment.center,
+            alignment: Alignment.centerLeft,
             child: Icon(
               Icons.chevron_left_rounded,
               size: 28,
@@ -428,7 +429,7 @@ class _ExpensePageState extends State<ExpensePage> {
               Text(
                 currentMonthName,
                 style: TextStyle(
-                  fontSize: 19,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.2,
                   color: isDark ? Colors.white : const Color(0xFF111827),
@@ -436,54 +437,20 @@ class _ExpensePageState extends State<ExpensePage> {
               ),
               const SizedBox(width: 4),
               Icon(
-                Icons.keyboard_arrow_down_rounded,
+                Icons.arrow_drop_down,
                 size: 20,
                 color: isDark ? Colors.white70 : const Color(0xFF4B5563),
               ),
             ],
           ),
         ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  isSearching = !isSearching;
-                  if (!isSearching) {
-                    searchController.clear();
-                    _updateFilteredExpenses();
-                  }
-                });
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                child: Icon(
-                  isSearching ? Icons.close_rounded : Icons.search_rounded,
-                  size: 22,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            GestureDetector(
-              onTap: showFilterSheet,
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                child: Icon(
-                  Icons.tune_rounded,
-                  size: 20,
-                  color: isDark ? Colors.white : const Color(0xFF1F2937),
-                ),
-              ),
-            ),
-          ],
+        Text(
+          widget.bookName,
+          style: GoogleFonts.caveat(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : const Color(0xFF1F2937),
+          ),
         ),
       ],
     );
@@ -587,138 +554,77 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Widget _buildSummaryCard(double balance, double income, double expense, bool isDark) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
-          width: 1,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "Balance",
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
+            fontWeight: FontWeight.w400,
+          ),
         ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+        const SizedBox(height: 2),
+        Text(
+          CurrencyService.format(balance),
+          style: TextStyle(
+            fontSize: 42,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: isDark ? Colors.white : const Color(0xFF111827),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Total Balance",
-                  style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  CurrencyService.format(balance),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.3,
-                    color: isDark ? Colors.white : const Color(0xFF111827),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            height: 28,
-            width: 1,
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Income",
-                    style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "+${CurrencyService.format(income)}",
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
-                      color: Color(0xFF059669),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              "+${CurrencyService.format(income)} in",
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF059669),
               ),
             ),
-          ),
-          Container(
-            height: 28,
-            width: 1,
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Expense",
-                    style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF), fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "-${CurrencyService.format(expense)}",
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.3,
-                      color: Color(0xFFDC2626),
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            const SizedBox(width: 16),
+            Text(
+              "−${CurrencyService.format(expense)} out",
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.white70 : const Color(0xFF111827),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildSearchBar(bool isDark) {
-    if (!isSearching) return const SizedBox.shrink();
-
     return Container(
+      height: 44,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEDEDEA),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB),
-        ),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: TextField(
         controller: searchController,
-        autofocus: true,
-        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        style: TextStyle(
+          fontSize: 14,
+          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+        ),
         decoration: InputDecoration(
-          hintText: "Search by note or category...",
+          hintText: "Search transactions",
           hintStyle: TextStyle(
-            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF9CA3AF),
-            fontSize: 13,
+            color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
+            fontSize: 14,
           ),
-          prefixIcon: const Icon(Icons.search_rounded, size: 20),
           suffixIcon: searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded, size: 18),
+                  color: const Color(0xFF6B7280),
                   onPressed: () {
                     searchController.clear();
                     _updateFilteredExpenses();
@@ -726,7 +632,9 @@ class _ExpensePageState extends State<ExpensePage> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
         onChanged: (val) {
           searchExpense(val);
@@ -736,56 +644,181 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Widget _buildFilterChips(bool isDark) {
-    final activeFilters = <String>[];
-    if (selectedFilterCategory != "All") activeFilters.add(selectedFilterCategory);
-    if (selectedFilterType != "All") activeFilters.add(selectedFilterType);
-    if (selectedDateFilter != "All") activeFilters.add(selectedDateFilter);
-    if (selectedSort != "Newest") activeFilters.add(selectedSort);
+    final bool isAll = selectedFilterType == "All" && selectedFilterCategory == "All";
+    final bool isDebit = selectedFilterType == "Debit";
+    final bool isCredit = selectedFilterType == "Credit";
+    final bool hasCategory = selectedFilterCategory != "All";
 
-    if (activeFilters.isEmpty) return const SizedBox.shrink();
+    Widget buildPill({
+      required String label,
+      required bool isSelected,
+      required VoidCallback onTap,
+      Widget? trailing,
+    }) {
+      return GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF065F46)
+                : (isDark ? const Color(0xFF1E293B) : const Color(0xFFEDEDEA)),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? Colors.white70 : const Color(0xFF1F2937)),
+                ),
+              ),
+              if (trailing != null) ...[
+                const SizedBox(width: 4),
+                trailing,
+              ],
+            ],
+          ),
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
       child: Row(
         children: [
-          ...activeFilters.map((filter) {
-            return Container(
-              margin: const EdgeInsets.only(right: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F766E).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    filter,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F766E),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        if (selectedFilterCategory == filter) selectedFilterCategory = "All";
-                        if (selectedFilterType == filter) selectedFilterType = "All";
-                        if (selectedDateFilter == filter) selectedDateFilter = "All";
-                        if (selectedSort == filter) selectedSort = "Newest";
-                        filteredExpenses = _buildFilteredExpenses(allExpenses);
-                      });
-                    },
-                    child: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF0F766E)),
-                  ),
-                ],
-              ),
-            );
-          }),
+          buildPill(
+            label: "All",
+            isSelected: isAll,
+            onTap: () {
+              setState(() {
+                selectedFilterType = "All";
+                selectedFilterCategory = "All";
+                filteredExpenses = _buildFilteredExpenses(allExpenses);
+              });
+            },
+          ),
+          buildPill(
+            label: "Debit",
+            isSelected: isDebit,
+            onTap: () {
+              setState(() {
+                selectedFilterType = "Debit";
+                filteredExpenses = _buildFilteredExpenses(allExpenses);
+              });
+            },
+          ),
+          buildPill(
+            label: "Credit",
+            isSelected: isCredit,
+            onTap: () {
+              setState(() {
+                selectedFilterType = "Credit";
+                filteredExpenses = _buildFilteredExpenses(allExpenses);
+              });
+            },
+          ),
+          buildPill(
+            label: hasCategory ? selectedFilterCategory : "Category",
+            isSelected: hasCategory,
+            trailing: Icon(
+              Icons.arrow_drop_down,
+              size: 18,
+              color: hasCategory
+                  ? Colors.white
+                  : (isDark ? Colors.white70 : const Color(0xFF1F2937)),
+            ),
+            onTap: _showCategoryFilterPicker,
+          ),
         ],
       ),
+    );
+  }
+
+  void _showCategoryFilterPicker() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  "Filter by Category",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text("All"),
+                      selected: selectedFilterCategory == "All",
+                      selectedColor: const Color(0xFF065F46),
+                      labelStyle: TextStyle(
+                        color: selectedFilterCategory == "All" ? Colors.white : null,
+                      ),
+                      onSelected: (_) {
+                        Navigator.pop(ctx);
+                        setState(() {
+                          selectedFilterCategory = "All";
+                          filteredExpenses = _buildFilteredExpenses(allExpenses);
+                        });
+                      },
+                    ),
+                    ...categories.map((cat) {
+                      final name = cat['name']?.toString() ?? '';
+                      final isSelected = selectedFilterCategory == name;
+                      return ChoiceChip(
+                        label: Text(name),
+                        selected: isSelected,
+                        selectedColor: const Color(0xFF065F46),
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : null,
+                        ),
+                        onSelected: (_) {
+                          Navigator.pop(ctx);
+                          setState(() {
+                            selectedFilterCategory = isSelected ? "All" : name;
+                            filteredExpenses = _buildFilteredExpenses(allExpenses);
+                          });
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -801,7 +834,7 @@ class _ExpensePageState extends State<ExpensePage> {
     final style = getCategoryStyle(categoryName, isCredit);
     final amountNum = (amount as num).toDouble();
     final formattedAmount = CurrencyService.format(amountNum);
-    final displayAmount = isCredit ? "+$formattedAmount" : "-$formattedAmount";
+    final displayAmount = isCredit ? "+$formattedAmount" : "−$formattedAmount";
     final amountColor = isCredit
         ? const Color(0xFF059669)
         : (isDark ? Colors.white : const Color(0xFF111827));
@@ -825,13 +858,13 @@ class _ExpensePageState extends State<ExpensePage> {
               height: 44,
               decoration: BoxDecoration(
                 color: style.bgColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
               child: Text(
                 style.monogram,
                 style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: style.textColor,
                 ),
@@ -859,9 +892,9 @@ class _ExpensePageState extends State<ExpensePage> {
                   ],
                   Text(
                     "$categoryName · $timeStr",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF9CA3AF),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -872,8 +905,8 @@ class _ExpensePageState extends State<ExpensePage> {
             Text(
               displayAmount,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
                 color: amountColor,
               ),
             ),
