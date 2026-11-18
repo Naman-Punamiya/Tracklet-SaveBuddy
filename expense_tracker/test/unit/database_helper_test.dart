@@ -109,6 +109,84 @@ void main() {
       final book = await dbHelper.getLocalBookById(id);
       expect(book, isNull);
     });
+
+    test('removeDefaultArchivedBooks removes only unlinked default archived books without affecting user books or active books', () async {
+      final now = DateTime.now().toIso8601String();
+
+      // 1. Unlinked default books in archived state
+      await dbHelper.insertLocalBook({
+        'name': '2023 Personal Expenses',
+        'subtitle': 'JAN 2023 - DEC 2023',
+        'archived': 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+      await dbHelper.insertLocalBook({
+        'name': 'Freelance Q4 2022',
+        'subtitle': 'OCT 2022 - DEC 2022',
+        'archived': 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+
+      // 2. User-created archived book (no expenses)
+      final userBookId = await dbHelper.insertLocalBook({
+        'name': 'User Custom Project',
+        'subtitle': 'Custom Notes',
+        'archived': 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+
+      // 3. User-created active book
+      final activeBookId = await dbHelper.insertLocalBook({
+        'name': 'Active Daily Expenses',
+        'subtitle': 'Current',
+        'archived': 0,
+        'created_at': now,
+        'updated_at': now,
+      });
+
+      // 4. Default book name but with user transactions (must NOT be deleted)
+      final defaultWithExpensesId = await dbHelper.insertLocalBook({
+        'name': 'Home Renovation Fund',
+        'subtitle': 'MAR 2021 - DEC 2021',
+        'archived': 1,
+        'created_at': now,
+        'updated_at': now,
+      });
+      await dbHelper.insertLocalExpense({
+        'description': 'Tiles purchase',
+        'amount': 1500.0,
+        'credit': 0,
+        'date': now,
+        'book_id': defaultWithExpensesId,
+        'created_at': now,
+        'updated_at': now,
+      });
+
+      // getLocalBooks should exclude only unlinked default books without expenses
+      final archivedBooks = await dbHelper.getLocalBooks(archived: 1);
+      final archivedNames = archivedBooks.map((b) => b['name']).toList();
+      expect(archivedNames.contains('2023 Personal Expenses'), isFalse);
+      expect(archivedNames.contains('Freelance Q4 2022'), isFalse);
+      expect(archivedNames.contains('User Custom Project'), isTrue);
+      expect(archivedNames.contains('Home Renovation Fund'), isTrue);
+
+      // Verify active books are untouched
+      final activeBooks = await dbHelper.getLocalBooks(archived: 0);
+      expect(activeBooks.any((b) => b['id'] == activeBookId), isTrue);
+
+      // Run removeDefaultArchivedBooks
+      final deletedCount = await dbHelper.removeDefaultArchivedBooks();
+      expect(deletedCount, 2); // 2023 Personal Expenses and Freelance Q4 2022
+
+      // User book and Home Renovation Fund (with expenses) still exist in database
+      final userBook = await dbHelper.getLocalBookById(userBookId);
+      expect(userBook, isNotNull);
+      final bookWithExp = await dbHelper.getLocalBookById(defaultWithExpensesId);
+      expect(bookWithExp, isNotNull);
+    });
   });
 
   group('DatabaseHelper - Categories CRUD & Seeding', () {

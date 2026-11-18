@@ -104,16 +104,18 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   }
 
   void filterBooks(String query) async {
-    final trimmedQuery = query.trim();
+    final trimmedQuery = query.trim().toLowerCase();
     if (trimmedQuery.isEmpty) {
       setState(() {
         filteredBooks = List.from(allBooks);
       });
     } else {
-      final results = await bookRepo.searchBooks(trimmedQuery, 1);
-      if (!mounted) return;
       setState(() {
-        filteredBooks = results;
+        filteredBooks = allBooks.where((b) {
+          final name = (b['name']?.toString() ?? '').toLowerCase();
+          final subtitle = (b['subtitle']?.toString() ?? '').toLowerCase();
+          return name.contains(trimmedQuery) || subtitle.contains(trimmedQuery);
+        }).toList();
       });
     }
   }
@@ -278,7 +280,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
       return const AppLoading();
     }
 
-    if (allBooks.isEmpty && widget.email.contains('test')) {
+    if (allBooks.isEmpty) {
       return Column(
         children: [
           if (_pendingDeletionsCount > 0)
@@ -302,31 +304,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final List<dynamic> displayBooks = allBooks.isNotEmpty
-        ? filteredBooks
-        : [
-            {
-              'id': '1',
-              'name': '2023 Personal Expenses',
-              'subtitle': 'JAN 2023 - DEC 2023',
-              'itemsCount': 242,
-              'amount': 42500.00,
-            },
-            {
-              'id': '2',
-              'name': 'Freelance Q4 2022',
-              'subtitle': 'OCT 2022 - DEC 2022',
-              'itemsCount': 85,
-              'amount': 15230.50,
-            },
-            {
-              'id': '3',
-              'name': 'Home Renovation Fund',
-              'subtitle': 'MAR 2021 - DEC 2021',
-              'itemsCount': 124,
-              'amount': 85000.00,
-            },
-          ];
+    final List<dynamic> displayBooks = filteredBooks;
 
     return Column(
       children: [
@@ -435,9 +413,9 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   Widget _buildArchivedLedgerCard(Map<String, dynamic> item) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final String bookName = item['name']?.toString() ?? 'Archived Ledger';
-    final String bookSubtitle = item['subtitle']?.toString() ?? 'OCT 2022 - DEC 2022';
-    final int itemsCount = (item['itemsCount'] as num?)?.toInt() ?? 85;
-    final double amount = (item['amount'] as num?)?.toDouble() ?? 15230.50;
+    final String bookSubtitle = item['subtitle']?.toString() ?? '';
+    final int itemsCount = (item['itemsCount'] as num?)?.toInt() ?? 0;
+    final double amount = (item['amount'] as num?)?.toDouble() ?? 0.0;
 
     return Container(
       decoration: BoxDecoration(
@@ -494,15 +472,17 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(
-                      bookSubtitle.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                    if (bookSubtitle.isNotEmpty) ...[
+                      Text(
+                        bookSubtitle.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
+                      const SizedBox(width: 8),
+                    ],
                     Text(
                       "$itemsCount ITEMS",
                       style: TextStyle(
@@ -548,8 +528,32 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     );
   }
 
+  static bool isDefaultBook(Map<String, dynamic> book) {
+    final name = book['name']?.toString().trim();
+    final subtitle = book['subtitle']?.toString().trim();
+    final hasNoServerId = book['server_id'] == null;
+    final isDefaultTemplate =
+        (name == '2023 Personal Expenses' && (subtitle == 'JAN 2023 - DEC 2023' || subtitle == null || subtitle.isEmpty)) ||
+        (name == 'Freelance Q4 2022' && (subtitle == 'OCT 2022 - DEC 2022' || subtitle == null || subtitle.isEmpty)) ||
+        (name == 'Home Renovation Fund' && (subtitle == 'MAR 2021 - DEC 2021' || subtitle == null || subtitle.isEmpty));
+    final hasNoItems = (book['itemsCount'] as num?)?.toInt() == 0 || book['itemsCount'] == null;
+    return isDefaultTemplate && hasNoServerId && hasNoItems;
+  }
+
   Future<List<dynamic>> fetchBooks() async {
-    return await bookRepo.getBooks(archived: 1);
+    final books = await bookRepo.getBooks(archived: 1);
+    final validBooks = books.where((b) => !isDefaultBook(b)).toList();
+    final expenseRepo = ExpenseRepository();
+    final enriched = await Future.wait(validBooks.map((b) async {
+      final bookCopy = Map<String, dynamic>.from(b);
+      final bookId = b['id'].toString();
+      final expenses = await expenseRepo.getExpenses(bookId);
+      final balance = await expenseRepo.getBookBalance(bookId);
+      bookCopy['itemsCount'] = expenses.length;
+      bookCopy['amount'] = balance;
+      return bookCopy;
+    }));
+    return enriched;
   }
 
   Future<bool> deleteBook(String id) async {

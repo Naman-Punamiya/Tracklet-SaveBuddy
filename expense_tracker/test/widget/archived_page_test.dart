@@ -90,6 +90,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
 
+      expect(find.text('Trash Book'), findsOneWidget);
       await tester.tap(find.text('Trash Book'));
       await tester.pump(const Duration(milliseconds: 300));
 
@@ -101,6 +102,117 @@ void main() {
 
       expect(find.text('No Books Yet'), findsOneWidget);
       expect(find.text('Book deleted.'), findsOneWidget);
+    });
+
+    testWidgets('shows empty state for real user email (no preloaded books appear on fresh install)', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ArchivedBooksPage(email: 'real_user@example.com', password: 'secretpassword'),
+        ),
+      );
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(find.text('No Books Yet'), findsOneWidget);
+      expect(find.text('2023 Personal Expenses'), findsNothing);
+      expect(find.text('Freelance Q4 2022'), findsNothing);
+      expect(find.text('Home Renovation Fund'), findsNothing);
+    });
+
+    testWidgets('removes default/system-generated books if present in database for existing users', (WidgetTester tester) async {
+      final now = DateTime.now().toIso8601String();
+      await tester.runAsync(() async {
+        // Pre-existing default books in database
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': '2023 Personal Expenses',
+          'subtitle': 'JAN 2023 - DEC 2023',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Freelance Q4 2022',
+          'subtitle': 'OCT 2022 - DEC 2022',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': 'Home Renovation Fund',
+          'subtitle': 'MAR 2021 - DEC 2021',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ArchivedBooksPage(email: 'existing_user@example.com', password: 'password'),
+        ),
+      );
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      // Default books must not appear, empty state should be shown
+      expect(find.text('2023 Personal Expenses'), findsNothing);
+      expect(find.text('Freelance Q4 2022'), findsNothing);
+      expect(find.text('Home Renovation Fund'), findsNothing);
+      expect(find.text('No Books Yet'), findsOneWidget);
+    });
+
+    testWidgets('preserves user-created archived books and filters only default books', (WidgetTester tester) async {
+      final now = DateTime.now().toIso8601String();
+      await tester.runAsync(() async {
+        // Pre-existing default book
+        await DatabaseHelper.instance.insertLocalBook({
+          'name': '2023 Personal Expenses',
+          'subtitle': 'JAN 2023 - DEC 2023',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
+        // User created archived book
+        final bookId = await DatabaseHelper.instance.insertLocalBook({
+          'name': 'European Vacation 2024',
+          'subtitle': 'Summer Trip',
+          'archived': 1,
+          'created_at': now,
+          'updated_at': now,
+        });
+        // Add an expense to the user's archived book
+        await DatabaseHelper.instance.insertLocalExpense({
+          'description': 'Flight Ticket',
+          'amount': 450.0,
+          'credit': 0,
+          'date': now,
+          'book_id': bookId,
+          'created_at': now,
+          'updated_at': now,
+        });
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: ArchivedBooksPage(email: 'user@example.com', password: 'password'),
+        ),
+      );
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      // User book must be displayed
+      expect(find.text('European Vacation 2024'), findsOneWidget);
+      expect(find.text('SUMMER TRIP'), findsOneWidget);
+      expect(find.text('1 ITEMS'), findsOneWidget);
+
+      // Default book must not be displayed
+      expect(find.text('2023 Personal Expenses'), findsNothing);
     });
   });
 }

@@ -40,6 +40,9 @@ class DatabaseHelper {
         await db.execute("DROP TABLE IF EXISTS pending_sync");
         await _createTables(db);
       },
+      onOpen: (db) async {
+        await removeDefaultArchivedBooks(db);
+      },
     );
   }
 
@@ -256,18 +259,69 @@ class DatabaseHelper {
 
   Future<List<Map<String, dynamic>>> getLocalBooks({required int archived}) async {
     final db = await database;
+    if (archived == 1) {
+      return await db.rawQuery('''
+        SELECT * FROM books 
+        WHERE archived = 1 
+          AND NOT (
+            server_id IS NULL 
+            AND (
+              (name = '2023 Personal Expenses' AND (subtitle = 'JAN 2023 - DEC 2023' OR subtitle IS NULL OR subtitle = '')) OR
+              (name = 'Freelance Q4 2022' AND (subtitle = 'OCT 2022 - DEC 2022' OR subtitle IS NULL OR subtitle = '')) OR
+              (name = 'Home Renovation Fund' AND (subtitle = 'MAR 2021 - DEC 2021' OR subtitle IS NULL OR subtitle = ''))
+            )
+            AND id NOT IN (SELECT DISTINCT book_id FROM expenses WHERE book_id IS NOT NULL)
+          )
+        ORDER BY created_at DESC
+      ''');
+    }
     return await db.query('books', where: 'archived = ?', whereArgs: [archived], orderBy: 'created_at DESC');
   }
 
   Future<List<Map<String, dynamic>>> searchLocalBooks(String query, int archived) async {
     final db = await database;
     final trimmed = query.trim();
+    if (archived == 1) {
+      return await db.rawQuery('''
+        SELECT * FROM books 
+        WHERE archived = 1 
+          AND (name LIKE ? OR subtitle LIKE ?)
+          AND NOT (
+            server_id IS NULL 
+            AND (
+              (name = '2023 Personal Expenses' AND (subtitle = 'JAN 2023 - DEC 2023' OR subtitle IS NULL OR subtitle = '')) OR
+              (name = 'Freelance Q4 2022' AND (subtitle = 'OCT 2022 - DEC 2022' OR subtitle IS NULL OR subtitle = '')) OR
+              (name = 'Home Renovation Fund' AND (subtitle = 'MAR 2021 - DEC 2021' OR subtitle IS NULL OR subtitle = ''))
+            )
+            AND id NOT IN (SELECT DISTINCT book_id FROM expenses WHERE book_id IS NOT NULL)
+          )
+        ORDER BY created_at DESC
+      ''', ['%$trimmed%', '%$trimmed%']);
+    }
     return await db.query(
       'books',
       where: 'archived = ? AND (name LIKE ? OR subtitle LIKE ?)',
       whereArgs: [archived, '%$trimmed%', '%$trimmed%'],
       orderBy: 'created_at DESC'
     );
+  }
+
+  /// Removes preloaded/default system-generated books from the archived state.
+  /// Only targets books matching the known default templates that have no server ID
+  /// and no associated transactions (expenses), preserving all user-created books.
+  Future<int> removeDefaultArchivedBooks([Database? dbExecutor]) async {
+    final db = dbExecutor ?? await database;
+    return await db.rawDelete('''
+      DELETE FROM books 
+      WHERE archived = 1 
+        AND server_id IS NULL 
+        AND (
+          (name = '2023 Personal Expenses' AND (subtitle = 'JAN 2023 - DEC 2023' OR subtitle IS NULL OR subtitle = '')) OR
+          (name = 'Freelance Q4 2022' AND (subtitle = 'OCT 2022 - DEC 2022' OR subtitle IS NULL OR subtitle = '')) OR
+          (name = 'Home Renovation Fund' AND (subtitle = 'MAR 2021 - DEC 2021' OR subtitle IS NULL OR subtitle = ''))
+        )
+        AND id NOT IN (SELECT DISTINCT book_id FROM expenses WHERE book_id IS NOT NULL)
+    ''');
   }
 
   // ==========================================
