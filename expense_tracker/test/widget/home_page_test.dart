@@ -38,6 +38,9 @@ void main() {
       expect(find.text('Books'), findsOneWidget);
       expect(find.text('Investments'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
+      expect(find.byIcon(Icons.menu_book_rounded), findsWidgets);
+      expect(find.byIcon(Icons.auto_graph_rounded), findsWidgets);
+      expect(find.byIcon(Icons.tune_rounded), findsWidgets);
     });
 
     testWidgets('switches to Investment tab when tapped', (WidgetTester tester) async {

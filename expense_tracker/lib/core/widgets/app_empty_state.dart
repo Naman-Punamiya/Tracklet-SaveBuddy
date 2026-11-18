@@ -23,6 +23,7 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -32,27 +33,29 @@ class AppEmptyState extends StatelessWidget {
           children: [
             Container(
               padding: AppSpacing.p24,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryTint,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.primaryAccent.withValues(alpha: 0.15)
+                    : AppColors.primaryTint,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: AppDimensions.icon72,
-                color: AppColors.primary,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
               ),
             ),
             const SizedBox(height: AppSpacing.xLarge),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: AppTextTheme.headlineLarge,
+              style: AppTextTheme.headlineLargeFor(context),
             ),
             const SizedBox(height: AppSpacing.xSmall),
             Text(
               description,
               textAlign: TextAlign.center,
-              style: AppTextTheme.bodyMedium.copyWith(height: 1.4),
+              style: AppTextTheme.bodyMediumFor(context).copyWith(height: 1.4),
             ),
             if (buttonLabel != null && onButtonPressed != null) ...[
               const SizedBox(height: AppSpacing.xxLarge),
@@ -61,13 +64,19 @@ class AppEmptyState extends StatelessWidget {
                 height: AppDimensions.buttonHeight50,
                 child: ElevatedButton.icon(
                   onPressed: onButtonPressed,
-                  icon: const Icon(Icons.add_rounded, color: AppColors.textWhite, size: AppDimensions.icon22),
+                  icon: Icon(
+                    Icons.add_rounded,
+                    color: isDark ? const Color(0xFF052E23) : AppColors.textWhite,
+                    size: AppDimensions.icon22,
+                  ),
                   label: Text(
                     buttonLabel!,
-                    style: AppTextTheme.buttonText,
+                    style: AppTextTheme.buttonText.copyWith(
+                      color: isDark ? const Color(0xFF052E23) : AppColors.textWhite,
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: isDark ? AppColors.primaryAccent : AppColors.primary,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: AppRadius.medium,

@@ -2,12 +2,14 @@ import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:expense_tracker/core/theme/app_dimensions.dart';
 import 'package:expense_tracker/core/theme/app_radius.dart';
 import 'package:expense_tracker/core/theme/app_spacing.dart';
+import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/main.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/currency_service.dart';
 import 'package:expense_tracker/services/notification_service.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingDialogs {
@@ -25,10 +27,13 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.edit_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Edit Profile", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            Icon(Icons.edit_rounded, color: context.appPrimary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              "Edit Profile",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
         content: Column(
@@ -55,7 +60,10 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: context.appTextSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -73,8 +81,9 @@ class SettingDialogs {
               );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: context.appPrimary,
+              foregroundColor:
+                  context.isDarkMode ? const Color(0xFF052E23) : Colors.white,
             ),
             child: const Text("Save Changes"),
           ),
@@ -109,10 +118,13 @@ class SettingDialogs {
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
           title: Row(
-            children: const [
-              Icon(Icons.shield_outlined, color: AppColors.primary, size: 22),
-              SizedBox(width: 8),
-              Text("Security & Password", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            children: [
+              Icon(Icons.shield_outlined, color: context.appPrimary, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                "Security & Password",
+                style: AppTextTheme.titleMediumFor(context),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -175,7 +187,10 @@ class SettingDialogs {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Close", style: TextStyle(color: AppColors.textSecondary)),
+              child: Text(
+                "Close",
+                style: TextStyle(color: context.appTextSecondary),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -253,8 +268,9 @@ class SettingDialogs {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                backgroundColor: context.appPrimary,
+                foregroundColor:
+                    context.isDarkMode ? const Color(0xFF052E23) : Colors.white,
               ),
               child: const Text("Update Password"),
             ),
@@ -282,10 +298,20 @@ class SettingDialogs {
           shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
           titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
           title: Row(
-            children: const [
-              Icon(Icons.notifications_none_outlined, color: AppColors.primary, size: 20),
-              SizedBox(width: 8),
-              Text("Notification Settings", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            children: [
+              Icon(
+                Icons.notifications_none_outlined,
+                color: context.appPrimary,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                "Notification Settings",
+                style: AppTextTheme.bodyLargeFor(context).copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ],
           ),
           content: Column(
@@ -297,7 +323,7 @@ class SettingDialogs {
                 title: const Text("Daily Expense Reminder", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 subtitle: const Text("Receive evening reminder to log expenses", style: TextStyle(fontSize: 11)),
                 value: currentDaily,
-                activeTrackColor: AppColors.primary,
+                activeTrackColor: context.appPrimary,
                 onChanged: (val) async {
                   setModalState(() => currentDaily = val);
                   await onChanged(currentDaily, currentBudget);
@@ -331,7 +357,7 @@ class SettingDialogs {
                 title: const Text("Budget Overspending Alert", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 subtitle: const Text("Get alert when approaching 80% budget limit", style: TextStyle(fontSize: 11)),
                 value: currentBudget,
-                activeTrackColor: AppColors.primary,
+                activeTrackColor: context.appPrimary,
                 onChanged: (val) async {
                   setModalState(() => currentBudget = val);
                   await onChanged(currentDaily, currentBudget);
@@ -357,7 +383,13 @@ class SettingDialogs {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text("Done", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+              child: Text(
+                "Done",
+                style: TextStyle(
+                  color: context.appPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -394,7 +426,9 @@ class SettingDialogs {
               final isSelected = selectedCurrency == curr;
               return ListTile(
                 title: Text(curr, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-                trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+                trailing: isSelected
+                    ? Icon(Icons.check_rounded, color: context.appPrimary)
+                    : null,
                 onTap: () async {
                   await onCurrencySelected(curr);
                   final prefs = await SharedPreferences.getInstance();
@@ -429,7 +463,9 @@ class SettingDialogs {
             final isSelected = selectedTheme == t;
             return ListTile(
               title: Text(t, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-              trailing: isSelected ? const Icon(Icons.check_rounded, color: AppColors.primary) : null,
+              trailing: isSelected
+                  ? Icon(Icons.check_rounded, color: context.appPrimary)
+                  : null,
               onTap: () async {
                 await onThemeSelected(t);
                 final prefs = await SharedPreferences.getInstance();
@@ -459,31 +495,44 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Coming Soon", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            Icon(Icons.auto_awesome_rounded, color: context.appPrimary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              "Coming Soon",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               "Export Data (PDF & CSV)",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.primary),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+                color: context.appPrimary,
+              ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               "This feature is currently under active development and will be available in the next app update! Stay tuned.",
-              style: TextStyle(fontSize: 14),
+              style: AppTextTheme.bodyMediumFor(context),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Got it", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text(
+              "Got it",
+              style: TextStyle(
+                color: context.appPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -499,19 +548,30 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.delete_outline_rounded, color: AppColors.expense, size: 22),
-            SizedBox(width: 8),
-            Text("Clear App Cache?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.expense,
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              "Clear App Cache?",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
-        content: const Text(
+        content: Text(
           "This will clear temporary app cache files (0.4 MB). Your saved transactions, budgets, and investments will remain intact.",
+          style: AppTextTheme.bodyMediumFor(context),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: context.appTextSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -535,13 +595,16 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.privacy_tip_outlined, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Privacy Policy", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            Icon(Icons.privacy_tip_outlined, color: context.appPrimary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              "Privacy Policy",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
-        content: const SingleChildScrollView(
+        content: SingleChildScrollView(
           child: Text(
             "Tracklet SaveBuddy values your financial privacy.\n\n"
             "1. Offline First: All transactions, budgets, and investment records are stored locally on your device via SQLite.\n\n"
@@ -549,15 +612,24 @@ class SettingDialogs {
             "3. Personal Data: We collect your name and email only for user authentication and cross-device sync.\n\n"
             "4. Zero Tracking: We do not sell or track your financial data with third-party advertisers or data brokers.\n\n"
             "5. Data Control & Deletion: You can delete individual records or permanently delete your account and all associated cloud/local data under Settings > Delete Account, or request deletion externally at:\n"
-            "https://savebuddy-finance.web.app/delete-account\n\n"
-            "Official Policy: https://savebuddy-finance.web.app/privacy",
-            style: TextStyle(height: 1.4, fontSize: 13),
+            "https://naman-punamiya.github.io/Tracklet-SaveBuddy/delete-account.html\n\n"
+            "Official Policy: https://naman-punamiya.github.io/Tracklet-SaveBuddy/privacy.html",
+            style: AppTextTheme.bodyMediumFor(context).copyWith(
+              height: 1.4,
+              fontSize: 13,
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text(
+              "Close",
+              style: TextStyle(
+                color: context.appPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -570,10 +642,13 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.help_outline_rounded, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Help Center & FAQs", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            Icon(Icons.help_outline_rounded, color: context.appPrimary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              "Help Center & FAQs",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
         content: SizedBox(
@@ -582,14 +657,36 @@ class SettingDialogs {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text("Q: How to create a new expense book?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                SizedBox(height: 2),
-                Text("A: Tap on Books tab and click '+ Create Book'.", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-                SizedBox(height: 12),
-                Text("Q: How offline sync works?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                SizedBox(height: 2),
-                Text("A: Any changes made offline are saved locally and synced automatically when network resumes.", style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+              children: [
+                Text(
+                  "Q: How to create a new expense book?",
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "A: Tap on Books tab and click '+ Create Book'.",
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Q: How offline sync works?",
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  "A: Any changes made offline are saved locally and synced automatically when network resumes.",
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -597,7 +694,13 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text(
+              "Close",
+              style: TextStyle(
+                color: context.appPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -615,17 +718,25 @@ class SettingDialogs {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
         title: Row(
-          children: const [
-            Icon(Icons.headset_mic_outlined, color: AppColors.primary, size: 22),
-            SizedBox(width: 8),
-            Text("Contact Us & Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          children: [
+            Icon(Icons.headset_mic_outlined, color: context.appPrimary, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              "Contact Us & Feedback",
+              style: AppTextTheme.titleMediumFor(context),
+            ),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Support Email: support@tracklet-savebuddy.com", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            Text(
+              "Support Email: ndevstudioshelp@gmail.com",
+              style: AppTextTheme.bodySmallFor(context).copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: messageController,
@@ -640,7 +751,10 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: context.appTextSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -648,8 +762,9 @@ class SettingDialogs {
               onMessageSent();
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor: context.appPrimary,
+              foregroundColor:
+                  context.isDarkMode ? const Color(0xFF052E23) : Colors.white,
             ),
             child: const Text("Send Message"),
           ),
@@ -672,10 +787,17 @@ class SettingDialogs {
                 color: isDark ? AppColors.darkSurface : AppColors.primaryTint,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: AppDimensions.icon22),
+              child: Icon(
+                Icons.info_outline_rounded,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                size: AppDimensions.icon22,
+              ),
             ),
             const SizedBox(width: AppSpacing.small),
-            const Text("About Tracklet", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+            Text(
+              "About Tracklet",
+              style: AppTextTheme.titleLargeFor(context),
+            ),
           ],
         ),
         content: Column(
@@ -691,9 +813,34 @@ class SettingDialogs {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              "App Version 2.1.4 (Build 104)",
-              style: TextStyle(color: isDark ? AppColors.textMuted : AppColors.textSecondary, fontSize: 13),
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform().catchError(
+                (_) => PackageInfo(
+                  appName: '',
+                  packageName: '',
+                  version: '',
+                  buildNumber: '',
+                  buildSignature: '',
+                ),
+              ),
+              builder: (context, snapshot) {
+                final info = snapshot.data;
+                final String versionText;
+                if (info != null && info.version.isNotEmpty) {
+                  versionText = info.buildNumber.isNotEmpty
+                      ? "App Version ${info.version} (Build ${info.buildNumber})"
+                      : "App Version ${info.version}";
+                } else {
+                  versionText = "App Version";
+                }
+                return Text(
+                  versionText,
+                  style: TextStyle(
+                    color: isDark ? AppColors.textMuted : AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                );
+              },
             ),
             const SizedBox(height: AppSpacing.small),
             Text(
@@ -717,7 +864,13 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text(
+              "Close",
+              style: TextStyle(
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -753,7 +906,10 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: context.appTextSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -818,7 +974,7 @@ class SettingDialogs {
                 "• Your login credentials will be erased immediately.\n\n"
                 "Web Deletion Portal:\n"
                 "Users may also request account and data deletion externally at:\n"
-                "https://savebuddy-finance.web.app/delete-account",
+                "https://naman-punamiya.github.io/Tracklet-SaveBuddy/delete-account.html",
                 style: TextStyle(
                   color: isDark ? AppColors.textMuted : AppColors.textSecondary,
                   fontSize: 12,
@@ -831,7 +987,14 @@ class SettingDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(
+              "Cancel",
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
+            ),
           ),
           ElevatedButton(
             onPressed: () async {

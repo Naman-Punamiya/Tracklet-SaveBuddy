@@ -328,7 +328,7 @@
       <p>In accordance with <strong>Google Play Developer Program Policies</strong>, Tracklet SaveBuddy allows all users to request the permanent and irreversible deletion of their account and all associated personal and financial records at any time, including from outside the app.</p>
       <div class="meta-bar">
         <span><strong>Application:</strong> Tracklet SaveBuddy</span>
-        <span><strong>Package ID:</strong> <code>com.namanpunamiya.expense_tracker</code></span>
+        <span><strong>Package ID:</strong> <code>com.ndevstudios.trackletsavebuddy</code></span>
         <span><strong>Backend API:</strong> <code>DELETE /api/users/delete-account</code></span>
       </div>
       <div class="nav-links">
@@ -407,75 +407,29 @@
       </section>
 
       <section>
-        <h2>Option 2: External Web-Based Deletion Request</h2>
-        <p>If you have uninstalled the application or cannot access your Android device, submit your deletion request using the form below. To protect users from unauthorized deletion requests by third parties, an ownership verification link will be dispatched to your registered email address before final database deletion.</p>
+        <h2>Option 2: External Deletion Request by Email (No App Installation Required)</h2>
+        <p>If you cannot access the Tracklet SaveBuddy app, you can request deletion of your Tracklet SaveBuddy account without installing the app by contacting <strong>NDevStudios</strong> (developer of Tracklet SaveBuddy) using the support email below.</p>
 
         <div class="form-container">
-          <form id="deletionForm" onsubmit="handleDeletionSubmit(event)">
-            <div class="form-group">
-              <label for="userEmail">Registered Account Email Address</label>
-              <input type="email" id="userEmail" name="userEmail" placeholder="name@example.com" required autocomplete="email">
-              <span class="label-hint">Must match the email address associated with your Tracklet SaveBuddy account.</span>
-            </div>
+          <p style="margin-bottom: 10px; color: var(--text-main);"><strong>Support email (selectable/copyable):</strong></p>
+          <p style="margin-bottom: 14px; font-size: 16px;"><a href="mailto:ndevstudioshelp@gmail.com?subject=Account%20Deletion%20Request%20-%20Tracklet%20SaveBuddy">ndevstudioshelp@gmail.com</a></p>
+          <p style="margin-bottom: 8px;"><strong>Suggested email subject:</strong> <code>Account Deletion Request - Tracklet SaveBuddy</code></p>
+          <p style="margin-bottom: 16px; font-size: 14px; color: var(--text-secondary);">If your device does not have a configured email client, you can copy the email address above and send your request from any email service.</p>
 
-            <div class="form-group">
-              <label for="deletionReason">Reason for Deletion <span class="label-hint">(Optional)</span></label>
-              <select id="deletionReason" name="deletionReason">
-                <option value="no-longer-needed">No longer need the app</option>
-                <option value="switching-tools">Switching to another tool</option>
-                <option value="privacy-concerns">Privacy or data concerns</option>
-                <option value="temporary-break">Taking a break</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
+          <p style="margin-bottom: 8px;"><strong>How to request deletion:</strong></p>
+          <ol style="margin-bottom: 16px;">
+            <li>Send an email to <a href="mailto:ndevstudioshelp@gmail.com?subject=Account%20Deletion%20Request%20-%20Tracklet%20SaveBuddy">ndevstudioshelp@gmail.com</a> requesting deletion of your Tracklet SaveBuddy account.</li>
+            <li>Ideally, send the request from the email address registered with your Tracklet SaveBuddy account so we can locate and verify the account.</li>
+            <li>Support will review your request and verify account ownership before any deletion is processed.</li>
+            <li>If you cannot access your registered email address, contact support and request an alternative ownership verification process.</li>
+            <li>Once ownership and your intent to delete the account are confirmed, the account deletion is processed and you will receive confirmation through the support communication channel.</li>
+          </ol>
 
-            <div class="form-group">
-              <label for="additionalNotes">Additional Notes <span class="label-hint">(Optional)</span></label>
-              <textarea id="additionalNotes" name="additionalNotes" rows="3" placeholder="Provide any additional details or feedback..."></textarea>
-            </div>
-
-            <div class="checkbox-group">
-              <input type="checkbox" id="confirmConsent" name="confirmConsent" required>
-              <label for="confirmConsent">
-                I understand that submitting this request will permanently delete my Tracklet SaveBuddy user account and all associated cloud-synced financial records, ledgers, and transactions. I understand this action cannot be undone.
-              </label>
-            </div>
-
-            <button type="submit" class="btn-submit" id="submitBtn">
-              Submit Permanent Account Deletion Request
-            </button>
-          </form>
-
-          <div id="successCard" class="success-card" role="alert" aria-live="polite">
-            <h3>✓ Deletion Request Submitted</h3>
-            <p>Your external account deletion request has been formally logged by our compliance system.</p>
-            
-            <div class="receipt-box" id="receiptBox">
-              <!-- Dynamically populated via JS -->
-            </div>
-
-            <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 8px;">
-              <strong>Next Steps:</strong>
-            </p>
-            <ol style="margin-bottom: 12px; font-size: 14px;">
-              <li>A verification email has been dispatched to the address provided.</li>
-              <li>Please click the verification link within <strong>48 hours</strong> to confirm ownership of the account.</li>
-              <li>Upon confirmation, all server records across your user profile, books, categories, expenses, and investments will be permanently purged within <strong>72 hours</strong>.</li>
-            </ol>
-            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
-              For status inquiries or questions, contact: <a href="mailto:ndevstudioshelp@gmail.com">ndevstudioshelp@gmail.com</a> citing your Deletion Reference ID.
-            </p>
+          <div class="warning-card" style="margin: 0;">
+            <h3>Important</h3>
+            <p><strong>Submitting an email request does not itself mean your account has already been deleted.</strong> Ownership verification is required before deletion. For your security, do not send passwords, Basic Authentication credentials, or other secrets by email.</p>
           </div>
         </div>
-      </section>
-
-      <section style="margin-top: 36px;">
-        <h2>Direct Email Assistance</h2>
-        <p>If you encounter technical issues using the web form, you may also email our privacy team directly from your registered account address:</p>
-        <p>
-          <strong>Email:</strong> <a href="mailto:ndevstudioshelp@gmail.com?subject=Account%20Deletion%20Request%20-%20Tracklet%20SaveBuddy">ndevstudioshelp@gmail.com</a><br>
-          <strong>Subject:</strong> <code>Account Deletion Request - Tracklet SaveBuddy</code>
-        </p>
       </section>
     </main>
 
@@ -489,57 +443,6 @@
     </footer>
   </div>
 
-  <script>
-    function handleDeletionSubmit(event) {
-      event.preventDefault();
 
-      var emailInput = document.getElementById('userEmail');
-      var consentCheckbox = document.getElementById('confirmConsent');
-      var reasonSelect = document.getElementById('deletionReason');
-      var submitBtn = document.getElementById('submitBtn');
-      var form = document.getElementById('deletionForm');
-      var successCard = document.getElementById('successCard');
-      var receiptBox = document.getElementById('receiptBox');
-
-      var email = emailInput.value.trim();
-      if (!email || !consentCheckbox.checked) {
-        alert('Please provide a valid registered email address and confirm your consent.');
-        return;
-      }
-
-      submitBtn.disabled = true;
-      submitBtn.innerText = 'Processing Request...';
-
-      // Generate randomized request reference ticket
-      var now = new Date();
-      var dateStr = now.toISOString().split('T')[0];
-      var randId = Math.random().toString(36).substring(2, 8).toUpperCase();
-      var ticketId = 'DEL-' + dateStr.replace(/-/g, '') + '-' + randId;
-
-      setTimeout(function() {
-        receiptBox.innerHTML = 
-          'STATUS: REQUEST RECEIVED & PENDING VERIFICATION<br>' +
-          'REFERENCE ID: ' + ticketId + '<br>' +
-          'TARGET ACCOUNT: ' + escapeHtml(email) + '<br>' +
-          'REASON: ' + escapeHtml(reasonSelect.value) + '<br>' +
-          'TIMESTAMP (UTC): ' + now.toUTCString() + '<br>' +
-          'DATA SCOPE: FULL PURGE (User, Books, Expenses, Investments, Categories)';
-
-        form.style.display = 'none';
-        successCard.style.display = 'block';
-      }, 500);
-    }
-
-    function escapeHtml(text) {
-      var map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-      };
-      return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
-  </script>
 </body>
 </html>

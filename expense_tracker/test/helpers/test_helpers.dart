@@ -1,5 +1,6 @@
 import 'package:expense_tracker/database/database_helper.dart';
 import 'package:expense_tracker/services/connectivity_service.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/test/test_flutter_secure_storage_platform.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,8 +14,17 @@ void setupTestDatabase() {
   databaseFactory = databaseFactoryFfi;
   DatabaseHelper.testDatabasePath = inMemoryDatabasePath;
   ConnectivityService.mockStatus = ConnectivityStatus.offline;
+  ConnectivityService.mockStreamController = null;
   GoogleFonts.config.allowRuntimeFetching = false;
   setupTestSecureStorage();
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('com.llfbandit.app_links/messages'),
+    (MethodCall methodCall) async => null,
+  );
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+    const MethodChannel('com.llfbandit.app_links/events'),
+    (MethodCall methodCall) async => null,
+  );
 }
 
 void setupTestSecureStorage([Map<String, String>? initialValues]) {

@@ -32,6 +32,11 @@ abstract class AppColors {
   static const Color textMuted = Color(0xFF94A3B8);
   static const Color textWhite = Colors.white;
 
+  // Text Colors - Dark mode (kept close to the light tokens so the design
+  // language stays consistent while remaining readable on dark surfaces).
+  static const Color textPrimaryDark = Color(0xFFF1F5F9);
+  static const Color textSecondaryDark = Color(0xFFCBD5E1);
+
   // Borders & Dividers
   static const Color borderLight = Color(0xFFE2E8F0);
   static const Color borderDark = Color(0xFF334155);
@@ -74,3 +79,37 @@ const List<Color> pieColors = [
   Color(0xFF6EE7B7),
   Color(0xFFA7F3D0),
 ];
+
+/// Theme-aware color shortcuts.
+///
+/// Light mode always resolves to the original palette values, so existing
+/// light-mode visuals are preserved. Dark mode resolves to the dedicated dark
+/// tokens (or a brighter emerald for accents that need contrast on slate).
+extension AppThemeColors on BuildContext {
+  bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+
+  Color get appTextPrimary =>
+      isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary;
+
+  Color get appTextSecondary =>
+      isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondary;
+
+  /// Muted text is intentionally identical in both themes: the slate grey has
+  /// sufficient contrast on both the cream and the dark backgrounds.
+  Color get appTextMuted => AppColors.textMuted;
+
+  /// Brand accent that stays legible on the current background.
+  Color get appPrimary =>
+      isDarkMode ? AppColors.primaryAccent : AppColors.primary;
+
+  Color get appSurface =>
+      isDarkMode ? AppColors.darkSurface : AppColors.lightSurface;
+
+  Color get appCard => isDarkMode ? AppColors.darkCard : AppColors.lightCard;
+
+  Color get appBorder =>
+      isDarkMode ? AppColors.borderDark : AppColors.borderLight;
+
+  Color get appBackground =>
+      isDarkMode ? AppColors.darkBackground : AppColors.lightBackground;
+}

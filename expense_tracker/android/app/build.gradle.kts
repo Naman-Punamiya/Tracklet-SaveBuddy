@@ -14,8 +14,13 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val appLinksHost: String =
+    (project.findProperty("appLinksHost") as String?)
+        ?: System.getenv("APP_LINKS_HOST")
+        ?: "auth.namanpunamiya.me"
+
 android {
-    namespace = "com.namanpunamiya.expense_tracker"
+    namespace = "com.ndevstudios.trackletsavebuddy"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -30,13 +35,16 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.namanpunamiya.expense_tracker"
+        applicationId = "com.ndevstudios.trackletsavebuddy"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // Configurable Android App Links host for password reset (override with -PappLinksHost=... or APP_LINKS_HOST env var)
+        manifestPlaceholders["appLinksHost"] = appLinksHost
     }
 
     signingConfigs {

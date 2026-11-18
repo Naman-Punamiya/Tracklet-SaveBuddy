@@ -1,26 +1,31 @@
 package com.ndevstudio.expensetracker.service;
 
 import com.ndevstudio.expensetracker.entity.Book;
+import com.ndevstudio.expensetracker.entity.Expense;
 import com.ndevstudio.expensetracker.entity.User;
 import com.ndevstudio.expensetracker.repository.BookRepository;
+import com.ndevstudio.expensetracker.repository.ExpenseRepository;
 import com.ndevstudio.expensetracker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 public class BookService {
-    private BookRepository bookRepository;
-    private UserRepository userRepository;
+    private final BookRepository bookRepository;
+    private final UserRepository userRepository;
+    private final ExpenseRepository expenseRepository;
 
     @Autowired
-    BookService(BookRepository bookRepository, UserRepository userRepository) {
+    BookService(BookRepository bookRepository, UserRepository userRepository, ExpenseRepository expenseRepository) {
         this.bookRepository = bookRepository;
         this.userRepository = userRepository;
+        this.expenseRepository = expenseRepository;
     }
 
     //Read
@@ -68,6 +73,7 @@ public class BookService {
     }
 
     //Delete
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity<String> deleteBook(long id, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElseThrow();
@@ -79,6 +85,7 @@ public class BookService {
         if (!(b.getUser().getId() == user.getId())) {
             return new ResponseEntity<>("Unauthorized", HttpStatus.UNAUTHORIZED);
         }
+
         bookRepository.delete(b);
         return new ResponseEntity<>("Book deleted", HttpStatus.OK);
     }

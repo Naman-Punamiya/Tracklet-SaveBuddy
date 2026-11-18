@@ -25,14 +25,14 @@ class InvestmentDialogs {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
             title: Row(
-              children: const [
+              children: [
                 Icon(
                   Icons.add_chart_rounded,
-                  color: AppColors.primary,
+                  color: context.appPrimary,
                   size: AppDimensions.icon24,
                 ),
-                SizedBox(width: AppSpacing.small),
-                Text("Add Investment", style: AppTextTheme.titleLarge),
+                const SizedBox(width: AppSpacing.small),
+                Text("Add Investment", style: AppTextTheme.titleLargeFor(context)),
               ],
             ),
             content: Column(
@@ -40,7 +40,7 @@ class InvestmentDialogs {
               children: [
                 TextField(
                   controller: descriptionController,
-                  style: AppTextTheme.bodyLarge,
+                  style: AppTextTheme.bodyLargeFor(context),
                   decoration: InputDecoration(
                     labelText: 'Investment Name',
                     errorText: descriptionError,
@@ -56,7 +56,7 @@ class InvestmentDialogs {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: AppTextTheme.bodyLarge,
+                  style: AppTextTheme.bodyLargeFor(context),
                   decoration: InputDecoration(
                     labelText: 'Invested Amount (₹)',
                     errorText: amountError,
@@ -73,8 +73,8 @@ class InvestmentDialogs {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   "Cancel",
-                  style: AppTextTheme.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    color: context.appTextSecondary,
                   ),
                 ),
               ),
@@ -114,8 +114,12 @@ class InvestmentDialogs {
                   await onAdd(description, amount!);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textWhite,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.primaryAccent
+                      : AppColors.primary,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF052E23)
+                      : AppColors.textWhite,
                   shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
                 ),
                 child: const Text("Add"),
@@ -148,14 +152,14 @@ class InvestmentDialogs {
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
             title: Row(
-              children: const [
+              children: [
                 Icon(
                   Icons.edit_note_rounded,
-                  color: AppColors.primary,
+                  color: context.appPrimary,
                   size: AppDimensions.icon24,
                 ),
-                SizedBox(width: AppSpacing.small),
-                Text("Edit Investment", style: AppTextTheme.titleLarge),
+                const SizedBox(width: AppSpacing.small),
+                Text("Edit Investment", style: AppTextTheme.titleLargeFor(context)),
               ],
             ),
             content: Column(
@@ -163,7 +167,7 @@ class InvestmentDialogs {
               children: [
                 TextField(
                   controller: descriptionController,
-                  style: AppTextTheme.bodyLarge,
+                  style: AppTextTheme.bodyLargeFor(context),
                   decoration: InputDecoration(
                     labelText: 'Investment Name / Type',
                     errorText: descriptionError,
@@ -179,7 +183,7 @@ class InvestmentDialogs {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  style: AppTextTheme.bodyLarge,
+                  style: AppTextTheme.bodyLargeFor(context),
                   decoration: InputDecoration(
                     labelText: 'Invested Amount (₹)',
                     errorText: amountError,
@@ -196,8 +200,8 @@ class InvestmentDialogs {
                 onPressed: () => Navigator.pop(dialogContext),
                 child: Text(
                   "Cancel",
-                  style: AppTextTheme.bodyMedium.copyWith(
-                    color: AppColors.textSecondary,
+                  style: AppTextTheme.bodyMediumFor(context).copyWith(
+                    color: context.appTextSecondary,
                   ),
                 ),
               ),
@@ -237,8 +241,12 @@ class InvestmentDialogs {
                   await onUpdate(id, description, amount!);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.textWhite,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.primaryAccent
+                      : AppColors.primary,
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF052E23)
+                      : AppColors.textWhite,
                   shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
                 ),
                 child: const Text("Save"),
@@ -319,9 +327,12 @@ class InvestmentDialogs {
               Navigator.pop(dialogContext);
               onEdit();
             },
-            child: const Text(
+            child: Text(
               "Edit",
-              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           TextButton(
@@ -336,9 +347,13 @@ class InvestmentDialogs {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text(
+            child: Text(
               "Close",
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
+              ),
             ),
           ),
         ],

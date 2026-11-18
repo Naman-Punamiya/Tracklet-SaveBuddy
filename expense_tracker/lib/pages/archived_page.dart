@@ -5,6 +5,7 @@ import 'package:expense_tracker/core/theme/app_shadows.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
+import 'package:expense_tracker/custom_widgets/pending_deletion_banner.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/currency_service.dart';
@@ -34,6 +35,8 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   List<dynamic> filteredBooks = [];
   bool hasChanges = false;
   bool isLoading = true;
+  int _pendingDeletionsCount = 0;
+  bool _isRetryingSync = false;
 
   String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
       ? AuthStorageService.instance.currentAuthToken
@@ -43,11 +46,23 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
   void initState() {
     super.initState();
     _loadBooks();
-    _triggerSync();
+    if (!SyncEngine.initialSyncStarted) {
+      SyncEngine.markInitialSyncStarted();
+      _triggerSync();
+    }
+    SyncEngine.syncingNotifier.addListener(_onSyncStatusChanged);
+  }
+
+  void _onSyncStatusChanged() {
+    if (!mounted) return;
+    if (!SyncEngine.isSyncing) {
+      _loadBooks();
+    } else {
+      setState(() {});
+    }
   }
 
   Future<void> _triggerSync() async {
-    if (widget.email.contains('test')) return;
     await SyncEngine.syncAll(basicAuth);
     if (mounted) {
       _loadBooks();
@@ -56,6 +71,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
 
   @override
   void dispose() {
+    SyncEngine.syncingNotifier.removeListener(_onSyncStatusChanged);
     bookNameController.dispose();
     bookSubtitleController.dispose();
     searchController.dispose();
@@ -71,8 +87,13 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
 
   Future<void> _loadBooks() async {
     try {
-      allBooks = await fetchBooks();
+      final results = await Future.wait([
+        fetchBooks(),
+        bookRepo.getPendingDeletionsCount(),
+      ]);
+      allBooks = results[0] as List<dynamic>;
       filteredBooks = List.from(allBooks);
+      _pendingDeletionsCount = results[1] as int;
     } finally {
       if (mounted) {
         setState(() {
@@ -109,10 +130,10 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Book Name: $bookName", style: AppTextTheme.bodyLarge),
+            Text("Book Name: $bookName", style: AppTextTheme.bodyLargeFor(context)),
             const SizedBox(height: 6),
             if (bookSubtitle.isNotEmpty)
-              Text("Book Subtitle: $bookSubtitle", style: AppTextTheme.bodyMedium),
+              Text("Book Subtitle: $bookSubtitle", style: AppTextTheme.bodyMediumFor(context)),
           ],
         ),
         actions: [
@@ -130,7 +151,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
                 ),
               );
             },
-            child: const Text("Restore", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+            child: Text("Restore", style: TextStyle(color: context.appPrimary, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () async {
@@ -141,7 +162,8 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text("Book Deleted Successfully"),
+                  content: Text("Book deleted."),
+                  duration: Duration(seconds: 2),
                   backgroundColor: AppColors.expense,
                 ),
               );
@@ -152,7 +174,7 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
             onPressed: () {
               Navigator.pop(dialogContext);
             },
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
           ),
         ],
       ),
@@ -189,9 +211,9 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
                 backgroundColor: isDark
                     ? AppColors.darkCard
                     : AppColors.primaryTint,
-                child: const Icon(
+                child: Icon(
                   Icons.person_outline_rounded,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
                   size: 18,
                 ),
               ),
@@ -200,12 +222,12 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "Tracklet SaveBuddy",
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.textWhite : AppColors.primary,
                     ),
                   ),
                   Offstage(
@@ -232,16 +254,50 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     );
   }
 
+  Future<void> _retryPendingDeletes() async {
+    if (_isRetryingSync || SyncEngine.isSyncing) return;
+    setState(() {
+      _isRetryingSync = true;
+    });
+    try {
+      await SyncEngine.syncAll(basicAuth);
+    } catch (e) {
+      debugPrint("Manual retry sync error: $e");
+    } finally {
+      if (mounted) {
+        await _loadBooks();
+        setState(() {
+          _isRetryingSync = false;
+        });
+      }
+    }
+  }
+
   Widget buildBody() {
     if (isLoading) {
       return const AppLoading();
     }
 
     if (allBooks.isEmpty && widget.email.contains('test')) {
-      return const AppEmptyState(
-        icon: Icons.archive_outlined,
-        title: "No Books Yet",
-        description: "Create your first book.",
+      return Column(
+        children: [
+          if (_pendingDeletionsCount > 0)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: PendingDeletionBanner(
+                count: _pendingDeletionsCount,
+                isRetrying: _isRetryingSync,
+                onRetry: _retryPendingDeletes,
+              ),
+            ),
+          const Expanded(
+            child: AppEmptyState(
+              icon: Icons.archive_outlined,
+              title: "No Books Yet",
+              description: "Create your first book.",
+            ),
+          ),
+        ],
       );
     }
 
@@ -288,6 +344,10 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
             child: TextField(
               onChanged: filterBooks,
               controller: searchController,
+              style: TextStyle(
+                color: isDark ? AppColors.textWhite : AppColors.textPrimary,
+                fontSize: 14,
+              ),
               decoration: InputDecoration(
                 hintText: 'Search archived ledgers...',
                 hintStyle: TextStyle(
@@ -317,6 +377,16 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
           ),
         ),
 
+        if (_pendingDeletionsCount > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: PendingDeletionBanner(
+              count: _pendingDeletionsCount,
+              isRetrying: _isRetryingSync,
+              onRetry: _retryPendingDeletes,
+            ),
+          ),
+
         Expanded(
           child: displayBooks.isEmpty
               ? Center(
@@ -329,12 +399,14 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
                         color: AppColors.textMuted,
                       ),
                       const SizedBox(height: 12),
-                      const Text(
+                      Text(
                         "No Books Found",
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.textSecondary,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -392,13 +464,13 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
             height: 44,
             decoration: BoxDecoration(
               color: isDark
-                  ? AppColors.primary.withValues(alpha: 0.15)
+                  ? AppColors.primaryAccent.withValues(alpha: 0.15)
                   : AppColors.primaryTint,
               borderRadius: AppRadius.medium,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.archive_outlined,
-              color: AppColors.primary,
+              color: isDark ? AppColors.primaryAccent : AppColors.primary,
               size: 22,
             ),
           ),
@@ -480,8 +552,8 @@ class _ArchivedBooksPageState extends State<ArchivedBooksPage> {
     return await bookRepo.getBooks(archived: 1);
   }
 
-  Future<void> deleteBook(String id) async {
-    await bookRepo.deleteBook(id, basicAuth);
+  Future<bool> deleteBook(String id) async {
+    return await bookRepo.deleteBook(id, basicAuth);
   }
 
   Future<void> restoreBook(String id) async {

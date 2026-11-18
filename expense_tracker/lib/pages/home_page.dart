@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:expense_tracker/features/expense_import/parser/parser_manager.dart';
 import 'package:expense_tracker/keep_alive_service.dart';
 import 'package:expense_tracker/pages/HomePage/book_page.dart';
@@ -55,6 +56,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final List<Widget> pages = [
       BookPage(email: widget.email, password: widget.password),
 
@@ -64,58 +66,80 @@ class _HomePageState extends State<HomePage> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF8F3),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: pages[currentIndex],
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : Colors.white,
           border: Border(
-            top: BorderSide(color: Color(0xFFF3F4F6), width: 0.5),
+            top: BorderSide(
+              color: isDark
+                  ? AppColors.borderDark
+                  : const Color(0xFFF3F4F6),
+              width: 0.5,
+            ),
           ),
         ),
         child: SafeArea(
-          child: SizedBox(
-            height: 52,
-            child: BottomNavigationBar(
-              currentIndex: currentIndex,
-              elevation: 0,
-              backgroundColor: Colors.white,
-              selectedItemColor: const Color(0xFF065F46),
-              unselectedItemColor: const Color(0xFF6B7280),
-              selectedFontSize: 14,
-              unselectedFontSize: 14,
-              selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
-              ),
-              type: BottomNavigationBarType.fixed,
-              onTap: (index) {
-                setState(() {
-                  currentIndex = index;
-                });
-              },
-              items: const [
-                BottomNavigationBarItem(
-                  icon: SizedBox(height: 0, width: 0),
-                  activeIcon: SizedBox(height: 0, width: 0),
-                  label: "Books",
-                ),
-                BottomNavigationBarItem(
-                  icon: SizedBox(height: 0, width: 0),
-                  activeIcon: SizedBox(height: 0, width: 0),
-                  label: "Investments",
-                ),
-                BottomNavigationBarItem(
-                  icon: SizedBox(height: 0, width: 0),
-                  activeIcon: SizedBox(height: 0, width: 0),
-                  label: "Settings",
-                ),
-              ],
+          child: BottomNavigationBar(
+            currentIndex: currentIndex,
+            elevation: 0,
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+            selectedItemColor:
+                isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+            unselectedItemColor:
+                isDark ? AppColors.textMuted : const Color(0xFF6B7280),
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              setState(() {
+                currentIndex = index;
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.menu_book_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.menu_book_rounded, size: 22),
+                ),
+                label: "Books",
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.auto_graph_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.auto_graph_rounded, size: 22),
+                ),
+                label: "Investments",
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.tune_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.tune_rounded, size: 22),
+                ),
+                label: "Settings",
+              ),
+            ],
           ),
         ),
       ),

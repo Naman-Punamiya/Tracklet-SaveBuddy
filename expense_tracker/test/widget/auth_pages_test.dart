@@ -59,7 +59,7 @@ void main() {
       expect(find.text('Password cannot be empty'), findsOneWidget);
     });
 
-    testWidgets('shows coming soon snackbar on Forgot Password tap', (WidgetTester tester) async {
+    testWidgets('navigates to ForgotPasswordPage on Forgot Password tap', (WidgetTester tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: LoginPage(),
@@ -68,9 +68,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
 
       await tester.tap(find.text('Forgot Password?'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
-      expect(find.text('Forgot password functionality coming soon!'), findsOneWidget);
+      expect(find.text('Forgot Password'), findsOneWidget);
+      expect(find.text('Send reset instructions'), findsOneWidget);
     });
 
     testWidgets('navigates to RegisterPage when Create one is tapped', (WidgetTester tester) async {

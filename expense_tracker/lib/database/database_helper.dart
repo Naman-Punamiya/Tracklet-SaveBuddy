@@ -223,7 +223,11 @@ class DatabaseHelper {
 
   Future<int> insertLocalBook(Map<String, dynamic> book) async {
     final db = await database;
-    return await db.insert('books', book);
+    return await db.insert(
+      'books',
+      book,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateLocalBook(int localId, Map<String, dynamic> book) async {
@@ -233,12 +237,20 @@ class DatabaseHelper {
 
   Future<int> deleteLocalBook(int localId) async {
     final db = await database;
+    // Remove associated local expenses so SQLite does not retain orphaned financial records
+    await db.delete('expenses', where: 'book_id = ?', whereArgs: [localId]);
     return await db.delete('books', where: 'id = ?', whereArgs: [localId]);
   }
 
   Future<Map<String, dynamic>?> getLocalBookById(int localId) async {
     final db = await database;
     final list = await db.query('books', where: 'id = ?', whereArgs: [localId]);
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getLocalBookByServerId(int serverId) async {
+    final db = await database;
+    final list = await db.query('books', where: 'server_id = ?', whereArgs: [serverId]);
     return list.isNotEmpty ? list.first : null;
   }
 
@@ -264,7 +276,11 @@ class DatabaseHelper {
 
   Future<int> insertLocalCategory(Map<String, dynamic> category) async {
     final db = await database;
-    return await db.insert('categories', category);
+    return await db.insert(
+      'categories',
+      category,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateLocalCategory(int localId, Map<String, dynamic> category) async {
@@ -280,6 +296,19 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> getLocalCategoryById(int localId) async {
     final db = await database;
     final list = await db.query('categories', where: 'id = ?', whereArgs: [localId]);
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getLocalCategoryByServerId(int serverId) async {
+    final db = await database;
+    final list = await db.query('categories', where: 'server_id = ?', whereArgs: [serverId]);
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getLocalCategoryByName(String name) async {
+    final db = await database;
+    final trimmed = name.trim().toLowerCase();
+    final list = await db.query('categories', where: 'LOWER(name) = ?', whereArgs: [trimmed]);
     return list.isNotEmpty ? list.first : null;
   }
 
@@ -311,14 +340,18 @@ class DatabaseHelper {
     ];
 
     for (final cat in defaultCategories) {
-      await db.insert('categories', {
-        'name': cat['name'],
-        'icon': cat['icon'],
-        'color': cat['color'],
-        'created_at': nowStr,
-        'updated_at': nowStr,
-        'synced': 0,
-      });
+      await db.insert(
+        'categories',
+        {
+          'name': cat['name'],
+          'icon': cat['icon'],
+          'color': cat['color'],
+          'created_at': nowStr,
+          'updated_at': nowStr,
+          'synced': 1, // Marked as synced so default presets are not uploaded as user creations
+        },
+        conflictAlgorithm: ConflictAlgorithm.ignore,
+      );
     }
   }
 
@@ -334,7 +367,11 @@ class DatabaseHelper {
 
   Future<int> insertLocalExpense(Map<String, dynamic> expense) async {
     final db = await database;
-    return await db.insert('expenses', expense);
+    return await db.insert(
+      'expenses',
+      expense,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateLocalExpense(int localId, Map<String, dynamic> expense) async {
@@ -356,6 +393,12 @@ class DatabaseHelper {
       WHERE e.id = ?
     ''', [localId]);
     return list.isNotEmpty ? _formatExpenseRow(list.first) : null;
+  }
+
+  Future<Map<String, dynamic>?> getLocalExpenseByServerId(int serverId) async {
+    final db = await database;
+    final list = await db.query('expenses', where: 'server_id = ?', whereArgs: [serverId]);
+    return list.isNotEmpty ? list.first : null;
   }
 
   Future<List<Map<String, dynamic>>> getLocalExpensesByBook(int localBookId) async {
@@ -389,7 +432,11 @@ class DatabaseHelper {
 
   Future<int> insertLocalInvestment(Map<String, dynamic> investment) async {
     final db = await database;
-    return await db.insert('investments', investment);
+    return await db.insert(
+      'investments',
+      investment,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   Future<int> updateLocalInvestment(int localId, Map<String, dynamic> investment) async {
@@ -405,6 +452,12 @@ class DatabaseHelper {
   Future<Map<String, dynamic>?> getLocalInvestmentById(int localId) async {
     final db = await database;
     final list = await db.query('investments', where: 'id = ?', whereArgs: [localId]);
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getLocalInvestmentByServerId(int serverId) async {
+    final db = await database;
+    final list = await db.query('investments', where: 'server_id = ?', whereArgs: [serverId]);
     return list.isNotEmpty ? list.first : null;
   }
 

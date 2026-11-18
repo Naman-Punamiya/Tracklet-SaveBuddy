@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:expense_tracker/core/theme/app_colors.dart';
+import 'package:expense_tracker/core/theme/app_theme.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/currency_service.dart';
@@ -232,13 +233,22 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
       lastDate: DateTime(2100),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: stitchGreen,
-              onPrimary: Colors.white,
-              onSurface: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
+          data: isDark
+              ? AppTheme.darkTheme.copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: AppColors.primaryAccent,
+                    onPrimary: Color(0xFF052E23),
+                    surface: AppColors.darkSurface,
+                    onSurface: AppColors.textPrimaryDark,
+                  ),
+                )
+              : Theme.of(context).copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: stitchGreen,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
+                ),
           child: child!,
         );
       },
@@ -251,13 +261,22 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
       initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: stitchGreen,
-              onPrimary: Colors.white,
-              onSurface: isDark ? Colors.white : Colors.black87,
-            ),
-          ),
+          data: isDark
+              ? AppTheme.darkTheme.copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: AppColors.primaryAccent,
+                    onPrimary: Color(0xFF052E23),
+                    surface: AppColors.darkSurface,
+                    onSurface: AppColors.textPrimaryDark,
+                  ),
+                )
+              : Theme.of(context).copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: stitchGreen,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
+                ),
           child: child!,
         );
       },
@@ -277,6 +296,7 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
   }
 
   void _showQuickCreateCategoryDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final catController = TextEditingController();
     showDialog(
       context: context,
@@ -295,7 +315,10 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: stitchGreen, width: 1.5),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.primaryAccent : stitchGreen,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
@@ -332,8 +355,8 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: stitchGreen,
-                    foregroundColor: Colors.white,
+                    backgroundColor: isDark ? AppColors.primaryAccent : stitchGreen,
+                    foregroundColor: isDark ? const Color(0xFF052E23) : Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: isCreating ? const AppButtonLoading() : const Text("Create"),
@@ -798,14 +821,18 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.trending_up_rounded, size: 14, color: stitchGreen),
+                  Icon(
+                    Icons.trending_up_rounded,
+                    size: 14,
+                    color: isDark ? AppColors.primaryAccent : stitchGreen,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     "Credited to ${widget.bookName}",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: stitchGreen,
+                      color: isDark ? AppColors.primaryAccent : stitchGreen,
                     ),
                   ),
                 ],
@@ -872,13 +899,13 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? stitchGreen
+                    ? (isDark ? AppColors.primaryAccent : stitchGreen)
                     : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6)),
                 borderRadius: BorderRadius.circular(999),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: stitchGreen.withValues(alpha: 0.3),
+                          color: (isDark ? AppColors.primaryAccent : stitchGreen).withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -892,7 +919,7 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? Colors.white
+                      ? (isDark ? const Color(0xFF052E23) : Colors.white)
                       : (isDark ? const Color(0xFFE2E8F0) : const Color(0xFF374151)),
                 ),
               ),
@@ -1064,6 +1091,7 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
   // 6. Save Button
   // ---------------------------------------------------------------------------
   Widget _buildSaveButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final String buttonText;
     if (widget.isEdit) {
       buttonText = _isCredit ? "Update income" : "Update expense";
@@ -1077,9 +1105,9 @@ class _AddEditExpenseSheetState extends State<AddEditExpenseSheet>
       child: ElevatedButton(
         onPressed: _isSaving ? null : _save,
         style: ElevatedButton.styleFrom(
-          backgroundColor: stitchGreen,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: stitchGreen.withValues(alpha: 0.6),
+          backgroundColor: isDark ? AppColors.primaryAccent : stitchGreen,
+          foregroundColor: isDark ? const Color(0xFF052E23) : Colors.white,
+          disabledBackgroundColor: (isDark ? AppColors.primaryAccent : stitchGreen).withValues(alpha: 0.6),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),
           ),

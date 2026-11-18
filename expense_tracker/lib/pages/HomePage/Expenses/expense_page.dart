@@ -73,6 +73,7 @@ class _ExpensePageState extends State<ExpensePage> {
     selectedMonth = DateTime.now().month;
     _expensesFuture = fetchExpenses(widget.bookId, basicAuth);
     fetchCategories();
+    SyncEngine.syncingNotifier.addListener(_onSyncStatusChanged);
 
     _connectivitySubscription =
         ConnectivityService.connectivityStream.listen((status) {
@@ -80,6 +81,14 @@ class _ExpensePageState extends State<ExpensePage> {
         _reloadExpenses(resetFilters: false);
       }
     });
+  }
+
+  void _onSyncStatusChanged() {
+    if (!mounted) return;
+    if (!SyncEngine.isSyncing) {
+      _reloadExpenses(resetFilters: false);
+      fetchCategories();
+    }
   }
 
   Future<List<dynamic>> fetchExpenses(String bookId, String basicAuth) async {
@@ -137,6 +146,7 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Widget _buildSyncBadge(int status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     Color bgColor;
     Color textColor;
     IconData icon;
@@ -144,21 +154,21 @@ class _ExpensePageState extends State<ExpensePage> {
 
     switch (status) {
       case 1:
-        bgColor = AppColors.primaryTint;
-        textColor = AppColors.primary;
+        bgColor = isDark ? AppColors.income.withValues(alpha: 0.18) : AppColors.primaryTint;
+        textColor = isDark ? AppColors.income : AppColors.primary;
         icon = Icons.cloud_done_rounded;
         text = "Synced";
         break;
       case 2:
-        bgColor = AppColors.expenseTint;
-        textColor = AppColors.expense;
+        bgColor = isDark ? AppColors.expense.withValues(alpha: 0.18) : AppColors.expenseTint;
+        textColor = isDark ? const Color(0xFFF87171) : AppColors.expense;
         icon = Icons.cloud_off_rounded;
         text = "Sync Failed";
         break;
       case 0:
       default:
-        bgColor = AppColors.warningTint;
-        textColor = AppColors.warning;
+        bgColor = isDark ? AppColors.warning.withValues(alpha: 0.18) : AppColors.warningTint;
+        textColor = isDark ? const Color(0xFFFBBF24) : AppColors.warning;
         icon = Icons.cloud_upload_outlined;
         text = "Pending Sync";
         break;
@@ -190,6 +200,7 @@ class _ExpensePageState extends State<ExpensePage> {
 
   @override
   void dispose() {
+    SyncEngine.syncingNotifier.removeListener(_onSyncStatusChanged);
     _connectivitySubscription?.cancel();
     descriptionController.dispose();
     amountController.dispose();
@@ -374,8 +385,8 @@ class _ExpensePageState extends State<ExpensePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF065F46),
-        foregroundColor: Colors.white,
+        backgroundColor: isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+        foregroundColor: isDark ? const Color(0xFF052E23) : Colors.white,
         elevation: 4,
         shape: const CircleBorder(),
         tooltip: 'Add Expense',
@@ -475,7 +486,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
+                    color: isDark ? const Color(0xFF475569) : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -483,9 +494,13 @@ class _ExpensePageState extends State<ExpensePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       "Select Month",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                     ),
                     if (selectedMonth != null)
                       TextButton(
@@ -580,10 +595,10 @@ class _ExpensePageState extends State<ExpensePage> {
           children: [
             Text(
               "+${CurrencyService.format(income)} in",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF059669),
+                color: isDark ? AppColors.income : const Color(0xFF059669),
               ),
             ),
             const SizedBox(width: 16),
@@ -662,7 +677,7 @@ class _ExpensePageState extends State<ExpensePage> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFF065F46)
+                ? (isDark ? AppColors.primaryAccent : const Color(0xFF065F46))
                 : (isDark ? const Color(0xFF1E293B) : const Color(0xFFEDEDEA)),
             borderRadius: BorderRadius.circular(20),
           ),
@@ -675,7 +690,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                   color: isSelected
-                      ? Colors.white
+                      ? (isDark ? const Color(0xFF052E23) : Colors.white)
                       : (isDark ? Colors.white70 : const Color(0xFF1F2937)),
                 ),
               ),
@@ -732,7 +747,7 @@ class _ExpensePageState extends State<ExpensePage> {
               Icons.arrow_drop_down,
               size: 18,
               color: hasCategory
-                  ? Colors.white
+                  ? (isDark ? const Color(0xFF052E23) : Colors.white)
                   : (isDark ? Colors.white70 : const Color(0xFF1F2937)),
             ),
             onTap: _showCategoryFilterPicker,
@@ -763,15 +778,19 @@ class _ExpensePageState extends State<ExpensePage> {
                     width: 40,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
+                      color: isDark ? const Color(0xFF475569) : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                Text(
                   "Filter by Category",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Wrap(
@@ -781,10 +800,14 @@ class _ExpensePageState extends State<ExpensePage> {
                     ChoiceChip(
                       label: const Text("All"),
                       selected: selectedFilterCategory == "All",
-                      selectedColor: const Color(0xFF065F46),
+                      selectedColor: isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+                      backgroundColor: isDark ? const Color(0xFF334155) : null,
                       labelStyle: TextStyle(
-                        color: selectedFilterCategory == "All" ? Colors.white : null,
+                        color: selectedFilterCategory == "All"
+                            ? (isDark ? const Color(0xFF052E23) : Colors.white)
+                            : (isDark ? Colors.white70 : Colors.black87),
                       ),
+                      checkmarkColor: isDark ? const Color(0xFF052E23) : Colors.white,
                       onSelected: (_) {
                         Navigator.pop(ctx);
                         setState(() {
@@ -799,10 +822,14 @@ class _ExpensePageState extends State<ExpensePage> {
                       return ChoiceChip(
                         label: Text(name),
                         selected: isSelected,
-                        selectedColor: const Color(0xFF065F46),
+                        selectedColor: isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+                        backgroundColor: isDark ? const Color(0xFF334155) : null,
                         labelStyle: TextStyle(
-                          color: isSelected ? Colors.white : null,
+                          color: isSelected
+                              ? (isDark ? const Color(0xFF052E23) : Colors.white)
+                              : (isDark ? Colors.white70 : Colors.black87),
                         ),
+                        checkmarkColor: isDark ? const Color(0xFF052E23) : Colors.white,
                         onSelected: (_) {
                           Navigator.pop(ctx);
                           setState(() {
@@ -836,7 +863,7 @@ class _ExpensePageState extends State<ExpensePage> {
     final formattedAmount = CurrencyService.format(amountNum);
     final displayAmount = isCredit ? "+$formattedAmount" : "−$formattedAmount";
     final amountColor = isCredit
-        ? const Color(0xFF059669)
+        ? (isDark ? AppColors.income : const Color(0xFF059669))
         : (isDark ? Colors.white : const Color(0xFF111827));
     final timeStr = DateFormat('h:mm a').format(dateTime);
 
@@ -857,8 +884,19 @@ class _ExpensePageState extends State<ExpensePage> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: style.bgColor,
+                color: isDark
+                    ? Color.alphaBlend(
+                        style.textColor.withValues(alpha: 0.22),
+                        AppColors.darkSurface,
+                      )
+                    : style.bgColor,
                 borderRadius: BorderRadius.circular(14),
+                border: isDark
+                    ? Border.all(
+                        color: style.textColor.withValues(alpha: 0.3),
+                        width: 1,
+                      )
+                    : null,
               ),
               alignment: Alignment.center,
               child: Text(
@@ -866,7 +904,9 @@ class _ExpensePageState extends State<ExpensePage> {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: style.textColor,
+                  color: isDark
+                      ? Color.lerp(style.textColor, Colors.white, 0.45)
+                      : style.textColor,
                 ),
               ),
             ),

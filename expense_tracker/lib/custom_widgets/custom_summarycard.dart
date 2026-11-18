@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class CustomSummaryCard extends StatefulWidget {
@@ -21,18 +22,22 @@ class CustomSummaryCard extends StatefulWidget {
 class _CustomSummaryCardState extends State<CustomSummaryCard> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.darkCard : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0C000000), // ~5% opacity soft shadow
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        border: isDark ? Border.all(color: AppColors.borderDark) : null,
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x0C000000), // ~5% opacity soft shadow
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -40,7 +45,7 @@ class _CustomSummaryCardState extends State<CustomSummaryCard> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: widget.color.withValues(alpha: 0.12),
+              color: widget.color.withValues(alpha: isDark ? 0.2 : 0.12),
               shape: BoxShape.circle,
             ),
             child: Icon(widget.icon, color: widget.color, size: 22),
@@ -55,7 +60,9 @@ class _CustomSummaryCardState extends State<CustomSummaryCard> {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: Colors.grey.shade600,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 2),
@@ -64,7 +71,7 @@ class _CustomSummaryCardState extends State<CustomSummaryCard> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade900,
+                  color: isDark ? AppColors.textPrimaryDark : Colors.grey.shade900,
                 ),
               ),
             ],

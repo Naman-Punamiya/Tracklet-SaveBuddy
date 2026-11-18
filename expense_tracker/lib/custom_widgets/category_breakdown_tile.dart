@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:expense_tracker/services/currency_service.dart';
 import 'package:flutter/material.dart';
 
@@ -17,6 +18,12 @@ class CategoryBreakdownTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final accentColor =
+        isDark ? Color.lerp(color, Colors.white, 0.35)! : color;
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
       child: Row(
@@ -36,8 +43,11 @@ class CategoryBreakdownTile extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(category),
-                    Text(CurrencyService.formatCompact(amount)),
+                    Text(category, style: TextStyle(color: textColor)),
+                    Text(
+                      CurrencyService.formatCompact(amount),
+                      style: TextStyle(color: textColor),
+                    ),
                   ],
                 ),
                 SizedBox(height: 4),
@@ -45,7 +55,9 @@ class CategoryBreakdownTile extends StatelessWidget {
                   value: percent / 100,
                   minHeight: 8,
                   color: color,
-                  backgroundColor: Colors.grey.shade300,
+                  backgroundColor: isDark
+                      ? AppColors.borderDark
+                      : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(20),
                 ),
               ],
@@ -54,7 +66,7 @@ class CategoryBreakdownTile extends StatelessWidget {
           SizedBox(width: 10),
           Text(
             "${percent.toStringAsFixed(0)}%",
-            style: TextStyle(color: color),
+            style: TextStyle(color: accentColor),
           ),
         ],
       ),

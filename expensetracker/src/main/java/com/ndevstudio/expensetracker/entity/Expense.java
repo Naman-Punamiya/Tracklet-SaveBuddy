@@ -2,11 +2,18 @@ package com.ndevstudio.expensetracker.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="Expenses")
+@Table(
+        name = "Expenses",
+        indexes = {
+                @Index(name = "idx_expenses_book_id", columnList = "book_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +33,7 @@ public class Expense {
 
     @ManyToOne
     @JoinColumn(name = "book_id")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Book book;
 
     @ManyToOne

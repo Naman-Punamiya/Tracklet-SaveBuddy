@@ -37,7 +37,7 @@ class BookDialogs {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF0A7A3E), width: 1.5),
+                      borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                     ),
                   ),
                 ),
@@ -50,7 +50,7 @@ class BookDialogs {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF0A7A3E), width: 1.5),
+                      borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                     ),
                   ),
                 ),
@@ -59,7 +59,7 @@ class BookDialogs {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -75,8 +75,12 @@ class BookDialogs {
                   await onAdd(trimmedName, subtitleController.text.trim());
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A7A3E),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.primaryAccent
+                      : const Color(0xFF0A7A3E),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF052E23)
+                      : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: const Text("Add"),
@@ -122,7 +126,7 @@ class BookDialogs {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF0A7A3E), width: 1.5),
+                      borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                     ),
                   ),
                 ),
@@ -134,7 +138,7 @@ class BookDialogs {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Color(0xFF0A7A3E), width: 1.5),
+                      borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                     ),
                   ),
                 ),
@@ -143,7 +147,7 @@ class BookDialogs {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
               ),
               ElevatedButton(
                 onPressed: () async {
@@ -159,8 +163,12 @@ class BookDialogs {
                   await onUpdate(id, trimmedName, subtitleController.text.trim());
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0A7A3E),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.primaryAccent
+                      : const Color(0xFF0A7A3E),
+                  foregroundColor: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF052E23)
+                      : Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 child: const Text("Save"),
@@ -194,10 +202,10 @@ class BookDialogs {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text("Book Name: $bookName", style: AppTextTheme.bodyLarge),
+            Text("Book Name: $bookName", style: AppTextTheme.bodyLargeFor(context)),
             if (bookSubtitle.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text("Subtitle: $bookSubtitle", style: AppTextTheme.bodyMedium),
+              Text("Subtitle: $bookSubtitle", style: AppTextTheme.bodyMediumFor(context)),
             ],
           ],
         ),
@@ -207,7 +215,7 @@ class BookDialogs {
               Navigator.pop(dialogContext);
               onEdit();
             },
-            child: const Text("Edit", style: TextStyle(color: Color(0xFF0A7A3E), fontWeight: FontWeight.bold)),
+            child: Text("Edit", style: TextStyle(color: context.appPrimary, fontWeight: FontWeight.bold)),
           ),
           TextButton(
             onPressed: () {
@@ -221,7 +229,7 @@ class BookDialogs {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(confirmContext),
-                      child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                      child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
                     ),
                     TextButton(
                       onPressed: () {
@@ -245,7 +253,7 @@ class BookDialogs {
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Close", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text("Close", style: TextStyle(color: context.appTextSecondary)),
           ),
         ],
       ),

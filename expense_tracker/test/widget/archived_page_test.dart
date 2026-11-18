@@ -19,10 +19,10 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Archived Books', skipOffstage: false), findsOneWidget);
       expect(find.text('No Books Yet'), findsOneWidget);
@@ -45,10 +45,10 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.text('Old 2025 Book'), findsOneWidget);
 
@@ -85,10 +85,10 @@ void main() {
           home: ArchivedBooksPage(email: 'user@test.com', password: 'password'),
         ),
       );
-      await tester.runAsync(() async {
-        await Future.delayed(const Duration(milliseconds: 100));
-      });
-      await tester.pump();
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       await tester.tap(find.text('Trash Book'));
       await tester.pump(const Duration(milliseconds: 300));
@@ -100,7 +100,7 @@ void main() {
       }
 
       expect(find.text('No Books Yet'), findsOneWidget);
-      expect(find.text('Book Deleted Successfully'), findsOneWidget);
+      expect(find.text('Book deleted.'), findsOneWidget);
     });
   });
 }

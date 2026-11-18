@@ -11,6 +11,7 @@ import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/notification_service.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingPage extends StatefulWidget {
@@ -31,6 +32,7 @@ class SettingPage extends StatefulWidget {
 class _SettingPageState extends State<SettingPage> {
   late final UserRepository userRepo;
   bool _isDeletingAccount = false;
+  String _appVersion = '';
   String? _customPassword;
   String get activePassword =>
       _customPassword ??
@@ -41,7 +43,7 @@ class _SettingPageState extends State<SettingPage> {
   String userName = "Alex Henderson";
   String selectedCurrency = "INR (₹)";
   String selectedLanguage = "English";
-  String selectedTheme = "Light";
+  String selectedTheme = "System Default";
   bool isDarkMode = false;
 
   bool dailyReminders = true;
@@ -57,6 +59,20 @@ class _SettingPageState extends State<SettingPage> {
     super.initState();
     userRepo = widget.userRepo ?? UserRepository();
     _loadPreferences();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = info.version;
+        });
+      }
+    } catch (_) {
+      // Safely ignore platform errors
+    }
   }
 
   Future<void> _loadPreferences() async {
@@ -69,7 +85,7 @@ class _SettingPageState extends State<SettingPage> {
               : widget.email.split('@').first);
       selectedCurrency = prefs.getString('user_currency') ?? "INR (₹)";
       selectedLanguage = prefs.getString('user_language') ?? "English";
-      selectedTheme = prefs.getString('user_theme') ?? "Light";
+      selectedTheme = prefs.getString('user_theme') ?? "System Default";
       isDarkMode = selectedTheme == "Dark";
       dailyReminders = prefs.getBool('daily_reminder_enabled') ?? true;
       budgetAlerts = prefs.getBool('budget_alert_enabled') ?? true;
@@ -270,9 +286,11 @@ class _SettingPageState extends State<SettingPage> {
 
     // 3. Clear secure storage and cached credentials
     await AuthStorageService.instance.clearAll();
+    SyncEngine.resetInitialSync();
 
     // 4. Wipe all session and user preferences from SharedPreferences
     final SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.remove("last_logged_in_email");
     await prefs.clear();
 
     if (!mounted) return;
@@ -429,10 +447,10 @@ class _SettingPageState extends State<SettingPage> {
             backgroundColor: isDark ? AppColors.darkSurface : AppColors.primaryTint,
             child: Text(
               _getUserInitial(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
               ),
             ),
           ),
@@ -463,8 +481,10 @@ class _SettingPageState extends State<SettingPage> {
           ElevatedButton(
             onPressed: _showEditProfileDialog,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+              backgroundColor:
+                  isDark ? AppColors.primaryAccent : AppColors.primary,
+              foregroundColor:
+                  isDark ? const Color(0xFF052E23) : Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(
@@ -501,12 +521,12 @@ class _SettingPageState extends State<SettingPage> {
           ),
           onPressed: () {},
         ),
-        title: const Text(
+        title: Text(
           "Settings",
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: AppColors.primary,
+            color: isDark ? AppColors.primaryAccent : AppColors.primary,
           ),
         ),
         actions: [
@@ -517,10 +537,10 @@ class _SettingPageState extends State<SettingPage> {
               backgroundColor: isDark ? AppColors.darkCard : AppColors.primaryTint,
               child: Text(
                 _getUserInitial(),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
                 ),
               ),
             ),
@@ -711,7 +731,7 @@ class _SettingPageState extends State<SettingPage> {
             // Footer Version
             Center(
               child: Text(
-                "App Version 2.1.4",
+                _appVersion.isNotEmpty ? "App Version $_appVersion" : "App Version",
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -765,9 +785,13 @@ class _SettingPageState extends State<SettingPage> {
 
   Future<void> logout() async {
     KeepAliveService.stop();
-    await DatabaseHelper.instance.clearAllData();
     await AuthStorageService.instance.clearAll();
+    SyncEngine.resetInitialSync();
     SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? currentEmail = prefs.getString("email") ?? (widget.email.isNotEmpty ? widget.email : null);
+    if (currentEmail != null && currentEmail.trim().isNotEmpty) {
+      await prefs.setString("last_logged_in_email", currentEmail.trim());
+    }
     await prefs.remove("isLoggedIn");
     await prefs.remove("email");
     await prefs.remove("password");

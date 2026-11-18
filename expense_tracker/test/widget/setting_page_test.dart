@@ -120,6 +120,7 @@ void main() {
       // Verify SharedPreferences cleared
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('isLoggedIn'), isNull);
+      expect(prefs.getString('last_logged_in_email'), 'admin@savebuddy.com');
     });
   });
 }

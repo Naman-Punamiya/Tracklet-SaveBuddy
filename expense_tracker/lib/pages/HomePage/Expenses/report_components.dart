@@ -38,6 +38,15 @@ class ReportComponents {
   static const Color stitchHighlightYellow = Color(0xFFFEF3C7);
   static const Color stitchBgLight = Color(0xFFFAF8F3);
 
+  /// Deep emerald is unreadable as a foreground on slate, so dark mode uses a
+  /// brighter accent. Light mode keeps the exact original brand green.
+  static Color _accent(bool isDark) =>
+      isDark ? const Color(0xFF34D399) : stitchGreen;
+
+  /// Muted label colour with enough contrast on both backgrounds.
+  static Color _mutedText(bool isDark) =>
+      isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280);
+
   // Period Navigator
   static Widget buildPeriodNavigator({
     required BuildContext context,
@@ -52,6 +61,7 @@ class ReportComponents {
     required VoidCallback onSelectMonth,
   }) {
     final now = DateTime.now();
+    final Color accent = _accent(isDark);
     bool isCurrentPeriod = false;
     if (selectedPeriodIndex == 0) {
       final startNow = now.subtract(Duration(days: now.weekday - 1));
@@ -90,7 +100,7 @@ class ReportComponents {
                 Icon(
                   Icons.calendar_today_rounded,
                   size: 14,
-                  color: stitchGreen.withValues(alpha: 0.85),
+                  color: accent.withValues(alpha: 0.85),
                 ),
                 const SizedBox(width: 6),
                 Text(
@@ -123,12 +133,12 @@ class ReportComponents {
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
-                  child: const Text(
+                  child: Text(
                     "Current",
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: stitchGreen,
+                      color: accent,
                     ),
                   ),
                 ),
@@ -323,10 +333,10 @@ class ReportComponents {
                                   const SizedBox(width: 4),
                                   Text(
                                     "${cat.percentage.toStringAsFixed(0)}%",
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
-                                      color: Color(0xFF6B7280),
+                                      color: _mutedText(isDark),
                                     ),
                                   ),
                                 ],
@@ -376,6 +386,7 @@ class ReportComponents {
       if (d.expense > maxVal) maxVal = d.expense;
     }
     if (maxVal == 0) maxVal = 100.0;
+    final Color accent = _accent(isDark);
 
     return Container(
       width: double.infinity,
@@ -416,8 +427,8 @@ class ReportComponents {
                       Container(
                         width: 8,
                         height: 8,
-                        decoration: const BoxDecoration(
-                          color: stitchGreen,
+                        decoration: BoxDecoration(
+                          color: accent,
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -486,7 +497,9 @@ class ReportComponents {
                         padding: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: isSelected
                             ? BoxDecoration(
-                                color: stitchGreen.withValues(alpha: 0.08),
+                                color: accent.withValues(
+                                  alpha: isDark ? 0.16 : 0.08,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               )
                             : null,
@@ -497,7 +510,7 @@ class ReportComponents {
                               width: 14,
                               height: incomeHeight > 4 ? incomeHeight : 4,
                               decoration: BoxDecoration(
-                                color: stitchGreen,
+                                color: accent,
                                 borderRadius: BorderRadius.circular(6),
                               ),
                             ),
@@ -520,7 +533,7 @@ class ReportComponents {
                           fontSize: 12,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           color: isSelected
-                              ? stitchGreen
+                              ? accent
                               : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280)),
                         ),
                       ),
@@ -553,19 +566,21 @@ class ReportComponents {
                     children: [
                       Text(
                         "Income: ${formatAmount(intervalData[selectedBarIndex].income)}",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: stitchGreen,
+                          color: accent,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         "Spent: ${formatAmount(intervalData[selectedBarIndex].expense)}",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF64748B),
+                          color: isDark
+                              ? const Color(0xFFCBD5E1)
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -629,6 +644,7 @@ class ReportComponents {
     required String Function(double) formatAmount,
   }) {
     if (categoryBreakdown.isEmpty) return const SizedBox.shrink();
+    final Color accent = _accent(isDark);
 
     return Container(
       width: double.infinity,
@@ -656,10 +672,14 @@ class ReportComponents {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: stitchGreen.withValues(alpha: 0.12),
+                          color: accent.withValues(alpha: 0.12),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.pie_chart_outline_rounded, color: stitchGreen, size: 16),
+                        child: Icon(
+                          Icons.pie_chart_outline_rounded,
+                          color: accent,
+                          size: 16,
+                        ),
                       ),
                       const SizedBox(width: 10),
                       Text(
@@ -676,12 +696,12 @@ class ReportComponents {
                     children: [
                       Text(
                         "${categoryBreakdown.length} categories",
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                        style: TextStyle(fontSize: 12, color: _mutedText(isDark)),
                       ),
                       const SizedBox(width: 4),
                       Icon(
                         showAllCategories ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        color: const Color(0xFF6B7280),
+                        color: _mutedText(isDark),
                       ),
                     ],
                   ),
@@ -737,7 +757,10 @@ class ReportComponents {
                           ),
                           Text(
                             "${cat.count} ${cat.count == 1 ? 'transaction' : 'transactions'} • ${cat.percentage.toStringAsFixed(1)}%",
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _mutedText(isDark),
+                            ),
                           ),
                         ],
                       ),
@@ -829,6 +852,7 @@ class ReportComponents {
   }
 
   static Widget _buildStatTile(String label, String value, IconData icon, bool isDark) {
+    final Color accent = _accent(isDark);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -844,10 +868,10 @@ class ReportComponents {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: stitchGreen.withValues(alpha: 0.1),
+              color: accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: stitchGreen, size: 16),
+            child: Icon(icon, color: accent, size: 16),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -856,7 +880,10 @@ class ReportComponents {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF6B7280)),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _mutedText(isDark),
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
@@ -883,6 +910,7 @@ class ReportComponents {
     required ValueChanged<DateTime> onDateSelected,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color accent = _accent(isDark);
     DateTime tempDate = selectedDate;
 
     showModalBottomSheet(
@@ -904,7 +932,9 @@ class ReportComponents {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: isDark
+                            ? const Color(0xFF475569)
+                            : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -961,7 +991,7 @@ class ReportComponents {
                           child: Container(
                             decoration: BoxDecoration(
                               color: isCurrent
-                                  ? stitchGreen
+                                  ? accent
                                   : (isDark ? const Color(0xFF334155) : const Color(0xFFF3F4F6)),
                               borderRadius: BorderRadius.circular(12),
                             ),
@@ -972,7 +1002,9 @@ class ReportComponents {
                                 fontSize: 14,
                                 fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
                                 color: isCurrent
-                                    ? Colors.white
+                                    ? (isDark
+                                        ? const Color(0xFF052E23)
+                                        : Colors.white)
                                     : (isDark ? Colors.white70 : Colors.black87),
                               ),
                             ),

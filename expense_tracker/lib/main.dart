@@ -2,8 +2,10 @@ import 'package:expense_tracker/core/theme/app_theme.dart';
 import 'package:expense_tracker/pages/splash_screen.dart';
 import 'package:expense_tracker/services/auth_storage_service.dart';
 import 'package:expense_tracker/services/currency_service.dart';
+import 'package:expense_tracker/services/deep_link_service.dart';
 import 'package:expense_tracker/services/notification_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
@@ -58,7 +60,7 @@ void main() async {
   ));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final bool isLoggedIn;
   final String email;
   final String password;
@@ -72,22 +74,53 @@ class MyApp extends StatelessWidget {
   });
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService.instance.init(_navigatorKey);
+    });
+  }
+
+  @override
+  void dispose() {
+    DeepLinkService.instance.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
       builder: (context, currentMode, _) {
         return MaterialApp(
+          navigatorKey: _navigatorKey,
           scaffoldMessengerKey: AppNotificationService.instance.messengerKey,
           title: 'Tracklet SaveBuddy',
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: currentMode,
           debugShowCheckedModeBanner: false,
+          builder: (context, child) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: isDark
+                  ? AppTheme.darkSystemUiOverlayStyle
+                  : AppTheme.lightSystemUiOverlayStyle,
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           home: SplashScreen(
-            isLoggedIn: isLoggedIn,
-            email: email,
-            password: password,
-            userId: userId,
+            isLoggedIn: widget.isLoggedIn,
+            email: widget.email,
+            password: widget.password,
+            userId: widget.userId,
           ),
         );
       },

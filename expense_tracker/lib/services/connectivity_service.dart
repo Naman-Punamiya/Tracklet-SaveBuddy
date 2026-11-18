@@ -10,6 +10,7 @@ enum ConnectivityStatus {
 class ConnectivityService {
   static final Connectivity _connectivity = Connectivity();
   static ConnectivityStatus? mockStatus;
+  static StreamController<ConnectivityStatus>? mockStreamController;
 
   static Future<ConnectivityStatus> getConnectivityStatus() async {
     if (mockStatus != null) return mockStatus!;
@@ -61,6 +62,9 @@ class ConnectivityService {
   }
 
   static Stream<ConnectivityStatus> get connectivityStream {
+    if (mockStreamController != null) {
+      return mockStreamController!.stream;
+    }
     if (mockStatus != null) {
       return Stream.value(mockStatus!);
     }

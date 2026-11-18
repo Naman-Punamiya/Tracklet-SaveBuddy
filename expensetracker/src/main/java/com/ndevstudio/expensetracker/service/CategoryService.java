@@ -41,11 +41,6 @@ public class CategoryService {
         return new ResponseEntity<>(c, HttpStatus.CREATED);
     }
 
-    public ResponseEntity<List<Category>> readCategoryByUser(Long userId) {
-        List<Category> categories = categoryRepository.findByUserId(userId);
-        return new ResponseEntity<>(categories, HttpStatus.OK);
-    }
-
     //Update
     public ResponseEntity<Category> updateCategory(Category newCategory, long id, Authentication authentication) {
         String email = authentication.getName();

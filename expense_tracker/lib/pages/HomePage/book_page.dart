@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
+import 'package:expense_tracker/custom_widgets/book_list_skeleton.dart';
+import 'package:expense_tracker/custom_widgets/pending_deletion_banner.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/category_page.dart';
 import 'package:expense_tracker/pages/HomePage/Expenses/inside_book_page.dart';
 import 'package:expense_tracker/pages/HomePage/book_dialogs.dart';
@@ -63,8 +65,11 @@ class _BookPageState extends State<BookPage> {
 
   List<dynamic> allBooks = [];
   List<dynamic> filteredBooks = [];
+  bool _isInitialLocalReadPending = true;
   bool isLoading = true;
   double _totalBalance = 0.0;
+  int _pendingDeletionsCount = 0;
+  bool _isRetryingSync = false;
 
   String get basicAuth => AuthStorageService.instance.currentAuthToken.isNotEmpty
       ? AuthStorageService.instance.currentAuthToken
@@ -74,7 +79,11 @@ class _BookPageState extends State<BookPage> {
   void initState() {
     super.initState();
     _loadBooks();
-    _triggerSync();
+    if (!SyncEngine.initialSyncStarted) {
+      SyncEngine.markInitialSyncStarted();
+      _triggerSync();
+    }
+    SyncEngine.syncingNotifier.addListener(_onSyncStatusChanged);
     _connectivitySubscription = ConnectivityService.connectivityStream.listen((
       status,
     ) {
@@ -84,8 +93,16 @@ class _BookPageState extends State<BookPage> {
     });
   }
 
+  void _onSyncStatusChanged() {
+    if (!mounted) return;
+    if (!SyncEngine.isSyncing) {
+      _loadBooks();
+    } else {
+      setState(() {});
+    }
+  }
+
   Future<void> _triggerSync() async {
-    if (widget.email.contains('test')) return;
     await SyncEngine.syncAll(basicAuth);
     if (mounted) {
       _loadBooks();
@@ -94,6 +111,7 @@ class _BookPageState extends State<BookPage> {
 
   @override
   void dispose() {
+    SyncEngine.syncingNotifier.removeListener(_onSyncStatusChanged);
     _connectivitySubscription?.cancel();
     bookNameController.dispose();
     bookSubtitleController.dispose();
@@ -127,6 +145,7 @@ class _BookPageState extends State<BookPage> {
     try {
       allBooks = await fetchBooks();
       filteredBooks = List.from(allBooks);
+      _pendingDeletionsCount = await bookRepo.getPendingDeletionsCount();
       double total = 0.0;
       for (var book in allBooks) {
         final bal = await ExpenseRepository().getBookBalance(book['id'].toString());
@@ -140,6 +159,7 @@ class _BookPageState extends State<BookPage> {
     } finally {
       if (mounted) {
         setState(() {
+          _isInitialLocalReadPending = false;
           isLoading = false;
         });
       }
@@ -217,13 +237,33 @@ class _BookPageState extends State<BookPage> {
         await _reloadBooks();
         messenger.showSnackBar(
           const SnackBar(
-            content: Text("Book Deleted Successfully"),
+            content: Text("Book deleted."),
+            duration: Duration(seconds: 2),
             backgroundColor: AppColors.expense,
           ),
         );
       },
     );
     return;
+  }
+
+  Future<void> _retryPendingDeletes() async {
+    if (_isRetryingSync || SyncEngine.isSyncing) return;
+    setState(() {
+      _isRetryingSync = true;
+    });
+    try {
+      await SyncEngine.syncAll(basicAuth);
+    } catch (e) {
+      debugPrint("Manual retry sync error: $e");
+    } finally {
+      if (mounted) {
+        await _loadBooks();
+        setState(() {
+          _isRetryingSync = false;
+        });
+      }
+    }
   }
 
   @override
@@ -234,8 +274,9 @@ class _BookPageState extends State<BookPage> {
     return Scaffold(
       backgroundColor: backgroundColor,
       floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF065F46),
-        foregroundColor: Colors.white,
+        backgroundColor:
+            isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+        foregroundColor: isDark ? const Color(0xFF052E23) : Colors.white,
         elevation: 4,
         shape: const CircleBorder(),
         tooltip: 'Add Book',
@@ -256,6 +297,14 @@ class _BookPageState extends State<BookPage> {
               const SizedBox(height: 14),
               _buildSearchBar(isDark),
               const SizedBox(height: 14),
+              if (_pendingDeletionsCount > 0) ...[
+                PendingDeletionBanner(
+                  count: _pendingDeletionsCount,
+                  isRetrying: _isRetryingSync,
+                  onRetry: _retryPendingDeletes,
+                ),
+                const SizedBox(height: 14),
+              ],
               Expanded(
                 child: buildBody(isDark),
               ),
@@ -279,13 +328,15 @@ class _BookPageState extends State<BookPage> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x06000000),
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -329,10 +380,12 @@ class _BookPageState extends State<BookPage> {
             ),
             child: Text(
               totalBooks > 0 ? "$syncedBooks of $totalBooks synced" : "Synced",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF065F46),
+                color: isDark
+                    ? const Color(0xFF6EE7B7)
+                    : const Color(0xFF065F46),
               ),
             ),
           ),
@@ -435,7 +488,11 @@ class _BookPageState extends State<BookPage> {
       ),
       child: IconButton(
         padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 18, color: const Color(0xFF065F46)),
+        icon: Icon(
+          icon,
+          size: 18,
+          color: isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+        ),
         tooltip: tooltip,
         onPressed: onPressed,
       ),
@@ -463,15 +520,17 @@ class _BookPageState extends State<BookPage> {
             color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
             fontSize: 14,
           ),
-          icon: const Icon(
+          icon: Icon(
             Icons.search_rounded,
-            color: Color(0xFF6B7280),
+            color: isDark ? AppColors.textMuted : const Color(0xFF6B7280),
             size: 20,
           ),
           suffixIcon: searchController.text.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear_rounded, size: 18),
-                  color: const Color(0xFF6B7280),
+                  color: isDark
+                      ? AppColors.textMuted
+                      : const Color(0xFF6B7280),
                   onPressed: () {
                     searchController.clear();
                     filterBooks('');
@@ -488,11 +547,17 @@ class _BookPageState extends State<BookPage> {
   }
 
   Widget buildBody(bool isDark) {
-    if (isLoading) {
+    if (_isInitialLocalReadPending) {
       return const AppLoading();
     }
 
     if (allBooks.isEmpty) {
+      if (SyncEngine.isSyncing) {
+        return const BookListSkeleton();
+      }
+      if (isLoading) {
+        return const AppLoading();
+      }
       return AppEmptyState(
         icon: Icons.menu_book_rounded,
         title: "No Books Yet",
@@ -609,10 +674,12 @@ class _BookPageState extends State<BookPage> {
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.add_rounded,
                   size: 26,
-                  color: Color(0xFF065F46),
+                  color: isDark
+                      ? AppColors.primaryAccent
+                      : const Color(0xFF065F46),
                 ),
               ),
               const SizedBox(width: 8),
@@ -647,8 +714,8 @@ class _BookPageState extends State<BookPage> {
     await bookRepo.archiveBook(id, basicAuth);
   }
 
-  Future<void> deleteBook(String id) async {
-    await bookRepo.deleteBook(id, basicAuth);
+  Future<bool> deleteBook(String id) async {
+    return await bookRepo.deleteBook(id, basicAuth);
   }
 }
 
@@ -681,7 +748,16 @@ class _BookCardItemState extends State<_BookCardItem> {
 
   @override
   Widget build(BuildContext context) {
-    const textColor = Color(0xFF111827);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textPrimaryDark : const Color(0xFF111827);
+    // Keep the pastel hue in dark mode but blend it into the dark card
+    // surface so the cards no longer glow bright white on a slate background.
+    final cardColor = isDark
+        ? Color.alphaBlend(
+            widget.cardColor.withValues(alpha: 0.16),
+            AppColors.darkCard,
+          )
+        : widget.cardColor;
 
     return AnimatedScale(
       scale: isPressed ? 0.98 : 1.0,
@@ -698,33 +774,42 @@ class _BookCardItemState extends State<_BookCardItem> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: widget.cardColor,
+              color: cardColor,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x06000000),
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
-                ),
-              ],
+              border: isDark
+                  ? Border.all(
+                      color: AppColors.borderDark.withValues(alpha: 0.7),
+                    )
+                  : null,
+              boxShadow: isDark
+                  ? null
+                  : const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // White rounded square avatar with monogram
+                // Rounded square avatar with monogram
                 Container(
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? AppColors.darkSurface : Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x06000000),
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: isDark
+                        ? null
+                        : const [
+                            BoxShadow(
+                              color: Color(0x06000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -732,7 +817,9 @@ class _BookCardItemState extends State<_BookCardItem> {
                     style: GoogleFonts.caveat(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1A1A),
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : const Color(0xFF1A1A1A),
                       height: 1.0,
                     ),
                   ),
@@ -760,9 +847,11 @@ class _BookCardItemState extends State<_BookCardItem> {
                           padding: const EdgeInsets.only(top: 2.0),
                           child: Text(
                             widget.subtitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF4B5563),
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : const Color(0xFF4B5563),
                               fontWeight: FontWeight.w400,
                             ),
                             maxLines: 1,
@@ -789,7 +878,7 @@ class _BookCardItemState extends State<_BookCardItem> {
                           builder: (context, _, child) {
                             return Text(
                               CurrencyService.format(rawBalance),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                                 color: textColor,

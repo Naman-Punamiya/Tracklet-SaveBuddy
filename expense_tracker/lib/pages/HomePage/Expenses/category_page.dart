@@ -61,18 +61,28 @@ class _CategoryPageState extends State<CategoryPage> {
   void initState() {
     super.initState();
     _iconsFuture = fetchCategories();
-    if (!widget.email.contains('test')) {
+    if (!SyncEngine.initialSyncStarted) {
+      SyncEngine.markInitialSyncStarted();
       _triggerSync();
-      _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
-        if (status != ConnectivityStatus.offline) {
-          _triggerSync();
-        }
-      });
+    }
+    SyncEngine.syncingNotifier.addListener(_onSyncStatusChanged);
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((status) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  void _onSyncStatusChanged() {
+    if (!mounted) return;
+    if (!SyncEngine.isSyncing) {
+      _reloadCategories();
+    } else {
+      setState(() {});
     }
   }
 
   Future<void> _triggerSync() async {
-    if (widget.email.contains('test')) return;
     await SyncEngine.syncAll(basicAuth);
     if (mounted) {
       _reloadCategories();
@@ -81,6 +91,7 @@ class _CategoryPageState extends State<CategoryPage> {
 
   @override
   void dispose() {
+    SyncEngine.syncingNotifier.removeListener(_onSyncStatusChanged);
     _connectivitySubscription?.cancel();
     nameController.dispose();
     searchController.dispose();
@@ -117,16 +128,16 @@ class _CategoryPageState extends State<CategoryPage> {
         ),
         title: Stack(
           alignment: Alignment.centerLeft,
-          children: const [
+          children: [
             Text(
               "Manage Categories",
               style: TextStyle(
-                color: AppColors.primary,
+                color: isDark ? AppColors.textWhite : AppColors.primary,
                 fontSize: 19,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Opacity(
+            const Opacity(
               opacity: 0,
               child: SizedBox(
                 width: 0,
@@ -279,13 +290,13 @@ class _CategoryPageState extends State<CategoryPage> {
                             height: 44,
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? AppColors.primary.withValues(alpha: 0.15)
+                                  ? AppColors.primaryAccent.withValues(alpha: 0.15)
                                   : AppColors.primaryTint,
                               borderRadius: AppRadius.medium,
                             ),
                             child: Icon(
                               iconData,
-                              color: AppColors.primary,
+                              color: isDark ? AppColors.primaryAccent : AppColors.primary,
                               size: 22,
                             ),
                           ),
@@ -339,8 +350,8 @@ class _CategoryPageState extends State<CategoryPage> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_category_fab',
         elevation: 4,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textWhite,
+        backgroundColor: isDark ? AppColors.primaryAccent : AppColors.primary,
+        foregroundColor: isDark ? const Color(0xFF052E23) : AppColors.textWhite,
         shape: RoundedRectangleBorder(
           borderRadius: AppRadius.pill,
         ),

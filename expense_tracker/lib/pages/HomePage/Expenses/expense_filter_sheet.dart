@@ -181,7 +181,7 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                               fontSize: 12,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                               color: isSelected
-                                  ? AppColors.primary
+                                  ? (isDark ? AppColors.primaryAccent : AppColors.primary)
                                   : (isDark ? AppColors.textMuted : AppColors.textSecondary),
                             ),
                           ),
@@ -237,7 +237,7 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                               fontSize: 12,
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                               color: isSelected
-                                  ? AppColors.primary
+                                  ? (isDark ? AppColors.primaryAccent : AppColors.primary)
                                   : (isDark ? AppColors.textMuted : AppColors.textSecondary),
                             ),
                           ),
@@ -275,12 +275,13 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                         fontSize: 12,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                         color: isSelected
-                            ? Colors.white
+                            ? (isDark ? const Color(0xFF052E23) : Colors.white)
                             : (isDark ? Colors.white70 : Colors.black87),
                       ),
                       backgroundColor: isDark ? AppColors.darkSurface : AppColors.primaryTint,
-                      selectedColor: AppColors.primary,
-                      checkmarkColor: Colors.white,
+                      selectedColor: isDark ? AppColors.primaryAccent : AppColors.primary,
+                      checkmarkColor: isDark ? const Color(0xFF052E23) : Colors.white,
+                      side: isDark ? const BorderSide(color: AppColors.borderDark) : null,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       onSelected: (_) {
                         setState(() {
@@ -321,7 +322,7 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
                         color: _selectedCategory == "All"
-                            ? AppColors.primary
+                            ? (isDark ? AppColors.primaryAccent : AppColors.primary)
                             : (isDark ? AppColors.darkSurface : AppColors.primaryTint),
                         borderRadius: AppRadius.pill,
                       ),
@@ -330,7 +331,9 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: _selectedCategory == "All" ? Colors.white : AppColors.primary,
+                          color: _selectedCategory == "All"
+                              ? (isDark ? const Color(0xFF052E23) : Colors.white)
+                              : (isDark ? AppColors.primaryAccent : AppColors.primary),
                         ),
                       ),
                     ),
@@ -351,7 +354,7 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? AppColors.primary
+                              ? (isDark ? AppColors.primaryAccent : AppColors.primary)
                               : (isDark ? AppColors.darkSurface : AppColors.primaryTint),
                           borderRadius: AppRadius.pill,
                         ),
@@ -361,7 +364,9 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                             Icon(
                               iconData,
                               size: 14,
-                              color: isSelected ? Colors.white : AppColors.primary,
+                              color: isSelected
+                                  ? (isDark ? const Color(0xFF052E23) : Colors.white)
+                                  : (isDark ? AppColors.primaryAccent : AppColors.primary),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -369,7 +374,9 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+                                color: isSelected
+                                    ? (isDark ? const Color(0xFF052E23) : Colors.white)
+                                    : (isDark ? Colors.white70 : Colors.black87),
                               ),
                             ),
                           ],
@@ -419,8 +426,8 @@ class _ExpenseFilterSheetState extends State<ExpenseFilterSheet> {
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                      backgroundColor: isDark ? AppColors.primaryAccent : AppColors.primary,
+                      foregroundColor: isDark ? const Color(0xFF052E23) : Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),

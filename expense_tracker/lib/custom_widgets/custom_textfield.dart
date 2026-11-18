@@ -34,6 +34,9 @@ class _CustomTextfieldState extends State<CustomTextfield> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
     TextInputType keyboardType = TextInputType.text;
     if (widget.isPassword) {
       keyboardType = TextInputType.visiblePassword;
@@ -45,15 +48,20 @@ class _CustomTextfieldState extends State<CustomTextfield> {
       controller: widget.textEditingController,
       obscureText: widget.isPassword ? _obscureText : false,
       keyboardType: keyboardType,
-      style: AppTextTheme.bodyLarge,
+      style: AppTextTheme.bodyLarge.copyWith(
+        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+      ),
+      cursorColor: isDark ? AppColors.primaryAccent : AppColors.primary,
       decoration: InputDecoration(
         hintText: widget.hintText,
-        hintStyle: AppTextTheme.bodyMedium.copyWith(color: AppColors.textMuted),
+        hintStyle: AppTextTheme.bodyMedium.copyWith(
+          color: AppColors.textMuted,
+        ),
         filled: true,
-        fillColor: AppColors.lightSurface,
+        fillColor: isDark ? AppColors.darkSurface : AppColors.lightSurface,
         prefixIcon: Container(
           margin: const EdgeInsets.only(left: AppSpacing.medium, right: AppSpacing.xSmall),
-          child: Icon(widget.icon, color: AppColors.textSecondary, size: AppDimensions.icon22),
+          child: Icon(widget.icon, color: iconColor, size: AppDimensions.icon22),
         ),
         suffixIcon: widget.isPassword
             ? IconButton(
@@ -61,7 +69,7 @@ class _CustomTextfieldState extends State<CustomTextfield> {
                   _obscureText
                       ? Icons.visibility_off_outlined
                       : Icons.visibility_outlined,
-                  color: AppColors.textSecondary,
+                  color: iconColor,
                   size: AppDimensions.icon22,
                 ),
                 onPressed: () {
@@ -77,11 +85,17 @@ class _CustomTextfieldState extends State<CustomTextfield> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
-          borderSide: const BorderSide(color: AppColors.borderLight, width: 1),
+          borderSide: BorderSide(
+            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            width: 1,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          borderSide: BorderSide(
+            color: isDark ? AppColors.primaryAccent : AppColors.primary,
+            width: 1.5,
+          ),
         ),
       ),
     );

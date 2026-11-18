@@ -63,9 +63,9 @@ Tracklet SaveBuddy respects your digital privacy:
 • We never sell, rent, or share your personal or transaction data with advertisers or data brokers.
 • You have the right to permanently purge your local and remote records at any time.
 
-• Privacy Policy: https://savebuddy-finance.web.app/privacy
-• Account Deletion Request: https://savebuddy-finance.web.app/delete-account
-• Support: support@savebuddy.app
+• Privacy Policy: https://naman-punamiya.github.io/Tracklet-SaveBuddy/privacy.html
+• Account Deletion Request: https://naman-punamiya.github.io/Tracklet-SaveBuddy/delete-account.html
+• Support: ndevstudioshelp@gmail.com
 ```
 *(2,580 characters / 4,000 character limit)*
 
@@ -81,9 +81,9 @@ Tracklet SaveBuddy respects your digital privacy:
 | **Target Audience** | Ages 18 and over |
 | **Contains Ads** | No |
 | **In-App Purchases** | No |
-| **Contact Email** | `support@savebuddy.app` (or developer's direct contact email) |
-| **Privacy Policy URL** | `https://savebuddy-finance.web.app/privacy` |
-| **Account Deletion URL** | `https://savebuddy-finance.web.app/delete-account` |
+| **Contact Email** | `ndevstudioshelp@gmail.com` |
+| **Privacy Policy URL** | `https://naman-punamiya.github.io/Tracklet-SaveBuddy/privacy.html` |
+| **Account Deletion URL** | `https://naman-punamiya.github.io/Tracklet-SaveBuddy/delete-account.html` |
 
 ---
 

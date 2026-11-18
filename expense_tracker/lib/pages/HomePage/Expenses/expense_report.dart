@@ -386,7 +386,28 @@ class _ExpenseReportState extends State<ExpenseReport> {
                     // 1. Header Section (Cursive Title + Period Pill Toggle)
                     _buildHeader(isDark),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 12),
+
+                    // Period Navigator
+                    ReportComponents.buildPeriodNavigator(
+                      context: context,
+                      isDark: isDark,
+                      selectedPeriodIndex: _selectedPeriodIndex,
+                      selectedDate: _selectedDate,
+                      periodSelectorTitle: _getPeriodSelectorTitle(),
+                      periodWord: _getPeriodWord(),
+                      onPrevious: () => _navigatePeriod(-1),
+                      onNext: () => _navigatePeriod(1),
+                      onCurrent: () {
+                        setState(() {
+                          _selectedDate = DateTime.now();
+                          _recalculateReport();
+                        });
+                      },
+                      onSelectMonth: _showMonthPickerSheet,
+                    ),
+
+                    const SizedBox(height: 16),
 
                     // 2. Total Spent Section
                     ReportComponents.buildTotalSpentSection(
@@ -433,6 +454,33 @@ class _ExpenseReportState extends State<ExpenseReport> {
                       categoryBreakdown: _categoryBreakdown,
                       totalExpense: _totalExpense,
                       periodWord: _getPeriodWord(),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // 6. Overview Stats (Avg, Highest, Lowest)
+                    ReportComponents.buildOverviewStats(
+                      isDark: isDark,
+                      averageExpense: _averageExpense,
+                      highestExpense: _highestExpense,
+                      lowestExpense: _lowestExpense,
+                      expenseEntriesCount: _expenseEntriesCount,
+                      formatAmount: _formatAmount,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // 7. All Categories Breakdown List
+                    ReportComponents.buildAllCategoriesSection(
+                      isDark: isDark,
+                      categoryBreakdown: _categoryBreakdown,
+                      showAllCategories: _showAllCategories,
+                      onToggle: () {
+                        setState(() {
+                          _showAllCategories = !_showAllCategories;
+                        });
+                      },
+                      formatAmount: _formatAmount,
                     ),
                   ],
                 ),
@@ -524,12 +572,15 @@ class _ExpenseReportState extends State<ExpenseReport> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? stitchGreen : Colors.transparent,
+          color: isSelected
+              ? (isDark ? const Color(0xFF34D399) : stitchGreen)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(999),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: stitchGreen.withValues(alpha: 0.3),
+                    color: (isDark ? const Color(0xFF34D399) : stitchGreen)
+                        .withValues(alpha: 0.3),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -542,7 +593,7 @@ class _ExpenseReportState extends State<ExpenseReport> {
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             color: isSelected
-                ? Colors.white
+                ? (isDark ? const Color(0xFF052E23) : Colors.white)
                 : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF6B7280)),
           ),
         ),

@@ -1,3 +1,4 @@
+import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class LegendBox extends StatefulWidget {
@@ -34,7 +35,14 @@ class _LegendBoxState extends State<LegendBox> {
 
         SizedBox(width: 8),
 
-        Text("${widget.name} (₹${widget.amount.toStringAsFixed(0)})"),
+        Text(
+          "${widget.name} (₹${widget.amount.toStringAsFixed(0)})",
+          style: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }

@@ -53,6 +53,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Email delivery for password reset -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
 		<!-- Lombok (reduces boilerplate code) -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

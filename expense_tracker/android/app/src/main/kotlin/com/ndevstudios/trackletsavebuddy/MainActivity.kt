@@ -1,4 +1,4 @@
-package com.namanpunamiya.expense_tracker
+package com.ndevstudios.trackletsavebuddy
 
 import android.content.Intent
 import android.os.Bundle

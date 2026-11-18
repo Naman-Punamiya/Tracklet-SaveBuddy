@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
@@ -16,5 +17,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     List<Expense> findByCategory(Category category);
     List<Expense> findByUserAndBook(User user, Book book);
     List<Expense> findByUserAndCategory(User user, Category category);
+    Optional<Expense> findByIdAndUser(Long id, User user);
     void deleteByUser(User user);
 }

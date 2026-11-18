@@ -37,11 +37,11 @@ class CategoryDialogs {
                         controller: nameController,
                         decoration: InputDecoration(
                           labelText: "Category Name",
-                          prefixIcon: const Icon(Icons.category_outlined, color: AppColors.primary),
+                          prefixIcon: Icon(Icons.category_outlined, color: context.appPrimary),
                           border: OutlineInputBorder(borderRadius: AppRadius.medium),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: AppRadius.medium,
-                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                           ),
                         ),
                       ),
@@ -66,6 +66,8 @@ class CategoryDialogs {
                           itemCount: categoryIcons.length,
                           itemBuilder: (context, index) {
                             final iconItem = categoryIcons[index];
+                            final isDark = Theme.of(context).brightness ==
+                                Brightness.dark;
                             final isSelected = selectedIcon.name == iconItem.name;
 
                             return GestureDetector(
@@ -78,15 +80,31 @@ class CategoryDialogs {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.primaryTint,
+                                      ? (isDark
+                                          ? AppColors.primaryAccent
+                                          : AppColors.primary)
+                                      : (isDark
+                                          ? AppColors.primaryAccent
+                                              .withValues(alpha: 0.16)
+                                          : AppColors.primaryTint),
                                   border: isSelected
-                                      ? Border.all(color: AppColors.primary, width: 2)
+                                      ? Border.all(
+                                          color: isDark
+                                              ? AppColors.primaryAccent
+                                              : AppColors.primary,
+                                          width: 2,
+                                        )
                                       : null,
                                 ),
                                 child: Icon(
                                   iconItem.icon,
-                                  color: isSelected ? AppColors.textWhite : AppColors.primary,
+                                  color: isSelected
+                                      ? (isDark
+                                          ? const Color(0xFF052E23)
+                                          : AppColors.textWhite)
+                                      : (isDark
+                                          ? AppColors.primaryAccent
+                                          : AppColors.primary),
                                   size: 22,
                                 ),
                               ),
@@ -101,7 +119,7 @@ class CategoryDialogs {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                  child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
@@ -123,8 +141,12 @@ class CategoryDialogs {
                           await onAdd(name, selectedIcon.name);
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textWhite,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.primaryAccent
+                        : AppColors.primary,
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF052E23)
+                        : AppColors.textWhite,
                     shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
                   ),
                   child: isSaving ? const AppButtonLoading() : const Text("Add"),
@@ -173,11 +195,11 @@ class CategoryDialogs {
                         controller: nameController,
                         decoration: InputDecoration(
                           labelText: "Category Name",
-                          prefixIcon: const Icon(Icons.category_outlined, color: AppColors.primary),
+                          prefixIcon: Icon(Icons.category_outlined, color: context.appPrimary),
                           border: OutlineInputBorder(borderRadius: AppRadius.medium),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: AppRadius.medium,
-                            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                            borderSide: BorderSide(color: context.appPrimary, width: 1.5),
                           ),
                         ),
                       ),
@@ -202,6 +224,8 @@ class CategoryDialogs {
                           itemCount: categoryIcons.length,
                           itemBuilder: (context, index) {
                             final iconItem = categoryIcons[index];
+                            final isDark = Theme.of(context).brightness ==
+                                Brightness.dark;
                             final isSelected = selectedIcon.name == iconItem.name;
 
                             return GestureDetector(
@@ -214,15 +238,31 @@ class CategoryDialogs {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   color: isSelected
-                                      ? AppColors.primary
-                                      : AppColors.primaryTint,
+                                      ? (isDark
+                                          ? AppColors.primaryAccent
+                                          : AppColors.primary)
+                                      : (isDark
+                                          ? AppColors.primaryAccent
+                                              .withValues(alpha: 0.16)
+                                          : AppColors.primaryTint),
                                   border: isSelected
-                                      ? Border.all(color: AppColors.primary, width: 2)
+                                      ? Border.all(
+                                          color: isDark
+                                              ? AppColors.primaryAccent
+                                              : AppColors.primary,
+                                          width: 2,
+                                        )
                                       : null,
                                 ),
                                 child: Icon(
                                   iconItem.icon,
-                                  color: isSelected ? AppColors.textWhite : AppColors.primary,
+                                  color: isSelected
+                                      ? (isDark
+                                          ? const Color(0xFF052E23)
+                                          : AppColors.textWhite)
+                                      : (isDark
+                                          ? AppColors.primaryAccent
+                                          : AppColors.primary),
                                   size: 22,
                                 ),
                               ),
@@ -237,7 +277,7 @@ class CategoryDialogs {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+                  child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
                 ),
                 ElevatedButton(
                   onPressed: isSaving
@@ -259,8 +299,12 @@ class CategoryDialogs {
                           await onUpdate(item['id'].toString(), name, selectedIcon.name);
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textWhite,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.primaryAccent
+                        : AppColors.primary,
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF052E23)
+                        : AppColors.textWhite,
                     shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
                   ),
                   child: isSaving ? const AppButtonLoading() : const Text("Save"),
@@ -287,7 +331,7 @@ class CategoryDialogs {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text("Cancel", style: TextStyle(color: AppColors.textSecondary)),
+            child: Text("Cancel", style: TextStyle(color: context.appTextSecondary)),
           ),
           ElevatedButton(
             onPressed: () async {

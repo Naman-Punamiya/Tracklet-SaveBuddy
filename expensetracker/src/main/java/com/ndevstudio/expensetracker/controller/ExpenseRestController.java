@@ -1,25 +1,18 @@
 package com.ndevstudio.expensetracker.controller;
 
 import com.ndevstudio.expensetracker.entity.Expense;
-import com.ndevstudio.expensetracker.entity.User;
-import com.ndevstudio.expensetracker.repository.ExpenseRepository;
-import com.ndevstudio.expensetracker.repository.UserRepository;
 import com.ndevstudio.expensetracker.service.ExpenseService;
-import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/expenses")
 public class ExpenseRestController {
-    ExpenseService expenseService;
+    private final ExpenseService expenseService;
 
     @Autowired
     public ExpenseRestController(ExpenseService expenseService) {
@@ -27,27 +20,27 @@ public class ExpenseRestController {
     }
 
     @GetMapping("/readAll")
-    ResponseEntity<List<Expense>> getAllExpenses() {
-        return expenseService.readAllExpenses();
+    public ResponseEntity<List<Expense>> getAllExpenses(Authentication authentication) {
+        return expenseService.readAllExpenses(authentication);
     }
 
     @GetMapping("/book/{id}")
-    ResponseEntity<List<Expense>> getExpensesByBook(@PathVariable long id) {
-        return expenseService.readExpensesByBook(id);
+    public ResponseEntity<List<Expense>> getExpensesByBook(@PathVariable long id, Authentication authentication) {
+        return expenseService.readExpensesByBook(id, authentication);
     }
 
     @PostMapping("/create")
-    ResponseEntity<Expense> createNewExpense(@RequestBody Expense e, Authentication authentication) {
+    public ResponseEntity<?> createNewExpense(@RequestBody Expense e, Authentication authentication) {
         return expenseService.createExpense(e, authentication);
     }
 
     @PutMapping("/edit/{id}")
-    ResponseEntity<Expense> editExistingExpense(@RequestBody Expense e, @PathVariable long id) {
-        return expenseService.updateExpense(e, id);
+    public ResponseEntity<?> editExistingExpense(@RequestBody Expense e, @PathVariable long id, Authentication authentication) {
+        return expenseService.updateExpense(e, id, authentication);
     }
 
     @DeleteMapping("/delete/{id}")
-    ResponseEntity<Expense> deleteExpense(@PathVariable long id) {
-        return expenseService.deleteExpense(id);
+    public ResponseEntity<?> deleteExpense(@PathVariable long id, Authentication authentication) {
+        return expenseService.deleteExpense(id, authentication);
     }
 }

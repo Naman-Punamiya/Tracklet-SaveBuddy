@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       child: Icon(
                         Icons.account_balance_wallet_rounded,
-                        color: isDark ? AppColors.primary : Colors.white,
+                        color: isDark ? AppColors.primaryAccent : Colors.white,
                         size: 42,
                       ),
                     ),
@@ -158,7 +158,7 @@ class _SplashScreenState extends State<SplashScreen>
                       strokeWidth: 2.5,
                       valueColor: AlwaysStoppedAnimation<Color>(
                         isDark
-                            ? AppColors.primary
+                            ? AppColors.primaryAccent
                             : Colors.white.withValues(alpha: 0.8),
                       ),
                     ),

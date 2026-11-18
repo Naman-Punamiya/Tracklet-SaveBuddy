@@ -61,43 +61,54 @@ class _BookInsideHomePageState extends State<BookInsideHomePage> {
           ),
         ),
         child: SafeArea(
-          child: SizedBox(
-            height: 52,
-            child: BottomNavigationBar(
-              currentIndex: currentIndex,
-              elevation: 0,
-              backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
-              selectedItemColor: const Color(0xFF065F46),
-              unselectedItemColor: const Color(0xFF6B7280),
-              selectedFontSize: 14,
-              unselectedFontSize: 14,
-              selectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.2,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.2,
-              ),
-              type: BottomNavigationBarType.fixed,
-              onTap: (index) {
-                setState(() {
-                  currentIndex = index;
-                });
-              },
-              items: const [
-                BottomNavigationBarItem(
-                  icon: SizedBox(height: 0, width: 0),
-                  activeIcon: SizedBox(height: 0, width: 0),
-                  label: "Expenses",
-                ),
-                BottomNavigationBarItem(
-                  icon: SizedBox(height: 0, width: 0),
-                  activeIcon: SizedBox(height: 0, width: 0),
-                  label: "Report",
-                ),
-              ],
+          child: BottomNavigationBar(
+            currentIndex: currentIndex,
+            elevation: 0,
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+            selectedItemColor:
+                isDark ? AppColors.primaryAccent : const Color(0xFF065F46),
+            unselectedItemColor:
+                isDark ? AppColors.textMuted : const Color(0xFF6B7280),
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            selectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
             ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.2,
+            ),
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              setState(() {
+                currentIndex = index;
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.receipt_long_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.receipt_long_rounded, size: 22),
+                ),
+                label: "Expenses",
+              ),
+              BottomNavigationBarItem(
+                icon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.bar_chart_rounded, size: 22),
+                ),
+                activeIcon: Padding(
+                  padding: EdgeInsets.only(bottom: 4.0),
+                  child: Icon(Icons.bar_chart_rounded, size: 22),
+                ),
+                label: "Report",
+              ),
+            ],
           ),
         ),
       ),

@@ -8,6 +8,9 @@ import 'package:expense_tracker/services/connectivity_service.dart';
 
 class BookRepository {
   final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  final http.Client client;
+
+  BookRepository({http.Client? client}) : client = client ?? http.Client();
 
   Future<List<Map<String, dynamic>>> getBooks({required int archived}) async {
     return await dbHelper.getLocalBooks(archived: archived);
@@ -36,7 +39,7 @@ class BookRepository {
     if (await ConnectivityService.isOnline()) {
       try {
         final url = Uri.parse("${bookUrl}create");
-        final res = await http.post(
+        final res = await client.post(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': name, 'subtitle': subtitle}),
@@ -77,7 +80,7 @@ class BookRepository {
     if (await ConnectivityService.isOnline() && serverId != null) {
       try {
         final url = Uri.parse("${bookUrl}edit/$serverId");
-        final res = await http.put(
+        final res = await client.put(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': name, 'subtitle': subtitle}),
@@ -111,7 +114,7 @@ class BookRepository {
     if (await ConnectivityService.isOnline() && serverId != null) {
       try {
         final url = Uri.parse("${bookUrl}archive/$serverId");
-        final res = await http.patch(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.patch(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200) {
           await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: nowStr);
         }
@@ -138,7 +141,7 @@ class BookRepository {
     if (await ConnectivityService.isOnline() && serverId != null) {
       try {
         final url = Uri.parse("${bookUrl}restore/$serverId");
-        final res = await http.patch(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.patch(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200) {
           await dbHelper.updateSyncStatus('books', localId, serverId, updatedAt: nowStr);
         }
@@ -148,25 +151,28 @@ class BookRepository {
     }
   }
 
-  Future<void> deleteBook(String id, String basicAuth) async {
+  Future<bool> deleteBook(String id, String basicAuth) async {
     final localId = int.parse(id);
     final localBook = await dbHelper.getLocalBookById(localId);
     final serverId = localBook?['server_id'];
 
-    // 1. SQLite local delete
-    await dbHelper.deleteLocalBook(localId);
+    bool cloudDeleted = false;
 
-    // 2. If it had server ID, queue pending delete
+    // 1. If it had server ID, persist pending delete BEFORE deleting local book
     if (serverId != null) {
       await dbHelper.logPendingDelete('books', serverId);
 
-      // 3. Call API if online
+      // 2. SQLite local delete (removes local book and its child expenses)
+      await dbHelper.deleteLocalBook(localId);
+
+      // 3. Attempt cloud deletion if online
       if (await ConnectivityService.isOnline()) {
         try {
           final url = Uri.parse("${bookUrl}delete/$serverId");
-          final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
-          if (res.statusCode == 200) {
-            // Remove from pending deletions
+          final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+          if (res.statusCode == 200 || res.statusCode == 404) {
+            cloudDeleted = true;
+            // Remove from pending deletions on confirmed success or 404
             final pending = await dbHelper.getPendingDeletes();
             final row = pending.where((p) => p['table_name'] == 'books' && p['server_id'] == serverId).firstOrNull;
             if (row != null) {
@@ -177,7 +183,18 @@ class BookRepository {
           debugPrint("API Book delete failed: $e");
         }
       }
+    } else {
+      // Local-only book: no backend record exists, delete local book directly
+      await dbHelper.deleteLocalBook(localId);
+      cloudDeleted = true;
     }
+
+    return cloudDeleted;
+  }
+
+  Future<int> getPendingDeletionsCount() async {
+    final pending = await dbHelper.getPendingDeletes();
+    return pending.where((p) => p['table_name'] == 'books').length;
   }
 
   Future<void> syncBooks(String basicAuth) async {
@@ -188,7 +205,7 @@ class BookRepository {
       final serverId = p['server_id'];
       try {
         final url = Uri.parse("${bookUrl}delete/$serverId");
-        final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 404) {
           await dbHelper.removePendingSync(p['id']);
         }
@@ -198,14 +215,14 @@ class BookRepository {
     // B. Get elements from Server
     List<dynamic> serverBooks = [];
     try {
-      final activeRes = await http.get(Uri.parse("${bookUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+      final activeRes = await client.get(Uri.parse("${bookUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (activeRes.statusCode == 200) {
         final decoded = safeJsonDecode(activeRes.body);
         if (decoded is List) {
           serverBooks.addAll(decoded);
         }
       }
-      final archRes = await http.get(Uri.parse("${bookUrl}readAllArchived"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+      final archRes = await client.get(Uri.parse("${bookUrl}readAllArchived"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (archRes.statusCode == 200) {
         final decoded = safeJsonDecode(archRes.body);
         if (decoded is List) {
@@ -222,66 +239,64 @@ class BookRepository {
     final localBooksArch = await dbHelper.getLocalBooks(archived: 1);
     final localBooks = [...localBooksActive, ...localBooksArch];
 
-    // D. Process server books (Sync & LWW)
+    // D. Process server books
     for (final sb in serverBooks) {
-      final int serverId = sb['id'];
-      final serverUpdatedAt = sb['updatedAt'] ?? sb['updated_at'] ?? DateTime.fromMillisecondsSinceEpoch(0).toIso8601String();
-      final name = sb['name'] ?? "";
-      final subtitle = sb['subtitle'] ?? "";
-      final isArchived = sb['archived'] == true ? 1 : 0;
+      if (sb is! Map<String, dynamic>) continue;
+      final int? serverId = (sb['id'] as num?)?.toInt();
+      if (serverId == null) continue;
 
-      // Check if it exists locally
+      final name = sb['name']?.toString() ?? "";
+      final subtitle = sb['subtitle']?.toString() ?? "";
+      final isArchived = (sb['archived'] == true) ? 1 : 0;
+      final serverUpdatedAt = sb['updatedAt'] ?? sb['updated_at'] ?? DateTime.now().toIso8601String();
+
+      // Check if it exists locally by server_id
       final matchIndex = localBooks.indexWhere((lb) => lb['server_id'] == serverId);
 
       if (matchIndex != -1) {
-        // Exists locally, apply Last Write Wins
         final lb = localBooks[matchIndex];
-        final localUpdatedAt = lb['updated_at'];
-        final localDate = DateTime.tryParse(localUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final serverDate = DateTime.tryParse(serverUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-        if (serverDate.isAfter(localDate)) {
-          // Download Server
-          await dbHelper.updateLocalBook(lb['id'], {
+        if (lb['synced'] == 1) {
+          await dbHelper.updateLocalBook(lb['id'] as int, {
             'name': name,
             'subtitle': subtitle,
             'archived': isArchived,
             'updated_at': serverUpdatedAt,
             'synced': 1,
           });
-        } else if (localDate.isAfter(serverDate) && lb['synced'] == 0) {
-          // Upload Local
+        } else if (lb['synced'] == 0) {
           try {
-            final res = await http.put(
+            final res = await client.put(
               Uri.parse("${bookUrl}edit/$serverId"),
               headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
               body: jsonEncode({'name': lb['name'], 'subtitle': lb['subtitle']}),
             ).timeout(const Duration(seconds: 15));
             if (res.statusCode == 200 || res.statusCode == 201) {
-              await dbHelper.updateSyncStatus('books', lb['id'], serverId, updatedAt: localUpdatedAt);
+              await dbHelper.updateSyncStatus('books', lb['id'] as int, serverId);
             }
           } catch (_) {}
-        } else {
-          // Match but aligned
-          if (lb['synced'] == 0) {
-            await dbHelper.updateSyncStatus('books', lb['id'], serverId);
-          }
         }
       } else {
-        // Does not exist locally. Check if it was deleted local-only
         final isDeletedLocally = pending.any((p) => p['table_name'] == 'books' && p['server_id'] == serverId);
         if (!isDeletedLocally) {
-          // Insert sqlite
-          final now = DateTime.now().toIso8601String();
-          await dbHelper.insertLocalBook({
-            'server_id': serverId,
-            'name': name,
-            'subtitle': subtitle,
-            'archived': isArchived,
-            'created_at': sb['createdAt'] ?? sb['created_at'] ?? now,
-            'updated_at': serverUpdatedAt,
-            'synced': 1,
-          });
+          // Check if an unlinked local book matches by name & subtitle (prevent duplicate on restore)
+          final unlinkedMatchIndex = localBooks.indexWhere(
+            (lb) => lb['server_id'] == null && lb['name'] == name && lb['subtitle'] == subtitle,
+          );
+          if (unlinkedMatchIndex != -1) {
+            final lb = localBooks[unlinkedMatchIndex];
+            await dbHelper.updateSyncStatus('books', lb['id'] as int, serverId, updatedAt: serverUpdatedAt);
+            await dbHelper.updateLocalBook(lb['id'] as int, {'archived': isArchived});
+          } else {
+            await dbHelper.insertLocalBook({
+              'server_id': serverId,
+              'name': name,
+              'subtitle': subtitle,
+              'archived': isArchived,
+              'created_at': sb['createdAt'] ?? sb['created_at'] ?? DateTime.now().toIso8601String(),
+              'updated_at': serverUpdatedAt,
+              'synced': 1,
+            });
+          }
         }
       }
     }
@@ -289,25 +304,36 @@ class BookRepository {
     // E. Upload local-only books (created offline)
     final unsynced = await dbHelper.getUnsyncedRecords('books');
     for (final book in unsynced) {
-      if (book['server_id'] != null) continue; // Handled in LWW loop, or has server_id
+      if (book['server_id'] != null) continue;
       try {
-        final res = await http.post(
+        final res = await client.post(
           Uri.parse("${bookUrl}create"),
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': book['name'], 'subtitle': book['subtitle']}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('books', book['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? book['updated_at']);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('books', book['id'] as int, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? book['updated_at']);
+            }
+          }
+        } else {
+          await dbHelper.updateLocalBook(book['id'] as int, {'synced': 2});
         }
-      } catch (_) {}
+      } catch (_) {
+        await dbHelper.updateLocalBook(book['id'] as int, {'synced': 2});
+      }
     }
   }
 }
 
 class CategoryRepository {
   final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  final http.Client client;
+
+  CategoryRepository({http.Client? client}) : client = client ?? http.Client();
 
   Future<List<Map<String, dynamic>>> getCategories() async {
     return await dbHelper.getLocalCategories();
@@ -334,7 +360,7 @@ class CategoryRepository {
     if (await ConnectivityService.isOnline()) {
       try {
         final url = Uri.parse("${categoryUrl}create");
-        final res = await http.post(
+        final res = await client.post(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': name, 'icon': icon, 'color': '#000000'}),
@@ -372,7 +398,7 @@ class CategoryRepository {
     if (await ConnectivityService.isOnline() && serverId != null) {
       try {
         final url = Uri.parse("${categoryUrl}edit/$serverId");
-        final res = await http.put(
+        final res = await client.put(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': name, 'icon': icon, 'color': '#000000'}),
@@ -402,7 +428,7 @@ class CategoryRepository {
       if (await ConnectivityService.isOnline()) {
         try {
           final url = Uri.parse("${categoryUrl}delete/$serverId");
-          final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+          final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
             final row = pending.where((p) => p['table_name'] == 'categories' && p['server_id'] == serverId).firstOrNull;
@@ -424,7 +450,7 @@ class CategoryRepository {
       final serverId = p['server_id'];
       try {
         final url = Uri.parse("${categoryUrl}delete/$serverId");
-        final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 404) {
           await dbHelper.removePendingSync(p['id']);
         }
@@ -433,7 +459,7 @@ class CategoryRepository {
 
     List<dynamic> serverCategories = [];
     try {
-      final res = await http.get(Uri.parse("${categoryUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+      final res = await client.get(Uri.parse("${categoryUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
         final decoded = safeJsonDecode(res.body);
         if (decoded is List) {
@@ -448,76 +474,89 @@ class CategoryRepository {
     final localCategories = await dbHelper.getLocalCategories();
 
     for (final sc in serverCategories) {
-      final int serverId = sc['id'];
-      final serverUpdatedAt = sc['updatedAt'] ?? sc['updated_at'] ?? DateTime.fromMillisecondsSinceEpoch(0).toIso8601String();
-      final name = sc['name'] ?? "";
-      final icon = sc['icon'] ?? "";
-      final color = sc['color'] ?? "#000000";
+      if (sc is! Map<String, dynamic>) continue;
+      final int? serverId = (sc['id'] as num?)?.toInt();
+      if (serverId == null) continue;
+
+      final name = sc['name']?.toString() ?? "";
+      final icon = sc['icon']?.toString() ?? "More";
+      final color = sc['color']?.toString() ?? "#000000";
+      final serverUpdatedAt = sc['updatedAt'] ?? sc['updated_at'] ?? DateTime.now().toIso8601String();
 
       final matchIndex = localCategories.indexWhere((lc) => lc['server_id'] == serverId);
 
       if (matchIndex != -1) {
         final lc = localCategories[matchIndex];
-        final localUpdatedAt = lc['updated_at'];
-        final localDate = DateTime.tryParse(localUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final serverDate = DateTime.tryParse(serverUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-        if (serverDate.isAfter(localDate)) {
-          await dbHelper.updateLocalCategory(lc['id'], {
+        if (lc['synced'] == 1) {
+          await dbHelper.updateLocalCategory(lc['id'] as int, {
             'name': name,
             'icon': icon,
             'color': color,
             'updated_at': serverUpdatedAt,
             'synced': 1,
           });
-        } else if (localDate.isAfter(serverDate) && lc['synced'] == 0) {
+        } else if (lc['synced'] == 0) {
           try {
-            final res = await http.put(
+            final res = await client.put(
               Uri.parse("${categoryUrl}edit/$serverId"),
               headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
               body: jsonEncode({'name': lc['name'], 'icon': lc['icon'], 'color': lc['color']}),
             ).timeout(const Duration(seconds: 15));
             if (res.statusCode == 200 || res.statusCode == 201) {
-              await dbHelper.updateSyncStatus('categories', lc['id'], serverId, updatedAt: localUpdatedAt);
+              await dbHelper.updateSyncStatus('categories', lc['id'] as int, serverId);
             }
           } catch (_) {}
-        } else {
-          if (lc['synced'] == 0) {
-            await dbHelper.updateSyncStatus('categories', lc['id'], serverId);
-          }
         }
       } else {
         final isDeletedLocally = pending.any((p) => p['table_name'] == 'categories' && p['server_id'] == serverId);
         if (!isDeletedLocally) {
-          final now = DateTime.now().toIso8601String();
-          await dbHelper.insertLocalCategory({
-            'server_id': serverId,
-            'name': name,
-            'icon': icon,
-            'color': color,
-            'created_at': sc['createdAt'] ?? sc['created_at'] ?? now,
-            'updated_at': serverUpdatedAt,
-            'synced': 1,
-          });
+          // Check if an unlinked local category (e.g. from default seeding) has the same name
+          final nameMatchIndex = localCategories.indexWhere(
+            (lc) => lc['server_id'] == null && lc['name'].toString().trim().toLowerCase() == name.trim().toLowerCase(),
+          );
+          if (nameMatchIndex != -1) {
+            final lc = localCategories[nameMatchIndex];
+            await dbHelper.updateSyncStatus('categories', lc['id'] as int, serverId, updatedAt: serverUpdatedAt);
+            await dbHelper.updateLocalCategory(lc['id'] as int, {'icon': icon, 'color': color, 'synced': 1});
+          } else {
+            await dbHelper.insertLocalCategory({
+              'server_id': serverId,
+              'name': name,
+              'icon': icon,
+              'color': color,
+              'created_at': sc['createdAt'] ?? sc['created_at'] ?? DateTime.now().toIso8601String(),
+              'updated_at': serverUpdatedAt,
+              'synced': 1,
+            });
+          }
         }
       }
     }
 
+    // Upload unsynced user-created categories (where server_id is NULL)
     final unsynced = await dbHelper.getUnsyncedRecords('categories');
     for (final category in unsynced) {
       if (category['server_id'] != null) continue;
       try {
-        final res = await http.post(
+        final res = await client.post(
           Uri.parse("${categoryUrl}create"),
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'name': category['name'], 'icon': category['icon'], 'color': category['color']}),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('categories', category['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? category['updated_at']);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('categories', category['id'] as int, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? category['updated_at']);
+            }
+          }
+        } else {
+          await dbHelper.updateLocalCategory(category['id'] as int, {'synced': 2});
         }
-      } catch (_) {}
+      } catch (_) {
+        await dbHelper.updateLocalCategory(category['id'] as int, {'synced': 2});
+      }
     }
   }
 }
@@ -542,6 +581,9 @@ bool isTransactionCredit(dynamic creditValue) {
 
 class ExpenseRepository {
   final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  final http.Client client;
+
+  ExpenseRepository({http.Client? client}) : client = client ?? http.Client();
 
   Future<List<Map<String, dynamic>>> getExpenses(String bookId) async {
     final localBookId = int.parse(bookId);
@@ -621,7 +663,7 @@ class ExpenseRepository {
           if (serverCategoryId != null) {
             body['category'] = {'id': serverCategoryId};
           }
-          final res = await http.post(
+          final res = await client.post(
             url,
             headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
             body: jsonEncode(body),
@@ -688,7 +730,7 @@ class ExpenseRepository {
           body['category'] = {'id': serverCategoryId};
         }
 
-        final res = await http.put(
+        final res = await client.put(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode(body),
@@ -724,7 +766,7 @@ class ExpenseRepository {
       if (await ConnectivityService.isOnline()) {
         try {
           final url = Uri.parse("${expenseUrl}delete/$serverId");
-          final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+          final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
             final row = pending.where((p) => p['table_name'] == 'expenses' && p['server_id'] == serverId).firstOrNull;
@@ -747,126 +789,133 @@ class ExpenseRepository {
       final serverId = p['server_id'];
       try {
         final url = Uri.parse("${expenseUrl}delete/$serverId");
-        final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 404) {
           await dbHelper.removePendingSync(p['id']);
         }
       } catch (_) {}
     }
 
-    // B. Sync expenses for each book
-    final activeBooks = await dbHelper.getLocalBooks(archived: 0);
-    final archivedBooks = await dbHelper.getLocalBooks(archived: 1);
-    final allBooks = [...activeBooks, ...archivedBooks];
-
-    for (final book in allBooks) {
-      final serverBookId = book['server_id'];
-      final localBookId = book['id'];
-      if (serverBookId == null) {
-        // Cannot sync expenses for a book that hasn'tSynced to server yet, wait next sync cycle
-        continue;
-      }
-
-      List<dynamic> serverExpenses = [];
-      try {
-        final url = Uri.parse("${expenseUrl}book/$serverBookId");
-        final res = await http.get(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
-        if (res.statusCode == 200) {
-          final decoded = safeJsonDecode(res.body);
-          if (decoded is List) {
-            serverExpenses = decoded;
-          }
+    // B. Fetch server expenses using /expenses/readAll first
+    List<dynamic> serverExpenses = [];
+    bool fetchedBulk = false;
+    try {
+      final res = await client.get(Uri.parse("${expenseUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final decoded = safeJsonDecode(res.body);
+        if (decoded is List) {
+          serverExpenses = decoded;
+          fetchedBulk = true;
         }
-      } catch (e) {
-        debugPrint("Failed to sync server expenses for book $serverBookId: $e");
-        continue;
       }
+    } catch (e) {
+      debugPrint("Failed bulk readAll expenses, falling back to per-book: $e");
+    }
 
-      final localExpenses = await dbHelper.getLocalExpensesByBook(localBookId);
+    // Fallback to per-book read if bulk endpoint failed or returned non-200
+    if (!fetchedBulk) {
+      final activeBooks = await dbHelper.getLocalBooks(archived: 0);
+      final archivedBooks = await dbHelper.getLocalBooks(archived: 1);
+      final allBooks = [...activeBooks, ...archivedBooks];
 
-      for (final se in serverExpenses) {
-        final int serverId = se['id'];
-        final serverUpdatedAt = se['updatedAt'] ?? se['updated_at'] ?? se['date'] ?? DateTime.fromMillisecondsSinceEpoch(0).toIso8601String();
-        final description = se['description'] ?? "";
-        final amount = (se['amount'] as num?)?.toDouble() ?? 0.0;
-        final isCredit = isTransactionCredit(se['credit']);
-        final date = se['date'] ?? DateTime.now().toIso8601String();
-        final serverCatId = se['category']?['id'];
+      for (final book in allBooks) {
+        final serverBookId = book['server_id'];
+        if (serverBookId == null) continue;
 
-        // Get local category ID corresponding to server classification ID
-        int? localCatId;
-        if (serverCatId != null) {
-          localCatId = await _findLocalCategoryIdByServerId(serverCatId);
-        }
-
-        final matchIndex = localExpenses.indexWhere((le) => le['server_id'] == serverId);
-
-        if (matchIndex != -1) {
-          final le = localExpenses[matchIndex];
-          final localUpdatedAt = le['updated_at'];
-          final localDate = DateTime.tryParse(localUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-          final serverDate = DateTime.tryParse(serverUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-          if (serverDate.isAfter(localDate)) {
-            // Download Server
-            await dbHelper.updateLocalExpense(le['id'], {
-              'description': description,
-              'amount': amount,
-              'credit': isCredit ? 1 : 0,
-              'date': date,
-              'category_id': localCatId,
-              'updated_at': serverUpdatedAt,
-              'synced': 1,
-            });
-          } else if (localDate.isAfter(serverDate) && (le['synced'] == 0 || le['synced'] == 2)) {
-            // Upload Local
-            try {
-              final url = Uri.parse("${expenseUrl}edit/$serverId");
-              final Map<String, dynamic> body = {
-                'description': le['description'],
-                'amount': le['amount'],
-                'credit': le['credit'],
-                'date': le['date'],
-              };
-              if (serverCatId != null) {
-                body['category'] = {'id': serverCatId};
-              }
-              final res = await http.put(
-                url,
-                headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
-                body: jsonEncode(body),
-              );
-              if (res.statusCode == 200 || res.statusCode == 201) {
-                await dbHelper.updateSyncStatus('expenses', le['id'], serverId, updatedAt: localUpdatedAt);
-              } else {
-                await dbHelper.updateLocalExpense(le['id'], {'synced': 2});
-              }
-            } catch (_) {
-              await dbHelper.updateLocalExpense(le['id'], {'synced': 2});
-            }
-          } else {
-            if (le['synced'] == 0 || le['synced'] == 2) {
-              await dbHelper.updateSyncStatus('expenses', le['id'], serverId);
+        try {
+          final url = Uri.parse("${expenseUrl}book/$serverBookId");
+          final res = await client.get(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+          if (res.statusCode == 200) {
+            final decoded = safeJsonDecode(res.body);
+            if (decoded is List) {
+              serverExpenses.addAll(decoded);
             }
           }
-        } else {
-          // Check if it was deleted local-only
-          final isDeletedLocally = pending.any((p) => p['table_name'] == 'expenses' && p['server_id'] == serverId);
-          if (!isDeletedLocally) {
-            final now = DateTime.now().toIso8601String();
-            await dbHelper.insertLocalExpense({
-              'server_id': serverId,
-              'description': description,
-              'amount': amount,
-              'credit': isCredit ? 1 : 0,
-              'date': date,
-              'book_id': localBookId,
-              'category_id': localCatId,
-              'created_at': se['createdAt'] ?? se['created_at'] ?? now,
-              'updated_at': serverUpdatedAt,
-              'synced': 1,
-            });
-          }
+        } catch (_) {}
+      }
+    }
+
+    // Process server expenses
+    for (final se in serverExpenses) {
+      if (se is! Map<String, dynamic>) continue;
+      final int? serverId = (se['id'] as num?)?.toInt();
+      if (serverId == null) continue;
+
+      final description = se['description']?.toString() ?? "";
+      final amount = (se['amount'] as num?)?.toDouble() ?? 0.0;
+      final isCredit = isTransactionCredit(se['credit'] ?? se['isCredit']);
+      final date = se['date']?.toString() ?? DateTime.now().toIso8601String();
+
+      // Resolve book mapping
+      final serverBookId = se['book']?['id'] is num ? (se['book']['id'] as num).toInt() : null;
+      int? localBookId;
+      if (serverBookId != null) {
+        localBookId = await _findLocalBookIdByServerId(serverBookId);
+      }
+
+      // If book cannot be mapped locally, skip to preserve foreign key integrity
+      if (localBookId == null) continue;
+
+      // Resolve category mapping
+      final serverCatId = se['category']?['id'] is num ? (se['category']['id'] as num).toInt() : null;
+      int? localCatId;
+      if (serverCatId != null) {
+        localCatId = await _findLocalCategoryIdByServerId(serverCatId);
+      }
+
+      // Check if expense exists in SQLite by server_id
+      final existingExpense = await dbHelper.getLocalExpenseByServerId(serverId);
+
+      if (existingExpense != null) {
+        final int localExpenseId = existingExpense['id'];
+        if (existingExpense['synced'] == 1) {
+          await dbHelper.updateLocalExpense(localExpenseId, {
+            'description': description,
+            'amount': amount,
+            'credit': isCredit ? 1 : 0,
+            'date': date,
+            'book_id': localBookId,
+            'category_id': localCatId,
+            'updated_at': date,
+            'synced': 1,
+          });
+        } else if (existingExpense['synced'] == 0 || existingExpense['synced'] == 2) {
+          try {
+            final url = Uri.parse("${expenseUrl}edit/$serverId");
+            final Map<String, dynamic> body = {
+              'description': existingExpense['description'],
+              'amount': existingExpense['amount'],
+              'credit': existingExpense['credit'] == 1,
+              'date': existingExpense['date'],
+            };
+            if (serverCatId != null) {
+              body['category'] = {'id': serverCatId};
+            }
+            final res = await client.put(
+              url,
+              headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
+              body: jsonEncode(body),
+            ).timeout(const Duration(seconds: 15));
+            if (res.statusCode == 200 || res.statusCode == 201) {
+              await dbHelper.updateSyncStatus('expenses', localExpenseId, serverId);
+            }
+          } catch (_) {}
+        }
+      } else {
+        final isDeletedLocally = pending.any((p) => p['table_name'] == 'expenses' && p['server_id'] == serverId);
+        if (!isDeletedLocally) {
+          await dbHelper.insertLocalExpense({
+            'server_id': serverId,
+            'description': description,
+            'amount': amount,
+            'credit': isCredit ? 1 : 0,
+            'date': date,
+            'book_id': localBookId,
+            'category_id': localCatId,
+            'created_at': se['createdAt'] ?? se['created_at'] ?? date,
+            'updated_at': date,
+            'synced': 1,
+          });
         }
       }
     }
@@ -892,15 +941,19 @@ class ExpenseRepository {
           body['category'] = {'id': serverCatId};
         }
 
-        final res = await http.post(
+        final res = await client.post(
           Uri.parse("${expenseUrl}create"),
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode(body),
         ).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 201) {
-          final data = jsonDecode(res.body);
-          final serverId = data['id'];
-          await dbHelper.updateSyncStatus('expenses', exp['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? exp['updated_at']);
+          final data = safeJsonDecode(res.body);
+          if (data is Map<String, dynamic>) {
+            final serverId = data['id'];
+            if (serverId != null) {
+              await dbHelper.updateSyncStatus('expenses', exp['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? exp['updated_at']);
+            }
+          }
         } else {
           await dbHelper.updateLocalExpense(exp['id'], {'synced': 2});
         }
@@ -916,20 +969,27 @@ class ExpenseRepository {
     return book?['server_id'];
   }
 
+  Future<int?> _findLocalBookIdByServerId(int serverBookId) async {
+    final book = await dbHelper.getLocalBookByServerId(serverBookId);
+    return book?['id'];
+  }
+
   Future<int?> _findServerCategoryId(int localCategoryId) async {
     final cat = await dbHelper.getLocalCategoryById(localCategoryId);
     return cat?['server_id'];
   }
 
   Future<int?> _findLocalCategoryIdByServerId(int serverCatId) async {
-    final db = await dbHelper.database;
-    final list = await db.query('categories', where: 'server_id = ?', whereArgs: [serverCatId]);
-    return list.isNotEmpty ? list.first['id'] as int : null;
+    final cat = await dbHelper.getLocalCategoryByServerId(serverCatId);
+    return cat?['id'];
   }
 }
 
 class InvestmentRepository {
   final DatabaseHelper dbHelper = DatabaseHelper.instance;
+  final http.Client client;
+
+  InvestmentRepository({http.Client? client}) : client = client ?? http.Client();
 
   Future<List<Map<String, dynamic>>> getInvestments() async {
     return await dbHelper.getLocalInvestments();
@@ -956,7 +1016,7 @@ class InvestmentRepository {
     if (await ConnectivityService.isOnline()) {
       try {
         final url = Uri.parse("${investmentUrl}create");
-        final res = await http.post(
+        final res = await client.post(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'description': description, 'amount': amount}),
@@ -995,7 +1055,7 @@ class InvestmentRepository {
     if (await ConnectivityService.isOnline() && serverId != null) {
       try {
         final url = Uri.parse("${investmentUrl}edit/$serverId");
-        final res = await http.put(
+        final res = await client.put(
           url,
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'description': description, 'amount': amount}),
@@ -1028,7 +1088,7 @@ class InvestmentRepository {
       if (await ConnectivityService.isOnline()) {
         try {
           final url = Uri.parse("${investmentUrl}delete/$serverId");
-          final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+          final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
           if (res.statusCode == 200) {
             final pending = await dbHelper.getPendingDeletes();
             final row = pending.where((p) => p['table_name'] == 'investments' && p['server_id'] == serverId).firstOrNull;
@@ -1051,7 +1111,7 @@ class InvestmentRepository {
       final serverId = p['server_id'];
       try {
         final url = Uri.parse("${investmentUrl}delete/$serverId");
-        final res = await http.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+        final res = await client.delete(url, headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
         if (res.statusCode == 200 || res.statusCode == 404) {
           await dbHelper.removePendingSync(p['id']);
         }
@@ -1061,7 +1121,7 @@ class InvestmentRepository {
     // B. Get from Server
     List<dynamic> serverInvestments = [];
     try {
-      final res = await http.get(Uri.parse("${investmentUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
+      final res = await client.get(Uri.parse("${investmentUrl}readAll"), headers: {'Authorization': basicAuth}).timeout(const Duration(seconds: 15));
       if (res.statusCode == 200) {
         final decoded = safeJsonDecode(res.body);
         if (decoded is List) {
@@ -1076,59 +1136,59 @@ class InvestmentRepository {
     // C. Get from SQLite
     final localInvestments = await dbHelper.getLocalInvestments();
 
-    // D. Check matching & LWW
+    // D. Process server investments
     for (final si in serverInvestments) {
-      final int serverId = si['id'];
-      final serverUpdatedAt = si['updatedAt'] ?? si['updated_at'] ?? DateTime.fromMillisecondsSinceEpoch(0).toIso8601String();
-      final description = si['description'] ?? "";
+      if (si is! Map<String, dynamic>) continue;
+      final int? serverId = (si['id'] as num?)?.toInt();
+      if (serverId == null) continue;
+
+      final description = si['description']?.toString() ?? "";
       final amount = (si['amount'] as num?)?.toDouble() ?? 0.0;
+      final serverUpdatedAt = si['updatedAt'] ?? si['updated_at'] ?? DateTime.now().toIso8601String();
 
       final matchIndex = localInvestments.indexWhere((li) => li['server_id'] == serverId);
 
       if (matchIndex != -1) {
         final li = localInvestments[matchIndex];
-        final localUpdatedAt = li['updated_at'];
-        final localDate = DateTime.tryParse(localUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final serverDate = DateTime.tryParse(serverUpdatedAt) ?? DateTime.fromMillisecondsSinceEpoch(0);
-
-        if (serverDate.isAfter(localDate)) {
-          // Download
-          await dbHelper.updateLocalInvestment(li['id'], {
+        if (li['synced'] == 1) {
+          await dbHelper.updateLocalInvestment(li['id'] as int, {
             'description': description,
             'amount': amount,
             'updated_at': serverUpdatedAt,
             'synced': 1,
           });
-        } else if (localDate.isAfter(serverDate) && li['synced'] == 0) {
-          // Upload
+        } else if (li['synced'] == 0) {
           try {
-            final res = await http.put(
+            final res = await client.put(
               Uri.parse("${investmentUrl}edit/$serverId"),
               headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
               body: jsonEncode({'description': li['description'], 'amount': li['amount']}),
             ).timeout(const Duration(seconds: 15));
             if (res.statusCode == 200 || res.statusCode == 201) {
-              await dbHelper.updateSyncStatus('investments', li['id'], serverId, updatedAt: localUpdatedAt);
+              await dbHelper.updateSyncStatus('investments', li['id'] as int, serverId);
             }
           } catch (_) {}
-        } else {
-          if (li['synced'] == 0) {
-            await dbHelper.updateSyncStatus('investments', li['id'], serverId);
-          }
         }
       } else {
-        // Check if deleted local-only
         final isDeletedLocally = pending.any((p) => p['table_name'] == 'investments' && p['server_id'] == serverId);
         if (!isDeletedLocally) {
-          final now = DateTime.now().toIso8601String();
-          await dbHelper.insertLocalInvestment({
-            'server_id': serverId,
-            'description': description,
-            'amount': amount,
-            'created_at': si['createdAt'] ?? si['created_at'] ?? now,
-            'updated_at': serverUpdatedAt,
-            'synced': 1,
-          });
+          // Check if an unlinked local investment matches by description & amount
+          final unlinkedMatchIndex = localInvestments.indexWhere(
+            (li) => li['server_id'] == null && li['description'] == description && (li['amount'] as num?)?.toDouble() == amount,
+          );
+          if (unlinkedMatchIndex != -1) {
+            final li = localInvestments[unlinkedMatchIndex];
+            await dbHelper.updateSyncStatus('investments', li['id'] as int, serverId, updatedAt: serverUpdatedAt);
+          } else {
+            await dbHelper.insertLocalInvestment({
+              'server_id': serverId,
+              'description': description,
+              'amount': amount,
+              'created_at': si['createdAt'] ?? si['created_at'] ?? DateTime.now().toIso8601String(),
+              'updated_at': serverUpdatedAt,
+              'synced': 1,
+            });
+          }
         }
       }
     }
@@ -1138,7 +1198,7 @@ class InvestmentRepository {
     for (final inv in unsynced) {
       if (inv['server_id'] != null) continue;
       try {
-        final res = await http.post(
+        final res = await client.post(
           Uri.parse("${investmentUrl}create"),
           headers: {'Authorization': basicAuth, 'Content-Type': 'application/json'},
           body: jsonEncode({'description': inv['description'], 'amount': inv['amount']}),
@@ -1148,11 +1208,15 @@ class InvestmentRepository {
           if (data is Map<String, dynamic>) {
             final serverId = data['id'];
             if (serverId != null) {
-              await dbHelper.updateSyncStatus('investments', inv['id'], serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? inv['updated_at']);
+              await dbHelper.updateSyncStatus('investments', inv['id'] as int, serverId, updatedAt: data['updatedAt'] ?? data['updated_at'] ?? inv['updated_at']);
             }
           }
+        } else {
+          await dbHelper.updateLocalInvestment(inv['id'] as int, {'synced': 2});
         }
-      } catch (_) {}
+      } catch (_) {
+        await dbHelper.updateLocalInvestment(inv['id'] as int, {'synced': 2});
+      }
     }
   }
 }
@@ -1164,24 +1228,110 @@ class SyncEngine {
   static final InvestmentRepository _investmentRepo = InvestmentRepository();
 
   static bool _isSyncing = false;
+  static bool get isSyncing => _isSyncing;
+  static final ValueNotifier<bool> syncingNotifier = ValueNotifier<bool>(false);
+  static Completer<void>? _syncCompleter;
 
-  static Future<void> syncAll(String basicAuth) async {
-    if (_isSyncing) return;
-    if (!await ConnectivityService.isOnline()) return;
+  static bool _initialSyncStarted = false;
+  static bool get initialSyncStarted => _initialSyncStarted;
+
+  static void markInitialSyncStarted() {
+    _initialSyncStarted = true;
+  }
+
+  static void resetInitialSync() {
+    _initialSyncStarted = false;
+  }
+
+  @visibleForTesting
+  static Future<void> Function(String basicAuth, {http.Client? client})? syncAllHandler;
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _isSyncing = false;
+    syncingNotifier.value = false;
+    _syncCompleter = null;
+    syncAllHandler = null;
+    _initialSyncStarted = false;
+  }
+
+  static Future<void> syncAll(String basicAuth, {http.Client? client}) {
+    // If a sync is already in flight, synchronously join the existing completer future
+    if (_syncCompleter != null) {
+      return _syncCompleter!.future;
+    }
+
+    final completer = Completer<void>();
+    _syncCompleter = completer;
     _isSyncing = true;
+    syncingNotifier.value = true;
 
+    if (syncAllHandler != null) {
+      Future.sync(() => syncAllHandler!(basicAuth, client: client)).catchError((e) {
+        debugPrint("SyncEngine syncAllHandler error: $e");
+      }).whenComplete(() {
+        _isSyncing = false;
+        syncingNotifier.value = false;
+        _syncCompleter = null;
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      });
+      return completer.future;
+    }
+
+    _runSync(completer, basicAuth, client: client);
+    return completer.future;
+  }
+
+  static Future<void> _runSync(Completer<void> completer, String basicAuth, {http.Client? client}) async {
     try {
+      if (!await ConnectivityService.isOnline()) {
+        debugPrint("SyncEngine: Device is offline, skipping sync.");
+        return;
+      }
+
       debugPrint("Starting synchronizer session...");
+      final categoryRepo = client != null ? CategoryRepository(client: client) : _categoryRepo;
+      final bookRepo = client != null ? BookRepository(client: client) : _bookRepo;
+      final expenseRepo = client != null ? ExpenseRepository(client: client) : _expenseRepo;
+      final investmentRepo = client != null ? InvestmentRepository(client: client) : _investmentRepo;
+
       // Execution order keeps foreign key integrity: Categories -> Books -> Expenses -> Investments
-      await _categoryRepo.syncCategories(basicAuth);
-      await _bookRepo.syncBooks(basicAuth);
-      await _expenseRepo.syncExpenses(basicAuth);
-      await _investmentRepo.syncInvestments(basicAuth);
+      try {
+        await categoryRepo.syncCategories(basicAuth);
+      } catch (e) {
+        debugPrint("Category sync error (isolated): $e");
+      }
+
+      try {
+        await bookRepo.syncBooks(basicAuth);
+      } catch (e) {
+        debugPrint("Book sync error (isolated): $e");
+      }
+
+      try {
+        await expenseRepo.syncExpenses(basicAuth);
+      } catch (e) {
+        debugPrint("Expense sync error (isolated): $e");
+      }
+
+      try {
+        await investmentRepo.syncInvestments(basicAuth);
+      } catch (e) {
+        debugPrint("Investment sync error (isolated): $e");
+      }
+
       debugPrint("Synchronizer session finished successfully.");
     } catch (e) {
       debugPrint("Synchronizer session aborted with error: $e");
     } finally {
       _isSyncing = false;
+      syncingNotifier.value = false;
+      _syncCompleter = null;
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
     }
   }
 }
@@ -1295,6 +1445,91 @@ class UserRepository {
     } catch (e) {
       debugPrint("API deleteAccount exception: $e");
       return false;
+    }
+  }
+
+  /// Requests a password reset email. Always returns a generic success message
+  /// when the request is accepted to avoid account enumeration.
+  Future<({bool success, String message})> forgotPassword({
+    required String email,
+  }) async {
+    const genericMessage =
+        "If an account exists with this email address, you will receive password reset instructions shortly.";
+    if (!await ConnectivityService.isOnline()) {
+      return (success: false, message: "No internet connection. Please try again.");
+    }
+    try {
+      final response = await client
+          .post(
+            Uri.parse("${userUrl}forgot-password"),
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final data = safeJsonDecode(response.body);
+        final msg = data is Map<String, dynamic> ? (data['message']?.toString() ?? genericMessage) : genericMessage;
+        return (success: true, message: msg);
+      }
+      return (success: false, message: "Unable to request password reset. Please try again.");
+    } catch (e) {
+      debugPrint("API forgotPassword exception: $e");
+      return (success: false, message: "Network error. Please try again.");
+    }
+  }
+
+  /// Resets password using a one-time reset token.
+  Future<({bool success, String message})> resetPassword({
+    required String token,
+    required String newPassword,
+  }) async {
+    if (!await ConnectivityService.isOnline()) {
+      return (success: false, message: "No internet connection. Please try again.");
+    }
+    try {
+      final response = await client
+          .post(
+            Uri.parse("${userUrl}reset-password"),
+            headers: const {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'token': token, 'newPassword': newPassword}),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = safeJsonDecode(response.body);
+      final msg = data is Map<String, dynamic> ? data['message']?.toString() : null;
+
+      if (response.statusCode == 200) {
+        return (success: true, message: msg ?? "Password has been reset successfully. You can now log in.");
+      }
+
+      final lower = (msg ?? '').toLowerCase();
+      if (response.statusCode == 400 || response.statusCode == 404) {
+        if (lower.contains('expired')) {
+          return (success: false, message: "This reset link has expired. Please request a new one.");
+        }
+        if (lower.contains('used')) {
+          return (success: false, message: "This reset link has already been used. Please request a new one.");
+        }
+        if (lower.contains('invalid')) {
+          return (success: false, message: "This reset link is invalid. Please request a new one.");
+        }
+        if (lower.contains('password')) {
+          return (success: false, message: msg ?? "Please choose a stronger password.");
+        }
+        return (success: false, message: msg ?? "This reset link is invalid or has expired. Please request a new one.");
+      }
+
+      return (success: false, message: "Unable to reset password. Please try again.");
+    } catch (e) {
+      debugPrint("API resetPassword exception: $e");
+      return (success: false, message: "Network error. Please try again.");
     }
   }
 }

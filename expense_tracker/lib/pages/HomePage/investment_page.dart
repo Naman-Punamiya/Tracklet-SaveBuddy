@@ -8,7 +8,6 @@ import 'package:expense_tracker/core/theme/app_shadows.dart';
 import 'package:expense_tracker/core/theme/app_spacing.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_empty_state.dart';
-import 'package:expense_tracker/database/database_helper.dart';
 import 'package:expense_tracker/pages/HomePage/investment_dialogs.dart';
 import 'package:expense_tracker/repositories/repository.dart';
 import 'package:expense_tracker/services/auth_storage_service.dart';
@@ -61,20 +60,30 @@ class _InvestmentPageState extends State<InvestmentPage> {
   void initState() {
     super.initState();
     _investmentsFuture = fetchInvestments();
-    if (!widget.email.contains('test')) {
+    if (!SyncEngine.initialSyncStarted) {
+      SyncEngine.markInitialSyncStarted();
       _triggerSync();
-      _connectivitySubscription = ConnectivityService.connectivityStream.listen((
-        status,
-      ) {
-        if (status != ConnectivityStatus.offline) {
-          _triggerSync();
-        }
-      });
+    }
+    SyncEngine.syncingNotifier.addListener(_onSyncStatusChanged);
+    _connectivitySubscription = ConnectivityService.connectivityStream.listen((
+      status,
+    ) {
+      if (status != ConnectivityStatus.offline) {
+        _triggerSync();
+      }
+    });
+  }
+
+  void _onSyncStatusChanged() {
+    if (!mounted) return;
+    if (!SyncEngine.isSyncing) {
+      _reloadInvestments();
+    } else {
+      setState(() {});
     }
   }
 
   Future<void> _triggerSync() async {
-    if (widget.email.contains('test')) return;
     try {
       await SyncEngine.syncAll(basicAuth);
       if (mounted) {
@@ -85,6 +94,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
 
   @override
   void dispose() {
+    SyncEngine.syncingNotifier.removeListener(_onSyncStatusChanged);
     _connectivitySubscription?.cancel();
     investmentDescriptionController.dispose();
     investmentAmountController.dispose();
@@ -113,13 +123,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
       'synced': 0,
     };
 
-    if (widget.email.contains('test')) {
-      try {
-        await DatabaseHelper.instance.insertLocalInvestment(newRow);
-      } catch (_) {}
-    } else {
-      await investmentRepo.addInvestment(description, amount, basicAuth);
-    }
+    await investmentRepo.addInvestment(description, amount, basicAuth);
 
     if (mounted) {
       setState(() {
@@ -234,6 +238,12 @@ class _InvestmentPageState extends State<InvestmentPage> {
     final breakdown = _getCategoryBreakdown(displayItems);
     final double grandTotal = breakdown.values.fold(0.0, (sum, val) => sum + val);
 
+    // Keep the original palette in light mode; in dark mode swap the deep
+    // emerald for the brighter accent so the first slice stays visible.
+    final List<Color> chartPalette = isDark
+        ? [AppColors.primaryAccent, ..._chartPalette.skip(1)]
+        : _chartPalette;
+
     final List<PieChartSectionData> sections = [];
     final List<Widget> legendRows = [];
 
@@ -242,7 +252,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
       breakdown.forEach((name, amount) {
         if (amount > 0) {
           final pct = ((amount / grandTotal) * 100).round();
-          final color = _chartPalette[colorIdx % _chartPalette.length];
+          final color = chartPalette[colorIdx % chartPalette.length];
           colorIdx++;
 
           sections.add(
@@ -304,10 +314,10 @@ class _InvestmentPageState extends State<InvestmentPage> {
             builder: (context, _, child) {
               return Text(
                 CurrencyService.formatCompact(displayTotal),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
+                  color: isDark ? AppColors.primaryAccent : AppColors.primary,
                   letterSpacing: -0.5,
                 ),
               );
@@ -393,6 +403,12 @@ class _InvestmentPageState extends State<InvestmentPage> {
       iconColor = AppColors.primary;
     }
 
+    // The deep emerald brand colour disappears on the slate card, so use the
+    // brighter accent for the default (non-crypto) asset icons.
+    final Color resolvedIconColor = isDark && iconColor == AppColors.primary
+        ? AppColors.primaryAccent
+        : iconColor;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -421,7 +437,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
                   child: Center(
                     child: Icon(
                       itemIcon,
-                      color: iconColor,
+                      color: resolvedIconColor,
                       size: 22,
                     ),
                   ),
@@ -508,19 +524,25 @@ class _InvestmentPageState extends State<InvestmentPage> {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: const BoxDecoration(
-                      color: AppColors.primaryTint,
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? AppColors.primaryAccent.withValues(alpha: 0.16)
+                          : AppColors.primaryTint,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 20),
+                    child: Icon(
+                      Icons.person_rounded,
+                      color: isDark ? AppColors.primaryAccent : AppColors.primary,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
+                  Text(
                     "Tracklet SaveBuddy",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: isDark ? AppColors.primaryAccent : AppColors.primary,
                       letterSpacing: -0.3,
                     ),
                   ),
@@ -537,8 +559,10 @@ class _InvestmentPageState extends State<InvestmentPage> {
         actions: [
           Container(
             margin: const EdgeInsets.only(right: 6),
-            decoration: const BoxDecoration(
-              color: AppColors.primaryTint,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primaryAccent.withValues(alpha: 0.16)
+                  : AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
             child: IconButton(
@@ -555,21 +579,26 @@ class _InvestmentPageState extends State<InvestmentPage> {
               },
               icon: Icon(
                 isSearching ? Icons.close_rounded : Icons.search_rounded,
-                color: AppColors.primary,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
               ),
             ),
           ),
           Container(
             margin: const EdgeInsets.only(right: 12),
-            decoration: const BoxDecoration(
-              color: AppColors.primaryTint,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.primaryAccent.withValues(alpha: 0.16)
+                  : AppColors.primaryTint,
               shape: BoxShape.circle,
             ),
             child: IconButton(
               iconSize: 20,
               tooltip: "Notifications",
               onPressed: _reloadInvestments,
-              icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary),
+              icon: Icon(
+                Icons.notifications_none_rounded,
+                color: isDark ? AppColors.primaryAccent : AppColors.primary,
+              ),
             ),
           ),
         ],
@@ -626,12 +655,14 @@ class _InvestmentPageState extends State<InvestmentPage> {
                       color: isDark ? AppColors.textWhite : AppColors.textPrimary,
                     ),
                   ),
-                  const Text(
+                  Text(
                     "SEE ALL",
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: isDark
+                          ? AppColors.primaryAccent
+                          : AppColors.primary,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -655,16 +686,21 @@ class _InvestmentPageState extends State<InvestmentPage> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'add_investment_fab',
-        backgroundColor: AppColors.primary,
+        backgroundColor: isDark ? AppColors.primaryAccent : AppColors.primary,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
         onPressed: _showAddInvestmentDialog,
-        icon: const Icon(
+        icon: Icon(
           Icons.add_rounded,
-          color: AppColors.textWhite,
+          color: isDark ? const Color(0xFF052E23) : AppColors.textWhite,
           size: AppDimensions.icon24,
         ),
-        label: const Text("Add Investment", style: AppTextTheme.buttonText),
+        label: Text(
+          "Add Investment",
+          style: AppTextTheme.buttonText.copyWith(
+            color: isDark ? const Color(0xFF052E23) : AppColors.textWhite,
+          ),
+        ),
       ),
     );
   }
@@ -742,6 +778,19 @@ class _InvestmentPageState extends State<InvestmentPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = investmentTotals.values.fold(0.0, (a, b) => a + b);
 
+    // The shared pie palette starts with deep emerald shades that vanish on
+    // slate, so dark mode uses brighter emerald/teal steps instead.
+    final List<Color> chartColors = isDark
+        ? const [
+            AppColors.primaryAccent,
+            Color(0xFF34D399),
+            Color(0xFF6EE7B7),
+            Color(0xFFA7F3D0),
+            Color(0xFF2DD4BF),
+            Color(0xFF22D3EE),
+          ]
+        : pieColors;
+
     return Container(
       padding: AppSpacing.p20,
       decoration: BoxDecoration(
@@ -784,7 +833,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
                       return PieChartSectionData(
                         value: value,
                         title: "${percentage.toStringAsFixed(0)}%",
-                        color: pieColors[index % pieColors.length],
+                        color: chartColors[index % chartColors.length],
                         radius: 55,
                         titleStyle: const TextStyle(
                           color: AppColors.textWhite,
@@ -839,7 +888,7 @@ class _InvestmentPageState extends State<InvestmentPage> {
                       width: 12,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: pieColors[index % pieColors.length],
+                        color: chartColors[index % chartColors.length],
                         shape: BoxShape.circle,
                       ),
                     ),

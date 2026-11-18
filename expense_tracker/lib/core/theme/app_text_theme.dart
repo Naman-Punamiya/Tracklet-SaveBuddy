@@ -1,8 +1,7 @@
 import 'package:expense_tracker/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
-abstract class AppTextTheme {
-  static const TextStyle displayLarge = TextStyle(
+abstract class AppTextTheme {  static const TextStyle displayLarge = TextStyle(
     fontSize: 30,
     fontWeight: FontWeight.bold,
     color: AppColors.textPrimary,
@@ -56,4 +55,29 @@ abstract class AppTextTheme {
     color: AppColors.textWhite,
     letterSpacing: 0.3,
   );
+
+  // --- Theme-aware variants -----------------------------------------------
+  // These keep the original sizes/weights but resolve the text color against
+  // the active theme, so the same styles stay readable in dark mode.
+
+  static TextStyle displayLargeFor(BuildContext context) =>
+      displayLarge.copyWith(color: context.appTextPrimary);
+
+  static TextStyle headlineLargeFor(BuildContext context) =>
+      headlineLarge.copyWith(color: context.appTextPrimary);
+
+  static TextStyle titleLargeFor(BuildContext context) =>
+      titleLarge.copyWith(color: context.appTextPrimary);
+
+  static TextStyle titleMediumFor(BuildContext context) =>
+      titleMedium.copyWith(color: context.appTextPrimary);
+
+  static TextStyle bodyLargeFor(BuildContext context) =>
+      bodyLarge.copyWith(color: context.appTextPrimary);
+
+  static TextStyle bodyMediumFor(BuildContext context) =>
+      bodyMedium.copyWith(color: context.appTextSecondary);
+
+  static TextStyle bodySmallFor(BuildContext context) =>
+      bodySmall.copyWith(color: context.appTextSecondary);
 }

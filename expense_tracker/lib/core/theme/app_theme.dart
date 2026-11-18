@@ -3,8 +3,31 @@ import 'package:expense_tracker/core/theme/app_radius.dart';
 import 'package:expense_tracker/core/theme/app_spacing.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 abstract class AppTheme {
+  /// System bar styling for light mode (dark icons on the cream background).
+  static const SystemUiOverlayStyle lightSystemUiOverlayStyle =
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+        systemNavigationBarColor: AppColors.lightSurface,
+        systemNavigationBarDividerColor: AppColors.borderLight,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      );
+
+  /// System bar styling for dark mode (light icons on the slate background).
+  static const SystemUiOverlayStyle darkSystemUiOverlayStyle =
+      SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: AppColors.darkBackground,
+        systemNavigationBarDividerColor: AppColors.darkBackground,
+        systemNavigationBarIconBrightness: Brightness.light,
+      );
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -25,6 +48,17 @@ abstract class AppTheme {
         centerTitle: false,
         titleTextStyle: AppTextTheme.displayLarge,
         iconTheme: IconThemeData(color: AppColors.textPrimary),
+        systemOverlayStyle: lightSystemUiOverlayStyle,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.lightSurface,
+        modalBackgroundColor: AppColors.lightSurface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderLight,
+        thickness: 1,
+        space: 1,
       ),
       cardTheme: CardThemeData(
         color: AppColors.lightCard,
@@ -38,6 +72,18 @@ abstract class AppTheme {
         backgroundColor: AppColors.lightSurface,
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
+        contentTextStyle: const TextStyle(
+          fontSize: 15,
+          color: AppColors.textSecondary,
+        ),
+      ),
+      iconTheme: const IconThemeData(
+        color: AppColors.textPrimary,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.lightSurface,
@@ -97,10 +143,13 @@ abstract class AppTheme {
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.darkBackground,
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.primary,
-        secondary: AppColors.primaryLight,
+        primary: AppColors.primaryAccent,
+        secondary: AppColors.primaryAccent,
         surface: AppColors.darkSurface,
-        onPrimary: AppColors.textWhite,
+        onPrimary: Color(0xFF052E23),
+        onSurface: AppColors.textPrimaryDark,
+        onSurfaceVariant: AppColors.textSecondaryDark,
+        outline: AppColors.borderDark,
         error: AppColors.expense,
       ),
       appBarTheme: const AppBarTheme(
@@ -114,6 +163,17 @@ abstract class AppTheme {
           color: AppColors.textWhite,
         ),
         iconTheme: IconThemeData(color: AppColors.textWhite),
+        systemOverlayStyle: darkSystemUiOverlayStyle,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.darkSurface,
+        modalBackgroundColor: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: AppColors.borderDark,
+        thickness: 1,
+        space: 1,
       ),
       cardTheme: CardThemeData(
         color: AppColors.darkCard,
@@ -127,16 +187,76 @@ abstract class AppTheme {
         backgroundColor: AppColors.darkSurface,
         elevation: 6,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.dialog),
+        titleTextStyle: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimaryDark,
+        ),
+        contentTextStyle: const TextStyle(
+          fontSize: 15,
+          color: AppColors.textSecondaryDark,
+        ),
+      ),
+      iconTheme: const IconThemeData(
+        color: AppColors.textPrimaryDark,
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(color: AppColors.textPrimaryDark),
+        displayMedium: TextStyle(color: AppColors.textPrimaryDark),
+        displaySmall: TextStyle(color: AppColors.textPrimaryDark),
+        headlineLarge: TextStyle(color: AppColors.textPrimaryDark),
+        headlineMedium: TextStyle(color: AppColors.textPrimaryDark),
+        headlineSmall: TextStyle(color: AppColors.textPrimaryDark),
+        titleLarge: TextStyle(color: AppColors.textPrimaryDark),
+        titleMedium: TextStyle(color: AppColors.textPrimaryDark),
+        titleSmall: TextStyle(color: AppColors.textPrimaryDark),
+        bodyLarge: TextStyle(color: AppColors.textPrimaryDark),
+        bodyMedium: TextStyle(color: AppColors.textSecondaryDark),
+        bodySmall: TextStyle(color: AppColors.textSecondaryDark),
+        labelLarge: TextStyle(color: AppColors.textPrimaryDark),
+        labelMedium: TextStyle(color: AppColors.textSecondaryDark),
+        labelSmall: TextStyle(color: AppColors.textSecondaryDark),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.darkSurface,
+        selectedColor: AppColors.primaryAccent,
+        secondarySelectedColor: AppColors.primaryAccent,
+        deleteIconColor: AppColors.textPrimaryDark,
+        labelStyle: const TextStyle(color: AppColors.textPrimaryDark),
+        secondaryLabelStyle: const TextStyle(color: Color(0xFF052E23)),
+        side: const BorderSide(color: AppColors.borderDark),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
+      ),
+      datePickerTheme: const DatePickerThemeData(
+        backgroundColor: AppColors.darkSurface,
+        surfaceTintColor: Colors.transparent,
+        headerBackgroundColor: AppColors.darkSurface,
+        headerForegroundColor: AppColors.textPrimaryDark,
+      ),
+      timePickerTheme: const TimePickerThemeData(
+        backgroundColor: AppColors.darkSurface,
+      ),
+      popupMenuTheme: const PopupMenuThemeData(
+        color: AppColors.darkSurface,
+        textStyle: TextStyle(color: AppColors.textPrimaryDark),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primaryAccent,
+        ),
+      ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.primaryAccent,
       ),
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: AppColors.darkSurface,
-        selectedItemColor: AppColors.primaryLight,
+        selectedItemColor: AppColors.primaryAccent,
         unselectedItemColor: AppColors.textMuted,
         elevation: 8,
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textWhite,
+        backgroundColor: AppColors.primaryAccent,
+        foregroundColor: const Color(0xFF052E23),
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: AppRadius.pill),
       ),
@@ -154,7 +274,7 @@ abstract class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
-          borderSide: const BorderSide(color: AppColors.primaryLight, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primaryAccent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
@@ -163,8 +283,8 @@ abstract class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.textWhite,
+          backgroundColor: AppColors.primaryAccent,
+          foregroundColor: const Color(0xFF052E23),
           elevation: 2,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
           textStyle: AppTextTheme.buttonText,

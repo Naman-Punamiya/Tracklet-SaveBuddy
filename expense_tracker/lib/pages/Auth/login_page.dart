@@ -11,6 +11,8 @@ import 'package:expense_tracker/core/theme/app_spacing.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
+import 'package:expense_tracker/database/database_helper.dart';
+import 'package:expense_tracker/pages/Auth/forgot_password_page.dart';
 import 'package:expense_tracker/pages/Auth/register_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/repositories/repository.dart';
@@ -20,7 +22,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final http.Client? client;
+  const LoginPage({super.key, this.client});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -40,11 +43,13 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: AppColors.lightSurface,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightSurface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -56,9 +61,11 @@ class _LoginPageState extends State<LoginPage> {
                 child: Container(
                   height: deviceHeight / 2,
                   width: deviceWidth,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryTint,
-                    borderRadius: BorderRadius.all(Radius.circular(40)),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.primaryAccent.withValues(alpha: 0.10)
+                        : AppColors.primaryTint,
+                    borderRadius: const BorderRadius.all(Radius.circular(40)),
                   ),
                 ),
               ),
@@ -81,25 +88,31 @@ class _LoginPageState extends State<LoginPage> {
                             Container(
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
-                                color: AppColors.lightSurface,
+                                color: isDark
+                                    ? AppColors.darkSurface
+                                    : AppColors.lightSurface,
                                 borderRadius: AppRadius.dialog,
-                                boxShadow: AppShadows.cardShadowList,
+                                boxShadow: isDark
+                                    ? null
+                                    : AppShadows.cardShadowList,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.attach_money,
-                                color: AppColors.primary,
+                                color: isDark
+                                    ? AppColors.primaryAccent
+                                    : AppColors.primary,
                                 size: 90,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xLarge),
                             Text(
                               "Welcome Back",
-                              style: AppTextTheme.displayLarge,
+                              style: AppTextTheme.displayLargeFor(context),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               "Login to continue",
-                              style: AppTextTheme.bodyMedium,
+                              style: AppTextTheme.bodyMediumFor(context),
                             ),
                             const SizedBox(height: AppSpacing.xxLarge),
                             CustomTextfield(
@@ -120,12 +133,9 @@ class _LoginPageState extends State<LoginPage> {
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        "Forgot password functionality coming soon!",
-                                      ),
-                                      duration: Duration(seconds: 2),
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) => const ForgotPasswordPage(),
                                     ),
                                   );
                                 },
@@ -134,10 +144,12 @@ class _LoginPageState extends State<LoginPage> {
                                   minimumSize: const Size(50, 30),
                                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                child: const Text(
+                                child: Text(
                                   "Forgot Password?",
                                   style: TextStyle(
-                                    color: AppColors.primary,
+                                    color: isDark
+                                        ? AppColors.primaryAccent
+                                        : AppColors.primary,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -182,7 +194,7 @@ class _LoginPageState extends State<LoginPage> {
                               children: [
                                 Text(
                                   "Don't have an account? ",
-                                  style: AppTextTheme.bodyMedium,
+                                  style: AppTextTheme.bodyMediumFor(context),
                                 ),
                                 InkWell(
                                   onTap: () {
@@ -193,15 +205,17 @@ class _LoginPageState extends State<LoginPage> {
                                     );
                                   },
                                   borderRadius: BorderRadius.circular(4),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
                                       vertical: 4,
                                       horizontal: 2,
                                     ),
                                     child: Text(
                                       "Create one",
                                       style: TextStyle(
-                                        color: AppColors.primary,
+                                        color: isDark
+                                            ? AppColors.primaryAccent
+                                            : AppColors.primary,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -264,16 +278,24 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final response = await http
-          .post(
-            Uri.parse('${userUrl}login'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            body: jsonEncode({"email": email, "password": password}),
-          )
-          .timeout(const Duration(seconds: 15));
+      final client = widget.client;
+      final response = client != null
+          ? await client.post(
+              Uri.parse('${userUrl}login'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode({"email": email, "password": password}),
+            ).timeout(const Duration(seconds: 15))
+          : await http.post(
+              Uri.parse('${userUrl}login'),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+              },
+              body: jsonEncode({"email": email, "password": password}),
+            ).timeout(const Duration(seconds: 15));
 
       if (!mounted) return;
 
@@ -282,6 +304,19 @@ class _LoginPageState extends State<LoginPage> {
         if (data is Map<String, dynamic>) {
           final int fetchedUserId = (data['id'] as num?)?.toInt() ?? 0;
           SharedPreferences prefs = await SharedPreferences.getInstance();
+          final String? previousEmail = prefs.getString("last_logged_in_email") ?? prefs.getString("email");
+          final String normalizedPreviousEmail = (previousEmail ?? "").trim().toLowerCase();
+          final String normalizedIncomingEmail = email.trim().toLowerCase();
+
+          // If a different user was previously logged in on this device, purge local tables for user isolation
+          if (normalizedPreviousEmail.isNotEmpty && normalizedPreviousEmail != normalizedIncomingEmail) {
+            await DatabaseHelper.instance.clearAllData();
+            SyncEngine.resetInitialSync();
+          }
+
+          // Update last_logged_in_email to the successfully authenticated account
+          await prefs.setString("last_logged_in_email", normalizedIncomingEmail);
+
           await prefs.setBool("isLoggedIn", true);
           await prefs.setString("email", email);
           // Securely save credentials into Keystore backed storage
@@ -291,6 +326,15 @@ class _LoginPageState extends State<LoginPage> {
           if (fetchedUserId > 0) {
             await prefs.setInt("userId", fetchedUserId);
           }
+
+          // Start cloud synchronization in the background after successful login
+          final basicAuth = AuthStorageService.instance.currentAuthToken.isNotEmpty
+              ? AuthStorageService.instance.currentAuthToken
+              : 'Basic ${base64Encode(utf8.encode('$email:$password'))}';
+          SyncEngine.markInitialSyncStarted();
+          unawaited(SyncEngine.syncAll(basicAuth, client: widget.client).catchError((e) {
+            debugPrint("Background sync after login error: $e");
+          }));
 
           if (!mounted) return;
 

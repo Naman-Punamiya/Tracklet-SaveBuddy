@@ -26,6 +26,13 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Password reset Android App Link (HTTPS). Host is configurable via Gradle manifest placeholder `appLinksHost`. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="${appLinksHost}" android:pathPrefix="/reset-password"/>
+            </intent-filter>
             <!-- Receipt Share Intent: Uncomment when automated expense creation from shared text is completed
             <intent-filter>
                 <action android:name="android.intent.action.SEND"/>

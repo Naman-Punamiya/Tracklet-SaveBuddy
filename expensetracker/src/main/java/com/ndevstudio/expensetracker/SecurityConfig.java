@@ -25,6 +25,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/users/register").permitAll()
                 .requestMatchers("/api/users/login").permitAll()
+                .requestMatchers("/api/users/forgot-password").permitAll()
+                .requestMatchers("/api/users/reset-password").permitAll()
                 // Health endpoint is authenticated
                 // by HealthCheckFilter instead of Basic Auth.
                 .requestMatchers("/health/db").permitAll()

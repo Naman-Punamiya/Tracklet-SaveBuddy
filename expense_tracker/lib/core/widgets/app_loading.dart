@@ -3,22 +3,26 @@ import 'package:flutter/material.dart';
 
 class AppLoading extends StatelessWidget {
   final double size;
-  final Color color;
+  final Color? color;
 
   const AppLoading({
     super.key,
     this.size = 24.0,
-    this.color = AppColors.primary,
+    this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveColor =
+        color ?? (isDark ? AppColors.primaryAccent : AppColors.primary);
+
     return Center(
       child: SizedBox(
         width: size,
         height: size,
         child: CircularProgressIndicator(
-          color: color,
+          color: effectiveColor,
           strokeWidth: 2.5,
         ),
       ),

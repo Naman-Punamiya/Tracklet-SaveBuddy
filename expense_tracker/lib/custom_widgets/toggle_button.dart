@@ -33,11 +33,21 @@ class _ToggleButtonState extends State<ToggleButton> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unselectedBg = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final selectedBg =
+        isDark ? const Color(0xFF334155) : Colors.grey.shade700;
+    final selectedText = Colors.white;
+    final unselectedText =
+        isDark ? const Color(0xFFE2E8F0) : Colors.grey.shade700;
+
     return Container(
       width: 220,
       height: 50,
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade400),
+        border: Border.all(
+          color: isDark ? const Color(0xFF475569) : Colors.grey.shade400,
+        ),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -47,12 +57,12 @@ class _ToggleButtonState extends State<ToggleButton> {
             child: GestureDetector(
               onTap: () => _toggle(false),
               child: Container(
-                color: !isCredit ? Colors.grey.shade700 : Colors.white,
+                color: !isCredit ? selectedBg : unselectedBg,
                 child: Center(
                   child: Text(
                     "DEBIT",
                     style: TextStyle(
-                      color: !isCredit ? Colors.white : Colors.grey.shade700,
+                      color: !isCredit ? selectedText : unselectedText,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -66,12 +76,12 @@ class _ToggleButtonState extends State<ToggleButton> {
             child: GestureDetector(
               onTap: () => _toggle(true),
               child: Container(
-                color: isCredit ? Colors.grey.shade700 : Colors.white,
+                color: isCredit ? selectedBg : unselectedBg,
                 child: Center(
                   child: Text(
                     "CREDIT",
                     style: TextStyle(
-                      color: isCredit ? Colors.white : Colors.grey.shade700,
+                      color: isCredit ? selectedText : unselectedText,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

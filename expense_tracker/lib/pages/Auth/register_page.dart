@@ -11,6 +11,7 @@ import 'package:expense_tracker/core/theme/app_spacing.dart';
 import 'package:expense_tracker/core/theme/app_text_theme.dart';
 import 'package:expense_tracker/core/widgets/app_loading.dart';
 import 'package:expense_tracker/custom_widgets/custom_textfield.dart';
+import 'package:expense_tracker/database/database_helper.dart';
 import 'package:expense_tracker/pages/Auth/login_page.dart';
 import 'package:expense_tracker/pages/home_page.dart';
 import 'package:expense_tracker/repositories/repository.dart';
@@ -44,11 +45,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     double deviceHeight = MediaQuery.of(context).size.height;
     double deviceWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      backgroundColor: AppColors.lightSurface,
+      backgroundColor:
+          isDark ? AppColors.darkBackground : AppColors.lightSurface,
       body: SafeArea(
         child: Stack(
           children: [
@@ -60,9 +63,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Container(
                   height: deviceHeight / 2,
                   width: deviceWidth,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryTint,
-                    borderRadius: BorderRadius.all(Radius.circular(40)),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.primaryAccent.withValues(alpha: 0.10)
+                        : AppColors.primaryTint,
+                    borderRadius: const BorderRadius.all(Radius.circular(40)),
                   ),
                 ),
               ),
@@ -85,25 +90,31 @@ class _RegisterPageState extends State<RegisterPage> {
                             Container(
                               padding: const EdgeInsets.all(18),
                               decoration: BoxDecoration(
-                                color: AppColors.lightSurface,
+                                color: isDark
+                                    ? AppColors.darkSurface
+                                    : AppColors.lightSurface,
                                 borderRadius: AppRadius.dialog,
-                                boxShadow: AppShadows.cardShadowList,
+                                boxShadow: isDark
+                                    ? null
+                                    : AppShadows.cardShadowList,
                               ),
-                              child: const Icon(
+                              child: Icon(
                                 Icons.attach_money,
-                                color: AppColors.primary,
+                                color: isDark
+                                    ? AppColors.primaryAccent
+                                    : AppColors.primary,
                                 size: 90,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.large),
                             Text(
                               "Create Account",
-                              style: AppTextTheme.displayLarge,
+                              style: AppTextTheme.displayLargeFor(context),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               "Let's get you started",
-                              style: AppTextTheme.bodyMedium,
+                              style: AppTextTheme.bodyMediumFor(context),
                             ),
                             const SizedBox(height: 28),
                             CustomTextfield(
@@ -167,7 +178,7 @@ class _RegisterPageState extends State<RegisterPage> {
                               children: [
                                 Text(
                                   "Already have an account? ",
-                                  style: AppTextTheme.bodyMedium,
+                                  style: AppTextTheme.bodyMediumFor(context),
                                 ),
                                 InkWell(
                                   onTap: () {
@@ -178,15 +189,17 @@ class _RegisterPageState extends State<RegisterPage> {
                                     );
                                   },
                                   borderRadius: BorderRadius.circular(4),
-                                  child: const Padding(
-                                    padding: EdgeInsets.symmetric(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
                                       vertical: 4,
                                       horizontal: 2,
                                     ),
                                     child: Text(
                                       "Sign in",
                                       style: TextStyle(
-                                        color: AppColors.primary,
+                                        color: isDark
+                                            ? AppColors.primaryAccent
+                                            : AppColors.primary,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -311,6 +324,18 @@ class _RegisterPageState extends State<RegisterPage> {
         if (data is Map<String, dynamic>) {
           final int fetchedUserId = (data['id'] as num?)?.toInt() ?? 0;
           SharedPreferences prefs = await SharedPreferences.getInstance();
+          final String? previousEmail = prefs.getString("last_logged_in_email") ?? prefs.getString("email");
+          final String normalizedPreviousEmail = (previousEmail ?? "").trim().toLowerCase();
+          final String normalizedIncomingEmail = email.trim().toLowerCase();
+
+          // If a different user was previously logged in on this device, purge local tables for user isolation
+          if (normalizedPreviousEmail.isNotEmpty && normalizedPreviousEmail != normalizedIncomingEmail) {
+            await DatabaseHelper.instance.clearAllData();
+            SyncEngine.resetInitialSync();
+          }
+
+          // Update last_logged_in_email to the successfully authenticated account
+          await prefs.setString("last_logged_in_email", normalizedIncomingEmail);
           await prefs.setBool("isLoggedIn", true);
           await prefs.setString("email", email);
           // Securely save credentials into Keystore backed storage

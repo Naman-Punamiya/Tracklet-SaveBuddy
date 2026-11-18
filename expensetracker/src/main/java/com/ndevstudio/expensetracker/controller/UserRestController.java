@@ -1,9 +1,14 @@
 package com.ndevstudio.expensetracker.controller;
 
+import com.ndevstudio.expensetracker.dto.ForgotPasswordRequest;
+import com.ndevstudio.expensetracker.dto.ResetPasswordRequest;
 import com.ndevstudio.expensetracker.entity.User;
 import com.ndevstudio.expensetracker.repository.UserRepository;
+import com.ndevstudio.expensetracker.service.PasswordResetService;
 import com.ndevstudio.expensetracker.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -11,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -23,6 +29,11 @@ public class UserRestController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private UserService userService;
+    @Autowired
+    private PasswordResetService passwordResetService;
+
+    @Value("${app.security.trust-forward-headers:false}")
+    private boolean trustForwardHeaders;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -69,20 +80,42 @@ public class UserRestController {
         return ResponseEntity.ok(user);
     }
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable Long id) {
-        Optional<User> user = userRepository.findById(id);
-        if (user.isEmpty()) {
+    public ResponseEntity<?> getUserById(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        User authUser = userRepository.findByEmail(authentication.getName()).orElse(null);
+        if (authUser == null || authUser.getId() != id) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body("User not found");
         }
-        return ResponseEntity.ok(user.get());
+        return ResponseEntity.ok(authUser);
+    }
+
+    /**
+     * Initiates password reset. Always returns a generic response to avoid account enumeration.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@RequestBody(required = false) ForgotPasswordRequest request,
+                                                              HttpServletRequest httpRequest) {
+        String clientIp = extractClientIp(httpRequest);
+        try {
+            passwordResetService.requestPasswordReset(request, clientIp);
+        } catch (RuntimeException ex) {
+            // Keep generic response and avoid exposing delivery/account details.
+        }
+        return ResponseEntity.ok(Map.of("message", passwordResetService.getGenericForgotPasswordMessage()));
+    }
+
+    /**
+     * Resets password using a one-time reset token.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@RequestBody(required = false) ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.ok(Map.of("message", "Password has been reset successfully. You can now log in with your new password."));
     }
 
     /**
@@ -98,5 +131,21 @@ public class UserRestController {
 
         userService.deleteUserAccount(authentication.getName());
         return ResponseEntity.noContent().build();
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        if (request == null) return "unknown";
+        if (trustForwardHeaders) {
+            String forwarded = request.getHeader("X-Forwarded-For");
+            if (forwarded != null && !forwarded.isBlank()) {
+                int comma = forwarded.indexOf(',');
+                return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
+            }
+            String realIp = request.getHeader("X-Real-IP");
+            if (realIp != null && !realIp.isBlank()) {
+                return realIp.trim();
+            }
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "unknown";
     }
 }

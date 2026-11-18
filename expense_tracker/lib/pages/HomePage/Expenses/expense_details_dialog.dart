@@ -40,10 +40,10 @@ class ExpenseDetailsDialog extends StatelessWidget {
           children: [
             Text(
               "Description: $description",
-              style: AppTextTheme.bodyLarge,
+              style: AppTextTheme.bodyLargeFor(context),
             ),
             const SizedBox(height: 8),
-            Text("Amount: ₹$amount", style: AppTextTheme.bodyMedium),
+            Text("Amount: ₹$amount", style: AppTextTheme.bodyMediumFor(context)),
             const SizedBox(height: 8),
             Text(
               isCreditExpense ? "Type: Credit" : "Type: Debit",
@@ -54,7 +54,7 @@ class ExpenseDetailsDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text("Category: $categoryName", style: AppTextTheme.bodyMedium),
+            Text("Category: $categoryName", style: AppTextTheme.bodyMediumFor(context)),
           ],
         ),
       ),
@@ -64,7 +64,7 @@ class ExpenseDetailsDialog extends StatelessWidget {
             Navigator.pop(context);
             onEdit();
           },
-          child: const Text("Edit", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+          child: Text("Edit", style: TextStyle(color: context.appPrimary, fontWeight: FontWeight.bold)),
         ),
         TextButton(
           onPressed: () {
@@ -75,7 +75,7 @@ class ExpenseDetailsDialog extends StatelessWidget {
         ),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text("Close", style: TextStyle(color: AppColors.textSecondary)),
+          child: Text("Close", style: TextStyle(color: context.appTextSecondary)),
         ),
       ],
     );

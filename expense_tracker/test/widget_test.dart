@@ -30,6 +30,10 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 2500));
       await tester.pump(const Duration(milliseconds: 500));
+      for (int i = 0; i < 6; i++) {
+        await tester.runAsync(() => Future.delayed(const Duration(milliseconds: 50)));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
 
       expect(find.byType(HomePage), findsOneWidget);
       expect(find.text('Here are your books'), findsOneWidget);
